@@ -33,7 +33,7 @@ class ChatSessionAdmin(admin.ModelAdmin):
 @admin.register(AiRequest)
 class AiRequestAdmin(admin.ModelAdmin):
     list_display = (
-        "id",
+        # "id",
         "account_id",
         "session",
         "status",
@@ -59,3 +59,5 @@ class AiRequestAdmin(admin.ModelAdmin):
             "fields": ("created_at", "updated_at"),
         }),
     )
+
+

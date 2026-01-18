@@ -82,7 +82,7 @@ class ChatSession(BaseModel):
         try:
             # Fetch an ApiKey for this account
             try:
-                key = ApiKey.objects.get(account=self.account_id)
+                key = ApiKey.objects.get(account_id=self.account_id)
             except ApiKey.DoesNotExist:
                 raise RuntimeError("No API key configured for this account")
 
@@ -227,7 +227,7 @@ class AiRequest(BaseModel):
     response_engine = models.IntegerField(choices=ChatEngine.choices, blank=True, null=True)
     
     # character style
-    response_style = models.TextField(choices=ModelStyle.choices, null=True, blank=True)
+    response_style = models.CharField(max_length=20, choices=ModelStyle.choices, null=True, blank=True)
 
 
     def _queue_job(self):
@@ -244,7 +244,7 @@ class AiRequest(BaseModel):
 
         try:
             # get a working API key for this account
-            key = ApiKey.objects.filter(account=self.account_id, is_working=True).first()
+            key = ApiKey.objects.filter(account_id=self.account_id, is_working=True).first()
             if not key:
                 raise RuntimeError("No working API key configured for this account")
 
