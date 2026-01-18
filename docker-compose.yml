@@ -1,0 +1,80 @@
+services:
+
+  # main backend
+  backend:
+    working_dir: /backend
+    
+    build:
+      context: .
+    ports:
+      - 8000:8000
+    volumes:
+      - ./backend:/backend
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+      - SECRET_KEY=${SECRET_KEY}
+      - DEBUG=${DEBUG}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - DJANGO_CRYPTO_KEY=${DJANGO_CRYPTO_KEY}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # main database
+  db:
+    image: postgres:17.1
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASS}
+    healthcheck:
+      test: ["CMD", "pg_isready", "-q", "-d", "${DB_NAME}", "-U", "${DB_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      
+    # message broker
+  mq:
+    image: rabbitmq:3.13.7-alpine
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
+
+  # message scheduling celery
+  worker:
+    working_dir: /backend
+
+    build:
+      context: .
+    volumes:
+      - ./backend:/backend
+    command: >
+      sh -c "celery -A core worker -l INFO"
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+      - SECRET_KEY=${SECRET_KEY}
+      - DEBUG=${DEBUG}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - DJANGO_CRYPTO_KEY=${DJANGO_CRYPTO_KEY}
+
+    depends_on:
+      - backend
+      - mq
+
+volumes:
+  db-data:

@@ -1,0 +1,5 @@
+.env
+venv
+test.json
+log.md
+prompt.txt

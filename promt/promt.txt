@@ -821,7 +821,7 @@
 
 		Features:
 
-		AI Chat for basic questions
+		AI Chat DB_HOSTfor basic questions
 
 		Text-only guidance
 
