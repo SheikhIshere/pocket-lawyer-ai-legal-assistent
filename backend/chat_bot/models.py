@@ -15,7 +15,7 @@ from api_key.models import ApiKey
 
 # base import
 from BASE.base_model import BaseModel
-from BASE.base_prompt import generate_title_prompt
+from BASE.base_prompt import generate_title_prompt, get_legal_prompt
 from BASE.base_choice import (
     CeleryStatus, 
     ChatEngine,
@@ -55,7 +55,8 @@ class ChatSession(BaseModel):
         # account is an Account instance
         email = getattr(self.account_id, 'user', None)
         email_text = email.email if email else str(self.account_id)
-        return f"{email_text} - {self.created_at}"
+        title = self.title
+        return f"{title}" if title else f"{email_text} - {self.created_at}"
 
     def _queue_job(self):
         """Schedule background AI title generation (Celery task)."""
@@ -115,7 +116,7 @@ class ChatSession(BaseModel):
                 raw = re.sub(r'^(title[:\s\-]+)', '', raw, flags=re.IGNORECASE).strip()
                 raw = re.sub(r'[^\w\s]', '', raw)
                 words = [w for w in raw.split() if w]
-                cleaned = (" ".join(words[:3]).title()) if words else f"New Chat {uuid.uuid4().hex[:4]}"
+                cleaned = (" ".join(words[:5]).title()) if words else f"New Chat {uuid.uuid4().hex[:4]}"
             else:
                 cleaned = f"New Chat {uuid.uuid4().hex[:4]}"
 
@@ -234,134 +235,147 @@ class AiRequest(BaseModel):
         """Dispatch the request to Celery on successful transaction commit."""
         from .tasks import handle_ai_request_job
         from django.db import transaction
-
         transaction.on_commit(lambda: handle_ai_request_job.delay(str(self.id)))
 
     def handle(self):
-        """Core logic executed by the Celery worker to call the AI provider."""
-        self.status = CeleryStatus.RUNNING
-        self.save(update_fields=['status', 'updated_at'] if hasattr(self, 'updated_at') else ['status'])
+            """Core logic executed by the Celery worker to call the AI provider."""
+            self.status = CeleryStatus.RUNNING
+            self.save(update_fields=['status', 'updated_at'] if hasattr(self, 'updated_at') else ['status'])
 
-        try:
-            # get a working API key for this account
-            key = ApiKey.objects.filter(account_id=self.account_id, is_working=True).first()
-            if not key:
-                raise RuntimeError("No working API key configured for this account")
-
-            # init client (defensive)
             try:
-                client = genai.Client(api_key=key.api_key)
-            except Exception as e:
-                raise RuntimeError(f"Failed to initialize AI client: {str(e)}")
+                # 1. Get a working API key for this account
+                key = ApiKey.objects.filter(account_id=self.account_id, is_working=True).first()
+                if not key:
+                    raise RuntimeError("No working API key configured for this account")
 
-            # prepare engine/model selection
-            # map of stored integer -> model string label
-            engine_map = {val: label for val, label in ChatEngine.choices}
-            # candidate engine order (from high to low); if user already selected a valid engine, try that first
-            all_engines = [val for val, _ in ChatEngine.choices]
-            candidates = []
-
-            if self.response_engine and self.response_engine in engine_map:
-                candidates.append(self.response_engine)
-
-            # append the rest in preference order but avoid duplicates
-            for e in all_engines:
-                if e not in candidates:
-                    candidates.append(e)
-
-            # prepare prompt
-            history = self.session._conversation_text() if self.session else ""
-            system_instr = (
-                "You are a helpful assistant. Use the conversation history below as the source of truth "
-                "about earlier messages in this session. If the user asks about earlier facts (for example, "
-                "their name and all personal details), answer using that history. Do not invent previous messages."
-            )
-            prompt = (
-                f"{system_instr}\n\n"
-                f"Conversation:\n{history}\n"
-                f"User: {self.message}\n"
-                f"Assistant:"
-            )
-
-            # try each candidate until one succeeds
-            completion = None
-            used_engine_val = None
-            last_exc = None
-            for engine_val in candidates:
-                model_name = engine_map.get(engine_val)
-                if not model_name:
-                    continue
-
+                # 2. Init client (defensive)
                 try:
-                    completion = client.models.generate_content(
-                        model=model_name,
-                        contents=prompt,
-                    )
-                    # if call didn't raise, record used engine and break
-                    used_engine_val = engine_val
-                    break
+                    client = genai.Client(api_key=key.api_key)
                 except Exception as e:
-                    # record and continue to next candidate
-                    last_exc = e
-                    # optional: print/debug log so worker logs show which model failed
-                    print(f"Model {model_name} failed: {e}")
-                    continue
+                    raise RuntimeError(f"Failed to initialize AI client: {str(e)}")
 
-            if completion is None:
-                # none of the models worked
-                raise RuntimeError(f"All model attempts failed: {last_exc}")
+                # 3. Prepare Engine Candidates
+                # map of stored integer -> model string label
+                engine_map = {val: label for val, label in ChatEngine.choices}
+                
+                # Default fallback order (Performance/Cost Hierarchy)
+                fallback_order = [
+                    ChatEngine.GEMINI_3_FLASH,
+                    ChatEngine.GEMINI_2_5_FLASH,
+                    ChatEngine.GEMINI_2_5_FLASH_LITE,
+                    ChatEngine.GEMMA_3_27B
+                ]
 
-            # defensive extraction of text
-            text = None
-            if hasattr(completion, 'text'):
-                text = completion.text
-            elif isinstance(completion, dict):
-                text = completion.get('text') or completion.get('output') or completion.get('result')
-                if isinstance(text, list) and text:
-                    first = text[0]
-                    if isinstance(first, dict):
-                        text = first.get('content') or first.get('text') or str(first)
-                    else:
-                        text = str(first)
+                candidates = []
+                
+                # A. Priority 1: The user's selection
+                if self.response_engine and self.response_engine in engine_map:
+                    candidates.append(self.response_engine)
 
-            if text is None:
-                text = str(completion)
+                # B. Priority 2: Everything else (The Defaults)
+                for e in fallback_order:
+                    if e not in candidates:
+                        candidates.append(e)
 
-            # persist response & mark completed
-            self.response = text
-            # record the engine actually used (int value)
-            if used_engine_val is not None:
-                self.response_engine = used_engine_val
-            self.status = CeleryStatus.COMPLETED
+                # 4. Prepare Prompt (Persona + History)
+                history = self.session._conversation_text() if self.session else ""
+                
+                # Get specific system instruction based on selected Style (Supportive, Casual, Deep)
+                base_instruction = get_legal_prompt(self.response_style, self.message)
+                
+                prompt = (
+                    f"{base_instruction}\n\n"
+                    f"--- CONVERSATION HISTORY ---\n"
+                    f"{history}\n"
+                    f"----------------------------\n"
+                    f"User Query: {self.message}\n"
+                    f"Response:"
+                )
 
-            # storing in session to track history (non-blocking)
-            if self.session:
-                try:
-                    self.session.add_message(
-                        message=self.message,
-                        response=self.response,
-                        email=(self.account_id.user.email if getattr(self.account_id, 'user', None) else None),
-                        engine=engine_map.get(used_engine_val),
-                        style=self.response_style,
-                    )
-                except Exception as exc:
-                    # session persistence failed — don't break the main flow
-                    print("Warning: failed to append message to session:", exc)
+                # 5. Execution Loop (Try candidates until one succeeds)
+                completion = None
+                used_engine_val = None
+                last_exc = None
+                
+                for engine_val in candidates:
+                    model_name = engine_map.get(engine_val)
+                    if not model_name:
+                        continue
 
-        except Exception as e:
-            self.status = CeleryStatus.FAILED
-            # store a concise error string for debugging; avoid huge tracebacks in DB
-            self.response = str(e)
+                    try:
+                        completion = client.models.generate_content(
+                            model=model_name,
+                            contents=prompt,
+                        )
+                        # if call didn't raise, record used engine and break
+                        used_engine_val = engine_val
+                        break
+                    except Exception as e:
+                        # record and continue to next candidate
+                        last_exc = e
+                        print(f"Model {model_name} failed: {e}")
+                        continue
 
-        # final save: only update limited fields
-        update_fields = ['status', 'response', 'response_engine']
-        if hasattr(self, 'updated_at'):
-            update_fields.append('updated_at')
-        try:
-            self.save(update_fields=[f for f in update_fields if hasattr(self, f) or f == 'response'])
-        except Exception as save_exc:
-            # Last-resort logging to prevent silent failures in the worker
-            print("AiRequest.save failed in handle():", save_exc)
+                if completion is None:
+                    # none of the models worked
+                    raise RuntimeError(f"All model attempts failed. Last Error: {last_exc}")
+
+                # 6. Defensive extraction of text
+                text = None
+                if hasattr(completion, 'text'):
+                    text = completion.text
+                elif isinstance(completion, dict):
+                    text = completion.get('text') or completion.get('output') or completion.get('result')
+                    if isinstance(text, list) and text:
+                        first = text[0]
+                        if isinstance(first, dict):
+                            text = first.get('content') or first.get('text') or str(first)
+                        else:
+                            text = str(first)
+
+                if text is None:
+                    text = str(completion)
+
+                # 7. Persist response & mark completed
+                self.response = text
+                # record the engine actually used (int value)
+                if used_engine_val is not None:
+                    self.response_engine = used_engine_val
+                self.status = CeleryStatus.COMPLETED
+
+                # 8. Store in session with detailed METADATA
+                if self.session:
+                    try:
+                        # Calculate safe email
+                        user_email = "unknown"
+                        if hasattr(self.account_id, 'user') and self.account_id.user:
+                            user_email = self.account_id.user.email
+
+                        self.session.add_message(
+                            message=self.message,
+                            response=self.response,
+                            email=user_email,
+                            engine=engine_map.get(used_engine_val), # Store string label
+                            style=self.response_style,
+                            created_at=self.created_at if hasattr(self, 'created_at') else timezone.now()
+                        )
+                    except Exception as exc:
+                        # session persistence failed — don't break the main flow
+                        print("Warning: failed to append message to session:", exc)
+
+            except Exception as e:
+                self.status = CeleryStatus.FAILED
+                # store a concise error string for debugging
+                self.response = str(e)
+
+            # final save: only update limited fields
+            update_fields = ['status', 'response', 'response_engine']
+            if hasattr(self, 'updated_at'):
+                update_fields.append('updated_at')
+            try:
+                self.save(update_fields=[f for f in update_fields if hasattr(self, f) or f == 'response'])
+            except Exception as save_exc:
+                print("AiRequest.save failed in handle():", save_exc)
 
     def save(self, **kwargs):
         is_new = self._state.adding
