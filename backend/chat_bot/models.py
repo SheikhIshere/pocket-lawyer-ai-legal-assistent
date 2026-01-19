@@ -45,7 +45,7 @@ class ChatSession(BaseModel):
 
     # worker status
     status = models.CharField(max_length=20, choices=CeleryStatus.choices, default=CeleryStatus.PENDING)
-    
+
     class Meta:
         db_table = 'chat_session'
         verbose_name = 'Chat Session'
@@ -57,6 +57,13 @@ class ChatSession(BaseModel):
         email_text = email.email if email else str(self.account_id)
         title = self.title
         return f"{title}" if title else f"{email_text} - {self.created_at}"
+
+    
+    @property
+    def ai_request_count(self):
+        """Return count of AiRequest objects in this session."""
+        return AiRequest.objects.filter(session=self).count()
+
 
     def _queue_job(self):
         """Schedule background AI title generation (Celery task)."""
@@ -405,3 +412,7 @@ class AiRequest(BaseModel):
             except Exception:
                 # if queuing fails, don't break saving; the worker will mark failed later
                 pass
+
+
+
+
