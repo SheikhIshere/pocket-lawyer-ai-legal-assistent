@@ -65,26 +65,12 @@ class AiRequestViewSet(mixins.CreateModelMixin,
 
     def perform_create(self, serializer):
         # 1. Grab the Account instance related to the logged-in User
-        user_account = getattr(self.request.user, 'account', None)
+        user_account = self.request.user.account        
         
-        # 2. Validate that the user has an associated account
-        if user_account is None:
-            from rest_framework.exceptions import ValidationError
-            raise ValidationError("User account not found")
-        
-        # 3. Save the request linked to this account
-        # The model's save() logic will handle session creation and Celery queuing
+        # Save the request. This triggers AiRequest.save() 
+        # which handles session creation and Celery triggering.
         serializer.save(account_id=user_account)
 
-    def create(self, request, *args, **kwargs):
-        """
-        Override create to return the full detail (including status) 
-        immediately after the user posts.
-        """
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        instance = serializer.save()
-        
-        # Return the DetailSerializer so the frontend gets the ID to poll status
-        full_data = AiRequestDetailSerializer(instance)
-        return Response(full_data.data, status=status.HTTP_201_CREATED)
+
+
+

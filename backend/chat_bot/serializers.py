@@ -17,7 +17,7 @@ class ChatSessionDetailSerializer(serializers.ModelSerializer):
     """For seeing specific session messages."""
     class Meta:
         model = ChatSession
-        fields = ['id', 'title', 'messages', 'status', 'created_at', 'updated_at']
+        fields = ['id', 'title', 'messages', 'created_at', 'updated_at']
 
 class AiRequestCreateSerializer(serializers.ModelSerializer):
     """For posting a new message."""
@@ -60,4 +60,18 @@ class AiRequestDetailSerializer(serializers.ModelSerializer):
     """For checking the status/response of a specific request."""
     class Meta:
         model = AiRequest
-        fields = '__all__'
+        fields = [
+            'id', 
+            'account_id', 
+            'session', 
+            'message',
+            'response',
+            'status',
+            'response_engine',
+            'response_style',
+            'created_at',
+            'updated_at',
+        ]
+
+
+

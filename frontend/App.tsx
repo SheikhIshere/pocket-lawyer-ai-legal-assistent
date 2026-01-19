@@ -1,118 +1,64 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { HashRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { Layout } from './components/Layout';
-import { User } from './types';
+import React from 'react';
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import LandingPage from './pages/LandingPage';
+import AboutPage from './pages/About';
+import ContactPage from './pages/ContactPage';
+import LoginPage from './pages/auth/LoginPage';
+import RegisterPage from './pages/auth/RegisterPage';
+import VerifyOtpPage from './pages/auth/VerifyOtpPage';
+import ChatPage from './pages/ChatPage';
+import ServicesPage from './pages/ServicesPage';
+import PricingPage from './pages/PricingPage';
+import ProfilePage from './pages/ProfilePage';
 
-// Pages
-import Home from './pages/Home';
-import Services from './pages/Services';
-import About from './pages/About';
-import Chat from './pages/Chat';
-import Profile from './pages/Profile';
-import Pricing from './pages/Pricing';
-import Payment from './pages/Payment';
-import { Login, Register, VerifyOtp, ChangePassword, EditProfile, LogoutConfirm } from './pages/Auth';
-
-// Auth Context
-interface AuthContextType {
-  user: User | null;
-  login: (email: string) => void;
-  logout: () => void;
-  updateUser: (updates: Partial<User>) => void;
-  isAuthenticated: boolean;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth must be used within an AuthProvider');
-  return context;
-};
-
-const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-
-  // Simulate persistence
-  useEffect(() => {
-    const savedUser = localStorage.getItem('pocket_lawyer_user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-  }, []);
-
-  const login = (email: string) => {
-    // Mock user data
-    const newUser: User = {
-      id: '123',
-      name: 'John Doe',
-      email,
-      plan: 'free',
-      phone: '+880 1700 000000'
-    };
-    setUser(newUser);
-    localStorage.setItem('pocket_lawyer_user', JSON.stringify(newUser));
-  };
-
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('pocket_lawyer_user');
-  };
-
-  const updateUser = (updates: Partial<User>) => {
-    if (user) {
-      const updated = { ...user, ...updates };
-      setUser(updated);
-      localStorage.setItem('pocket_lawyer_user', JSON.stringify(updated));
-    }
-  };
-
-  return (
-    <AuthContext.Provider value={{ user, login, logout, updateUser, isAuthenticated: !!user }}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
+console.log('App.tsx: Starting App component...');
 
 // Protected Route Wrapper
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated } = useAuth();
-  const location = useLocation();
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+  const { isAuthenticated, requiresOtp } = useAuth();
+  
+  if (!isAuthenticated && !requiresOtp) {
+    return <Navigate to="/login" replace />;
   }
+  
+  if (requiresOtp) {
+    return <Navigate to="/verify-otp" replace />;
+  }
+
   return <>{children}</>;
 };
 
-const App = () => {
+// Route that requires OTP state but not auth
+const OtpRoute = ({ children }: { children: React.ReactNode }) => {
+    const { requiresOtp, isAuthenticated } = useAuth();
+    if (isAuthenticated && !requiresOtp) {
+      return <Navigate to="/chat" replace />;
+    }
+    return <>{children}</>;
+}
+
+const App: React.FC = () => {
+  console.log('App.tsx: Rendering App component...');
+  
   return (
     <AuthProvider>
       <Router>
-        <Layout>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/services" element={<Services />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/pricing" element={<Pricing />} />
-            
-            {/* Auth Routes */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/verify-otp" element={<VerifyOtp />} />
-            
-            {/* Protected Routes */}
-            <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
-            <Route path="/dashboard" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-            <Route path="/edit-profile" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
-            <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
-            <Route path="/payment" element={<ProtectedRoute><Payment /></ProtectedRoute>} />
-            <Route path="/logout" element={<ProtectedRoute><LogoutConfirm /></ProtectedRoute>} />
-            
-            {/* Fallback */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Layout>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/services" element={<ServicesPage />} />
+          <Route path="/pricing" element={<PricingPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/verify-otp" element={<OtpRoute><VerifyOtpPage /></OtpRoute>} />
+          
+          {/* Protected Routes */}
+          <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+        </Routes>
       </Router>
     </AuthProvider>
   );

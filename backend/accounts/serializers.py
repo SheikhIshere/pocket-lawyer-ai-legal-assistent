@@ -6,9 +6,11 @@ from .models import Account, AccountAddress
 # show own profile
 
 class AccountSerializer(serializers.ModelSerializer):
+    user_email = serializers.EmailField(source='user.email', read_only=True)
+    
     class Meta:
         model = Account
-        exclude = ('user', 'status', 'plan', 'credit')
+        exclude = ('user', 'status', 'credit')  # Include plan, exclude status and credit
         read_only_fields = ('created_at', 'updated_at')
     
     # keeping data when updating account

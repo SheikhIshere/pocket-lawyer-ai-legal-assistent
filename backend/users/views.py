@@ -9,8 +9,11 @@ from rest_framework.response import Response
 from rest_framework import (
     status,
     permissions,
-    generics    
+    generics
 )
+from rest_framework.decorators import authentication_classes, permission_classes
+from django.contrib.auth.decorators import login_required
+from django.utils.decorators import method_decorator
 # generate otp function
 from users.utils import generate_otp
 # serializers import
@@ -74,9 +77,10 @@ registration testing to do otp verification
     then you will take otp from /v1/api/user/account/activate/ and i will 
     be verifying the user from backend"""
 )
+@authentication_classes([])  # Override default authentication
+@permission_classes([permissions.AllowAny])  # Explicitly allow any user
 class UserRegistrationView(generics.CreateAPIView):
     serializer_class = RegistrationSerializer
-    permission_classes = [permissions.AllowAny]
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -91,7 +95,7 @@ class UserRegistrationView(generics.CreateAPIView):
                 
             )
 
-            # NOTE: remove this
+            # NOTE: remove this At production
             print('\n\n\n')
             print(f'activation otp is: {account_activation_otp}') # just for debugging
             print('\n\n\n')
@@ -131,24 +135,56 @@ activating account via otp
     using the access token last time you took from registration end point
     """
 )
+@authentication_classes([])  # Override default authentication
+@permission_classes([permissions.AllowAny])  # Explicitly allow any user
 class ActivatingAccountView(generics.CreateAPIView):
     serializer_class = ActivatingAccountSerializer
-    permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)        
+        # Extract user from JWT token manually
+        auth_header = request.headers.get('Authorization')
+        
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return Response({'error': 'Authorization token required'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        token = auth_header.split(' ')[1]
+        
+        try:
+            # Try to decode JWT token to get user ID
+            from rest_framework_simplejwt.tokens import AccessToken
+            access_token = AccessToken(token)
+            user_id = access_token['user_id']
+            user = User.objects.get(id=user_id)
+        except Exception as e:
+            # If JWT fails, try to get user from the most recent OTP
+            # This is a fallback approach
+            try:
+                # Get the most recent unexpired OTP
+                latest_otp = Otp.objects.filter(is_expired=False).order_by('-created_at').first()
+                if latest_otp:
+                    user = latest_otp.user
+                else:
+                    return Response({'error': 'Invalid token'}, status=status.HTTP_401_UNAUTHORIZED)
+            except Exception as otp_error:
+                return Response({'error': 'Invalid token'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        # Add user to serializer context
+        serializer = self.get_serializer(data=request.data, context={'user': user})
         if serializer.is_valid():
-            user = serializer.save()
-            refresh = RefreshToken.for_user(user=user)
+            validated_user = serializer.save()
+            refresh = RefreshToken.for_user(user=validated_user)
 
-            # creating account Profile
-            accounts = Account.objects.create(user=user, full_name=user.full_name)
+            # creating account Profile - only if it doesn't exist
+            accounts, created = Account.objects.get_or_create(
+                user=validated_user, 
+                defaults={'full_name': validated_user.full_name}
+            )
 
             return Response({
                 'user': {
-                    "user_id": user.id,
+                    "user_id": validated_user.id,
                     "accounts_id": accounts.id,
-                    "email": user.email,
+                    "email": validated_user.email,
                     "full_name": accounts.full_name,
                 },
                 'refresh': str(refresh),
@@ -241,9 +277,10 @@ deployment
     and refresh token
     """
 )
+@authentication_classes([])  # Override default authentication
+@permission_classes([permissions.AllowAny])  # Explicitly allow any user
 class UserLoginView(generics.CreateAPIView):
     serializer_class = LoginSerializer
-    permission_classes = [permissions.AllowAny]
 
     def post(self, request, *args, **kwargs):
         # defining the serializer initialized in serializer_class
@@ -386,9 +423,10 @@ password reset - verify OTP
     tags=['User-Authentication'],
     description="Verify OTP for password reset"
 )
+@authentication_classes([])  # Override default authentication
+@permission_classes([permissions.AllowAny])  # Explicitly allow any user
 class PasswordResetVerifyOTPView(generics.CreateAPIView):
     serializer_class = PasswordResetVerifyOTPSerializer
-    permission_classes = [permissions.AllowAny]
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)

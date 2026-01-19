@@ -1,4 +1,14 @@
 services:
+  # main frontend
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - 3000:3000
+    volumes:
+      - ./frontend:/frontend
+    command: npm run dev
 
   # main backend
   backend:

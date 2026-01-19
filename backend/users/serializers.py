@@ -87,8 +87,9 @@ class ActivatingAccountSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         given_otp = attrs.get("otp")
-        request = self.context.get("request")
-        user = getattr(request, "user", None)
+        # Get user from context (set by view) - this is the primary method
+        user = self.context.get("user")
+        
         if user is None:
             raise serializers.ValidationError({"error": "Authentication required."})
 
@@ -120,7 +121,7 @@ class ActivatingAccountSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         otp_pk = validated_data.pop("_otp_pk", None)
-        user = self.context.get("request").user
+        user = self.context.get("user")  # Get user from context instead of request.user
 
         otp = Otp.objects.filter(pk=otp_pk, user=user).first()
         if not otp:

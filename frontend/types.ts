@@ -1,10 +1,41 @@
 export interface User {
   id: string;
-  name: string;
+  user_id: string;
+  accounts_id?: string;
   email: string;
-  plan: 'free' | 'pro' | 'premium';
-  avatar?: string;
+  full_name: string;
+  name?: string; // for backward compatibility
   phone?: string;
+  avatar?: string;
+  plan: 'free' | 'pro' | 'premium';
+  gender?: string;
+  birth_day?: string;
+  language?: string;
+  credit?: number;
+  is_verified?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface AuthState {
+  user: User | null;
+  isAuthenticated: boolean;
+  requiresOtp: boolean;
+  token: string | null;
+}
+
+export interface ChatSession {
+  id: string;
+  title: string;
+  date: string;
+  preview: string;
+}
+
+export interface Message {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: number;
 }
 
 export interface ServiceItem {
@@ -12,21 +43,11 @@ export interface ServiceItem {
   title: string;
   description: string;
   icon: string;
+  category: string;
 }
 
-export interface ChatMessage {
-  id: string;
-  role: 'user' | 'model';
-  text: string;
-  timestamp: Date;
-  attachments?: string[];
-}
-
-export interface Plan {
-  id: string;
-  name: string;
-  price: number;
-  currency: string;
-  features: string[];
-  recommended?: boolean;
+export enum RequestStatus {
+  PENDING = 'PENDING',
+  COMPLETED = 'COMPLETED',
+  FAILED = 'FAILED'
 }
