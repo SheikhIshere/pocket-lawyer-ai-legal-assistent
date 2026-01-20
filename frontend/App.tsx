@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import LoadingScreen from './components/LoadingScreen';
 import LandingPage from './pages/LandingPage';
@@ -105,14 +105,42 @@ const ForgotPasswordOtpRoute = ({ children }: { children: React.ReactNode }) => 
 // Route that prevents authenticated users from accessing auth pages
 const PublicOnlyRoute = ({ children }: { children: React.ReactNode }) => {
     const { isAuthenticated, requiresOtp, tempEmail } = useAuth();
-    
+    const location = useLocation();
+    const currentPath = location.pathname;
+
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/3b5466ef-e4ad-485a-98f1-d363bc9e423a', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId: 'debug-session',
+        runId: 'post-fix',
+        hypothesisId: 'H7',
+        location: 'App.tsx:PublicOnlyRoute',
+        message: 'Evaluating PublicOnlyRoute redirect',
+        data: {
+          path: currentPath,
+          isAuthenticated,
+          requiresOtp,
+          hasTempEmail: !!tempEmail,
+          isRegistrationFlag: localStorage.getItem('is_registration') === 'true',
+          isForgotPasswordFlag: localStorage.getItem('is_forgot_password') === 'true'
+        },
+        timestamp: Date.now()
+      })
+    }).catch(() => {});
+    // #endregion agent log
+
     // Redirect authenticated users to dashboard
     if (isAuthenticated && !requiresOtp) {
       return <Navigate to="/dashboard" replace />;
     }
-    
-    // Handle OTP redirection - only if there's a valid temp email
-    if (requiresOtp && tempEmail) {
+
+    // If user explicitly navigates to /login or /register, allow them to see auth forms
+    const isAuthEntryPath = currentPath === '/login' || currentPath === '/register';
+
+    // Handle OTP redirection - only if there's a valid temp email and we're not on auth entry routes
+    if (!isAuthEntryPath && requiresOtp && tempEmail) {
       const isRegistrationFlow = localStorage.getItem('is_registration') === 'true';
       const isForgotPasswordFlow = localStorage.getItem('is_forgot_password') === 'true';
       

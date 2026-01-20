@@ -47,6 +47,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const initializeAuth = async () => {
       const storedToken = localStorage.getItem('pl_token');
       const storedUser = localStorage.getItem('pl_user');
+      const storedTempEmail = localStorage.getItem('temp_email');
+      const storedIsRegistration = localStorage.getItem('is_registration');
+      const storedIsForgotPassword = localStorage.getItem('is_forgot_password');
+
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/3b5466ef-e4ad-485a-98f1-d363bc9e423a', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: 'debug-session',
+          runId: 'pre-fix',
+          hypothesisId: 'H1',
+          location: 'AuthContext.tsx:initializeAuth:start',
+          message: 'initializeAuth starting with stored values',
+          data: {
+            hasStoredToken: !!storedToken,
+            hasStoredUser: !!storedUser,
+            hasTempEmail: !!storedTempEmail,
+            isRegistrationFlag: storedIsRegistration === 'true',
+            isForgotPasswordFlag: storedIsForgotPassword === 'true'
+          },
+          timestamp: Date.now()
+        })
+      }).catch(() => {});
+      // #endregion agent log
       
       if (storedToken && storedUser) {
         try {
@@ -60,6 +85,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             token: storedToken,
             isInitializing: false // Done initializing
           });
+
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/3b5466ef-e4ad-485a-98f1-d363bc9e423a', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sessionId: 'debug-session',
+              runId: 'pre-fix',
+              hypothesisId: 'H2',
+              location: 'AuthContext.tsx:initializeAuth:token-branch',
+              message: 'Auth initialized from stored token/user',
+              data: {
+                isAuthenticated: true,
+                requiresOtp: false
+              },
+              timestamp: Date.now()
+            })
+          }).catch(() => {});
+          // #endregion agent log
           
           // Validate token by making a simple API call
           try {
@@ -114,6 +158,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             isRegistration: false,
             isInitializing: false // Done initializing
           }));
+
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/3b5466ef-e4ad-485a-98f1-d363bc9e423a', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sessionId: 'debug-session',
+              runId: 'pre-fix',
+              hypothesisId: 'H3',
+              location: 'AuthContext.tsx:initializeAuth:temp-email-branch',
+              message: 'Auth initialized in OTP-required state due to temp_email',
+              data: {
+                hasTempEmail: true,
+                isRegistrationFlag: localStorage.getItem('is_registration') === 'true',
+                isForgotPasswordFlag: localStorage.getItem('is_forgot_password') === 'true'
+              },
+              timestamp: Date.now()
+            })
+          }).catch(() => {});
+          // #endregion agent log
         } else {
           // Clear any stale OTP flags if no temp email
           localStorage.removeItem('is_registration');
@@ -123,6 +187,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             requiresOtp: false,
             isInitializing: false // Done initializing
           }));
+
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/3b5466ef-e4ad-485a-98f1-d363bc9e423a', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sessionId: 'debug-session',
+              runId: 'pre-fix',
+              hypothesisId: 'H4',
+              location: 'AuthContext.tsx:initializeAuth:no-auth-branch',
+              message: 'Auth initialized with no token and no OTP requirement',
+              data: {
+                hasTempEmail: false
+              },
+              timestamp: Date.now()
+            })
+          }).catch(() => {});
+          // #endregion agent log
         }
       }
     };
@@ -132,6 +214,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, pass: string) => {
     try {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/3b5466ef-e4ad-485a-98f1-d363bc9e423a', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: 'debug-session',
+          runId: 'pre-fix',
+          hypothesisId: 'H5',
+          location: 'AuthContext.tsx:login:entry',
+          message: 'Login called',
+          data: { hasEmail: !!email },
+          timestamp: Date.now()
+        })
+      }).catch(() => {});
+      // #endregion agent log
+
       const res = await authService.login(email, pass);
       
       // Handle login response structure - now returns message and user info, not token
@@ -147,6 +245,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           ...prev, 
           requiresOtp: true
         }));
+
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/3b5466ef-e4ad-485a-98f1-d363bc9e423a', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: 'debug-session',
+            runId: 'pre-fix',
+            hypothesisId: 'H6',
+            location: 'AuthContext.tsx:login:otp-set',
+            message: 'Login completed, OTP required state set',
+            data: {
+              requiresOtp: true,
+              isRegistration: false
+            },
+            timestamp: Date.now()
+          })
+        }).catch(() => {});
+        // #endregion agent log
       } else {
         throw new Error('Login failed');
       }
