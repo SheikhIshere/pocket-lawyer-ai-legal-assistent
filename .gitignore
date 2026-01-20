@@ -5,3 +5,5 @@ log.md
 prompt.txt
 node_modules
 .cursor
+__pycache__/
+*.pyc
