@@ -8,6 +8,8 @@ from rest_framework import serializers
 # validate password
 from django.contrib.auth.password_validation import validate_password
 
+from backend.accounts.models import Account
+
 # user
 from .models import User
 
@@ -84,14 +86,16 @@ Account activation serializer
 """
 class ActivatingAccountSerializer(serializers.Serializer):
     otp = serializers.CharField(required=True)
+    email = serializers.CharField(required=True)
 
     def validate(self, attrs):
         given_otp = attrs.get("otp")
+        email = attrs.get("email")
         # Get user from context (set by view) - this is the primary method
-        user = self.context.get("user")
+        user = User.objects.filter(email=email, is_verified=False).first()
         
         if user is None:
-            raise serializers.ValidationError({"error": "Authentication required."})
+            raise serializers.ValidationError({"error": 'User not found.'})
 
         # get most recent active otp for the user (so we can increment attempts on wrong input)
         otp_obj = Otp.objects.filter(user=user, is_expired=False).order_by("-created_at").first()
@@ -121,21 +125,53 @@ class ActivatingAccountSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         otp_pk = validated_data.pop("_otp_pk", None)
-        user = self.context.get("user")  # Get user from context instead of request.user
 
-        otp = Otp.objects.filter(pk=otp_pk, user=user).first()
-        if not otp:
-            raise serializers.ValidationError({"error": "Otp not found."})
+        from django.db import transaction
 
-        # activate user and expire otp
-        user = otp.user
-        user.is_verified = True
-        user.save()
+        # this is for if two user try to activate the same otp
+        with transaction.atomic():
+            otp = Otp.objects.select_for_update().filter(
+                pk=otp_pk,
+                is_expired=False
+            ).select_related("user").first()
 
-        otp.is_expired = True
-        otp.save()
+            if not otp:
+                raise serializers.ValidationError({"error": "Otp not found or expired."})
+
+            user = otp.user
+            if user.is_verified:
+                raise serializers.ValidationError({"error": "User already verified."})
+
+            user.is_verified = True
+            user.save()
+
+            otp.is_expired = True
+            otp.save()
+
+            Otp.objects.filter(user=user, is_expired=False).update(is_expired=True)
+
+            Account.objects.get_or_create(
+                user=user,
+                defaults={"full_name": user.full_name},
+            )
         return user
 
+
+"""
+Resending otp serializer
+"""
+class ResendingOtpSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True)
+
+    def validate(self, attrs):
+        if not User.objects.filter(email=attrs['email']).exists():
+            raise serializers.ValidationError({
+                "error":"Email does not exists."
+            })
+        return attrs
+
+    def create(self, validated_data):
+        return validated_data['email']
 
 
 """
@@ -181,13 +217,11 @@ class LoginSerializer(serializers.Serializer):
 
 class LoginOtpSerializer(serializers.Serializer):
     otp = serializers.CharField(required=True, max_length=6)
-
+    email = serializers.EmailField(required=True)
+    
     def validate(self, attrs):
-        req = self.context['request']
-        _user = req.user
-        try: 
-            user = User.objects.get(email=_user.email)
-        except User.DoesNotExist:
+        user = User.objects.get(email=attrs['email'])
+        if not user:
             raise serializers.ValidationError({"error": "User not found."})
         given_otp = attrs['otp']
 
@@ -212,7 +246,7 @@ class LoginOtpSerializer(serializers.Serializer):
         return attrs
 
     def create(self, validated_data):
-        return self.context['request'].user
+        return validated_data
 
 
 """

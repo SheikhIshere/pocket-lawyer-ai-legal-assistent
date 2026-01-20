@@ -10,11 +10,11 @@ from .views import (
     UserListView,
     
     UserRegistrationView,
-    ResendingOtpView,
     ActivatingAccountView,    
     
+    ResendingOtpView,
+
     UserLoginView,
-    LoginOtpResendView,
     LoginOtpCheckView,
     
     ForgetPasswordRequestView,
@@ -39,7 +39,7 @@ urlpatterns = [
     # user login
     path('login/', UserLoginView.as_view(), name='user-login'),
     path('login/otp/verify/', LoginOtpCheckView.as_view(), name='login-otp'),
-    path('login/otp/resend/', LoginOtpResendView.as_view(), name='login-otp-resend'),
+    path('login/otp/resend/', ResendingOtpView.as_view(), name='login-otp-resend'),
 
     # forget password
     path('forget-password/', ForgetPasswordRequestView.as_view(), name='forget-password'),

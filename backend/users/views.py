@@ -20,6 +20,7 @@ from users.utils import generate_otp
 from .serializers import (
     UserListSerializer,
     RegistrationSerializer,
+    ResendingOtpSerializer,
     LoginSerializer,
     ActivatingAccountSerializer,
     LoginOtpSerializer,
@@ -73,7 +74,7 @@ registration testing to do otp verification
     tags=['User-Authentication'],
     description=
     """it's a registration end point where you will be 
-    getting the access token and make the user short time authenticated, 
+    capturing the user email and move to otp verification section, 
     then you will take otp from /v1/api/user/account/activate/ and i will 
     be verifying the user from backend"""
 )
@@ -111,14 +112,11 @@ class UserRegistrationView(generics.CreateAPIView):
                 [user.email],
                 fail_silently=False
             )
-
-            refresh = RefreshToken.for_user(user=user)
             return Response({
                 'message': 'Otp sent successfully',
                 'user': {
                     'email': user.email,
                 },
-                'access': str(refresh.access_token),
             }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors)
 
@@ -130,9 +128,9 @@ activating account via otp
     tags=['User-Authentication'],
     description=
     """
-    this end point will be the place where you will be taking 
-    otp from user and make sure you are authenticating the user 
-    using the access token last time you took from registration end point
+    place your captured email without showing user but let
+    user place the otp when it's time to commit gimme both email and otp
+    if all good i wil be providing you access and refresh token
     """
 )
 @authentication_classes([])  # Override default authentication
@@ -141,56 +139,16 @@ class ActivatingAccountView(generics.CreateAPIView):
     serializer_class = ActivatingAccountSerializer
 
     def post(self, request, *args, **kwargs):
-        # Extract user from JWT token manually
-        auth_header = request.headers.get('Authorization')
-        
-        if not auth_header or not auth_header.startswith('Bearer '):
-            return Response({'error': 'Authorization token required'}, status=status.HTTP_401_UNAUTHORIZED)
-        
-        token = auth_header.split(' ')[1]
-        
-        try:
-            # Try to decode JWT token to get user ID
-            from rest_framework_simplejwt.tokens import AccessToken
-            access_token = AccessToken(token)
-            user_id = access_token['user_id']
-            user = User.objects.get(id=user_id)
-        except Exception as e:
-            # If JWT fails, try to get user from the most recent OTP
-            # This is a fallback approach
-            try:
-                # Get the most recent unexpired OTP
-                latest_otp = Otp.objects.filter(is_expired=False).order_by('-created_at').first()
-                if latest_otp:
-                    user = latest_otp.user
-                else:
-                    return Response({'error': 'Invalid token'}, status=status.HTTP_401_UNAUTHORIZED)
-            except Exception as otp_error:
-                return Response({'error': 'Invalid token'}, status=status.HTTP_401_UNAUTHORIZED)
-        
-        # Add user to serializer context
-        serializer = self.get_serializer(data=request.data, context={'user': user})
+        serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             validated_user = serializer.save()
             refresh = RefreshToken.for_user(user=validated_user)
 
-            # creating account Profile - only if it doesn't exist
-            accounts, created = Account.objects.get_or_create(
-                user=validated_user, 
-                defaults={'full_name': validated_user.full_name}
-            )
-
             return Response({
-                'user': {
-                    "user_id": validated_user.id,
-                    "accounts_id": accounts.id,
-                    "email": validated_user.email,
-                    "full_name": accounts.full_name,
-                },
                 'refresh': str(refresh),
                 'access': str(refresh.access_token),
             }, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 """
@@ -206,51 +164,50 @@ resending another otp to activate user
     Returns the new OTP for the user.
     """
 )
+@authentication_classes([])  # Override default authentication
+@permission_classes([permissions.AllowAny])  # Explicitly allow any user
 class ResendingOtpView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = ResendingOtpSerializer
 
     def post(self, request, *args, **kwargs):
-        user = request.user
-        if user.is_verified:
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.validated_data['email']
+            # expiring all previous otp
+            Otp.objects.filter(user=user).update(is_expired=True)
+            
+            # generating account activation otp
+            account_activation_otp = generate_otp()
+            # assigning into data base
+            Otp.objects.create(
+                user=user, 
+                otp=account_activation_otp,            
+            )
+
+            # NOTE: remove this
+            print('\n\n\n')
+            print(f'activation otp is: {account_activation_otp}') # just for debugging
+            print('\n\n\n')
+            
+            # sending otp to user
+            subject = 'Account Activation OTP'
+            message = f"Your OTP is: {account_activation_otp}"
+            send_mail(
+                subject,
+                message,
+                settings.EMAIL_HOST_USER,
+                [user.email],
+                fail_silently=False
+            )
+
             return Response({
-                'message': 'User is already verified'
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        # expiring all previous otp
-        Otp.objects.filter(user=user).update(is_expired=True)
-        
-        # generating account activation otp
-        account_activation_otp = generate_otp()
-        # assigning into data base
-        Otp.objects.create(
-            user=user, 
-            otp=account_activation_otp,            
-        )
-
-        # NOTE: remove this
-        print('\n\n\n')
-        print(f'activation otp is: {account_activation_otp}') # just for debugging
-        print('\n\n\n')
-        
-        # sending otp to user
-        subject = 'Account Activation OTP'
-        message = f"Your OTP is: {account_activation_otp}"
-        send_mail(
-            subject,
-            message,
-            settings.EMAIL_HOST_USER,
-            [user.email],
-            fail_silently=False
-        )
-
-        return Response({
-            'user': {
-            "user_id": user.id,
-            "is_verified": user.is_verified
-            },
-            'message': 'Otp re-sent successfully',
-            }, status=status.HTTP_200_OK)   
-        
+                'user': {
+                "user_id": user.id,
+                "is_verified": user.is_verified
+                },
+                'message': 'Otp re-sent successfully',
+                }, status=status.HTTP_200_OK)   
+            
         return Response(serializer.errors)
 
 
@@ -271,7 +228,7 @@ deployment
     """
     This end point will help you to authenticate user.
     You will be taking email and password. If all information are correct,
-    I will give you an access token to do OTP verification for that
+    capture the user email and i am sending the otp to that email
     take the user to /v1/api/user/login/otp/verify/ end point and
     take otp from them, then gimme i will work with it and give you access
     and refresh token
@@ -313,17 +270,13 @@ class UserLoginView(generics.CreateAPIView):
                 fail_silently=False
             )
 
-            refresh = RefreshToken.for_user(user=user)
-
             return Response({
                 'message': 'Otp sent successfully',
                 'user': {
                     'email': user.email,
                     'is_verified': user.is_verified
                 },
-                'access': str(refresh.access_token),
-            }, status=status.HTTP_201_CREATED)
-        
+            }, status=status.HTTP_201_CREATED)        
         return Response(serializer.errors)
 
 
@@ -334,9 +287,10 @@ here i am checking otp founded from login serializer
     tags=['User-Authentication'],
     description="Verify OTP for login to gain access and refresh tokens. Provide the OTP sent to your email."
 )
+@authentication_classes([])  # Override default authentication
+@permission_classes([permissions.AllowAny])  # Explicitly allow any user
 class LoginOtpCheckView(generics.CreateAPIView):
     serializer_class = LoginOtpSerializer
-    permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data, context={"request": request})
@@ -350,61 +304,14 @@ class LoginOtpCheckView(generics.CreateAPIView):
         }, status=200)
 
 """
-resend login otp again
-"""
-@extend_schema(
-    tags=['User-Authentication'],
-    description="Resend OTP for login verification."
-)
-class LoginOtpResendView(APIView):
-    permission_classes = (permissions.IsAuthenticated,)
-    def post(self, request):
-        user = request.user
-        if not user:
-            return Response({'error': 'User not authenticated'}, status=status.HTTP_401_UNAUTHORIZED)
-        
-        # expiring other active otp
-        Otp.objects.filter(user=user, is_expired=False).update(is_expired=True)
-
-        # creating new otp
-        account_activation_otp = generate_otp()
-        
-        # assigning into data base
-        Otp.objects.create(
-            user=user,
-            otp=account_activation_otp,
-        )
-
-        # NOTE: remove this
-        print('\n\n\n')
-        print(f'your otp is: {account_activation_otp}') # just for debugging
-        print('\n\n\n')
-        
-        # sending otp to user
-        subject = 'OTP Login Otp'
-        message = f"Your OTP is: {account_activation_otp}"
-        email = user.email
-        send_mail(
-            subject,
-            message,
-            settings.EMAIL_HOST_USER,
-            [email],
-            fail_silently=False
-        )
-        
-        return Response({
-            'detail': 'login otp sent successfully',
-            'user_id': user.id
-        }, status=status.HTTP_200_OK)        
-
-
-"""
 Forgot password request handling 
 """
 @extend_schema(
     tags=['User-Authentication'],
     description="Request password reset OTP"
 )
+@authentication_classes([])  # Override default authentication
+@permission_classes([permissions.AllowAny])  # Explicitly allow any user
 class ForgetPasswordRequestView(APIView):
     serializer_class = ForgetPasswordRequestSerializer
     def post(self, request):
