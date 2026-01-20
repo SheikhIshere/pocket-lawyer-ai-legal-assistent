@@ -16,11 +16,8 @@ class ApiKeySerializers(serializers.ModelSerializer):
         exclude = [
             'updated_at',
             'account_id',
-            'total_used',
-            'worker_status',
-            'meta_data'
         ]
-        read_only_fields = ['created_at', 'is_working']
+        read_only_fields = ['created_at', 'is_working', 'total_used', 'worker_status', 'meta_data']
 
     def validate(self, attrs):
         key = attrs.get('api_key')  # safe access
