@@ -308,6 +308,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           ...prev, 
           requiresOtp: true
         }));
+
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/3b5466ef-e4ad-485a-98f1-d363bc9e423a', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: 'debug-session',
+            runId: 'post-fix',
+            hypothesisId: 'H8',
+            location: 'AuthContext.tsx:register:otp-set',
+            message: 'Register completed, OTP required state set',
+            data: {
+              requiresOtp: true,
+              isRegistration: true
+            },
+            timestamp: Date.now()
+          })
+        }).catch(() => {});
+        // #endregion agent log
         
         console.log('OTP state set - should redirect to register-verify-otp page');
         console.log('localStorage is_registration:', localStorage.getItem('is_registration'));

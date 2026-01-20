@@ -16,8 +16,40 @@ const RegisterPage: React.FC = () => {
   const { register } = useAuth();
   const navigate = useNavigate();
 
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/3b5466ef-e4ad-485a-98f1-d363bc9e423a', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      sessionId: 'debug-session',
+      runId: 'post-fix-2',
+      hypothesisId: 'H11',
+      location: 'RegisterPage.tsx:render',
+      message: 'RegisterPage rendered',
+      data: { pathHash: window.location.hash },
+      timestamp: Date.now()
+    })
+  }).catch(() => {});
+  // #endregion agent log
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/3b5466ef-e4ad-485a-98f1-d363bc9e423a', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId: 'debug-session',
+        runId: 'post-fix-3',
+        hypothesisId: 'H13',
+        location: 'RegisterPage.tsx:handleSubmit:start',
+        message: 'Register submit handler invoked',
+        data: { hasEmail: !!email, hasFullName: !!full_name },
+        timestamp: Date.now()
+      })
+    }).catch(() => {});
+    // #endregion agent log
     
     console.log('Form validation:', {
       password,
@@ -26,6 +58,22 @@ const RegisterPage: React.FC = () => {
     });
     
     if (password !== confirmPassword) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/3b5466ef-e4ad-485a-98f1-d363bc9e423a', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: 'debug-session',
+          runId: 'post-fix-3',
+          hypothesisId: 'H14',
+          location: 'RegisterPage.tsx:handleSubmit:validation',
+          message: 'Register submit blocked by password mismatch',
+          data: {},
+          timestamp: Date.now()
+        })
+      }).catch(() => {});
+      // #endregion agent log
+
       setError("Passwords don't match");
       return;
     }
@@ -36,11 +84,59 @@ const RegisterPage: React.FC = () => {
     setError('');
     
     try {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/3b5466ef-e4ad-485a-98f1-d363bc9e423a', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: 'debug-session',
+          runId: 'post-fix-2',
+          hypothesisId: 'H9',
+          location: 'RegisterPage.tsx:handleSubmit:entry',
+          message: 'Register submit started',
+          data: { hasEmail: !!email, hasFullName: !!full_name },
+          timestamp: Date.now()
+        })
+      }).catch(() => {});
+      // #endregion agent log
+
       const result = await register({ email, password, full_name, password2: confirmPassword });
       console.log('Registration API result:', result);
+
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/3b5466ef-e4ad-485a-98f1-d363bc9e423a', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: 'debug-session',
+          runId: 'post-fix-2',
+          hypothesisId: 'H12',
+          location: 'RegisterPage.tsx:handleSubmit:after-register',
+          message: 'register() resolved, about to navigate to OTP page',
+          data: { pathHash: window.location.hash },
+          timestamp: Date.now()
+        })
+      }).catch(() => {});
+      // #endregion agent log
       
-      // The AuthContext will handle the redirection based on requiresOtp state
-      // No need to navigate manually here as the ProtectedRoute will handle it
+      // We explicitly navigate now because PublicOnlyRoute allows /register even when requiresOtp=true
+      navigate('/register-verify-otp');
+
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/3b5466ef-e4ad-485a-98f1-d363bc9e423a', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: 'debug-session',
+          runId: 'post-fix-2',
+          hypothesisId: 'H10',
+          location: 'RegisterPage.tsx:handleSubmit:navigate',
+          message: 'Navigating to register OTP page after register() resolved',
+          data: { pathHash: window.location.hash },
+          timestamp: Date.now()
+        })
+      }).catch(() => {});
+      // #endregion agent log
       
     } catch (err: any) {
       console.error('Registration error:', err);

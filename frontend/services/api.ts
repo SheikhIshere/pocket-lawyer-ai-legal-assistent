@@ -78,7 +78,7 @@ export const authService = {
   },
 
   register: async (data: { email: string; password: string; full_name: string; password2: string }) => {
-    return apiCall('/users/register', {
+    return apiCall('/users/register/', {
       method: 'POST',
       body: JSON.stringify(data),
     });
