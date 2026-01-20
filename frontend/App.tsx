@@ -13,7 +13,7 @@ import ForgotPasswordVerifyOtpPage from './pages/auth/ForgotPasswordVerifyOtpPag
 import ChatPage from './pages/ChatPage';
 import ServicesPage from './pages/ServicesPage';
 import PricingPage from './pages/PricingPage';
-import ProfilePage from './pages/ProfilePage';
+import SettingsPage from './pages/SettingsPage';
 import DashboardPage from './pages/DashboardPage';
 import DocumentsPage from './pages/DocumentsPage';
 import NotFoundPage from './pages/NotFoundPage';
@@ -242,8 +242,8 @@ const AppContent: React.FC = () => {
         
         {/* Protected Routes */}
         <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
-        <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-        <Route path="/settings" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
         <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
         <Route path="/documents" element={<ProtectedRoute><DocumentsPage /></ProtectedRoute>} />
         

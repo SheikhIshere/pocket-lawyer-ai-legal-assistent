@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { assistantService } from '../services/api';
 import { ChatSession, Message, RequestStatus } from '../types';
-import { Send, Plus, MessageSquare, Menu, Scale, User, MoreVertical, Paperclip, X } from 'lucide-react';
+import { Send, Plus, MessageSquare, Menu, Scale, User, MoreVertical, Paperclip, X, Settings, ChevronDown, Sparkles, Home, Layout, CreditCard } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const ChatPage: React.FC = () => {
@@ -13,8 +13,31 @@ const ChatPage: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isTyping, setIsTyping] = useState(false);
   const [pollingId, setPollingId] = useState<string | null>(null);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  
+  // Engine and Style selection
+  const [selectedEngine, setSelectedEngine] = useState(1);
+  const [selectedStyle, setSelectedStyle] = useState('supportive');
+  const [showEngineDropdown, setShowEngineDropdown] = useState(false);
+  const [showStyleDropdown, setShowStyleDropdown] = useState(false);
+  
+  // Menu dropdown
+  const [showMenuDropdown, setShowMenuDropdown] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const engines = [
+    { id: 1, name: 'Gemini 3 Flash', description: 'Fast and efficient' },
+    { id: 2, name: 'Gemini 2.5 Flash', description: 'Enhanced performance' },
+    { id: 3, name: 'Gemini 2.5 Flash Lite', description: 'Lightweight and fast' },
+    { id: 4, name: 'Gemma 3 27B', description: 'High token allowance' }
+  ];
+
+  const styles = [
+    { id: 'supportive', name: 'Supportive', description: 'Helpful and encouraging' },
+    { id: 'casual', name: 'Casual', description: 'Relaxed and friendly' },
+    { id: 'deep_thinking', name: 'Deep Thinking', description: 'Analytical and thorough' }
+  ];
 
   // Initialize
   useEffect(() => {
@@ -86,179 +109,352 @@ const ChatPage: React.FC = () => {
     };
 
     setMessages(prev => [...prev, userMsg]);
+    const messageContent = input;
     setInput('');
     setIsTyping(true);
 
     try {
-      const { requestId } = await assistantService.sendMessage(userMsg.content);
-      setPollingId(requestId);
+      // Create session if needed
+      let sessionId = currentSessionId;
+      if (!sessionId) {
+        const newSession = await assistantService.createSession('New Consultation');
+        sessionId = newSession.id;
+        setCurrentSessionId(sessionId);
+        setSessions(prev => [newSession, ...prev]);
+      }
+
+      // Send message with engine and style
+      await assistantService.sendMessageWithEngine(
+        messageContent,
+        sessionId,
+        selectedEngine,
+        selectedStyle
+      );
+      
+      // For now, we'll simulate the polling (you may need to adjust based on your API response)
+      setPollingId(Date.now().toString());
     } catch (err) {
+      console.error('Send message error:', err);
       setIsTyping(false);
-      // Handle error UI
+      setMessages(prev => [...prev, {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: "I apologize, Please make sure you have added a valid Api Key.",
+        timestamp: Date.now()
+      }]);
+    }
+  };
+
+  const createNewSession = async () => {
+    try {
+      const newSession = await assistantService.createSession('New Consultation');
+      setCurrentSessionId(newSession.id);
+      setSessions(prev => [newSession, ...prev]);
+      setMessages([{
+        id: 'welcome',
+        role: 'assistant',
+        content: `Hello ${user?.name || 'User'}, I am your Pocket Lawyer AI assistant. How can I help you today? \n\n*Note: I am an AI, not a human lawyer. My advice is for informational purposes only.*`,
+        timestamp: Date.now()
+      }]);
+    } catch (error) {
+      console.error('Failed to create session:', error);
     }
   };
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden">
-      {/* Sidebar - Desktop: Static, Mobile: Overlay */}
+    <div className="flex h-screen bg-white">
+      {/* Sidebar */}
       <div className={`
-        fixed inset-y-0 left-0 z-30 w-72 bg-slate-900 text-slate-300 transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0
-        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+        ${isSidebarOpen ? 'w-64' : 'w-0'} transition-all duration-300 ease-in-out bg-gray-50 border-r border-gray-200 flex flex-col overflow-hidden
       `}>
-        <div className="flex flex-col h-full">
-          <div className="p-4 border-b border-slate-800 flex items-center justify-between">
-            <Link to="/" className="flex items-center gap-2 text-white font-bold">
-               <Scale className="w-5 h-5 text-teal-500" /> Pocket Lawyer
-            </Link>
-            <button onClick={() => setIsSidebarOpen(false)} className="md:hidden">
-              <X className="w-5 h-5" />
-            </button>
-          </div>
+        {/* Sidebar Header */}
+        <div className="p-4 border-b border-gray-200">
+          <button 
+            onClick={createNewSession}
+            className="w-full flex items-center justify-center gap-2 bg-gray-900 text-white p-3 rounded-lg hover:bg-gray-800 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            <span className="text-sm font-medium">New Chat</span>
+          </button>
+        </div>
 
-          <div className="p-4">
-            <button className="w-full flex items-center justify-center gap-2 bg-teal-600 text-white p-3 rounded-xl hover:bg-teal-700 transition-colors shadow-lg shadow-teal-600/10">
-              <Plus className="w-4 h-4" /> New Consultation
-            </button>
+        {/* Sessions List */}
+        <div className="flex-1 overflow-y-auto p-2">
+          <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+            Today
           </div>
-
-          <div className="flex-1 overflow-y-auto px-2 space-y-1">
-            <div className="px-2 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">Recent</div>
-            {sessions.map(session => (
-              <button key={session.id} className="w-full text-left p-3 rounded-lg hover:bg-slate-800 transition-colors group">
-                <div className="flex items-center gap-3">
-                  <MessageSquare className="w-4 h-4 text-slate-500 group-hover:text-teal-400" />
-                  <div className="flex-1 overflow-hidden">
-                    <h4 className="text-sm font-medium text-slate-200 truncate">{session.title}</h4>
-                    <p className="text-xs text-slate-500 truncate">{session.date}</p>
-                  </div>
+          {sessions.map(session => (
+            <button
+              key={session.id}
+              onClick={() => {
+                setCurrentSessionId(session.id);
+                // Load session messages
+              }}
+              className="w-full text-left p-3 rounded-lg hover:bg-gray-100 transition-colors group mb-1"
+            >
+              <div className="flex items-center gap-3">
+                <MessageSquare className="w-4 h-4 text-gray-400 group-hover:text-gray-600" />
+                <div className="flex-1 overflow-hidden">
+                  <h4 className="text-sm font-medium text-gray-700 truncate">{session.title}</h4>
+                  <p className="text-xs text-gray-500 truncate">{session.date}</p>
                 </div>
-              </button>
-            ))}
-          </div>
-
-          <div className="p-4 border-t border-slate-800">
-            <div className="flex items-center gap-3">
-              <img src={user?.avatar} alt="User" className="w-9 h-9 rounded-full bg-slate-700" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-white truncate">{user?.name}</p>
-                <p className="text-xs text-slate-500 truncate">{user?.plan === 'free' ? 'Basic Plan' : 'Premium Plan'}</p>
               </div>
-              <Link to="/profile" className="p-2 hover:bg-slate-800 rounded-lg">
-                <SettingsIcon />
-              </Link>
+            </button>
+          ))}
+        </div>
+
+        {/* User Profile */}
+        <div className="p-4 border-t border-gray-200">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white text-sm font-bold">
+              {(user?.name || 'U').charAt(0).toUpperCase()}
             </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">{user?.name}</p>
+              <p className="text-xs text-gray-500 truncate">{user?.plan === 'free' ? 'Basic Plan' : 'Premium Plan'}</p>
+            </div>
+            <Link to="/settings" className="p-2 hover:bg-gray-100 rounded-lg">
+              <Settings className="w-4 h-4 text-gray-500" />
+            </Link>
           </div>
         </div>
       </div>
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col h-full w-full bg-white relative">
+      <div className="flex-1 flex flex-col">
         {/* Header */}
-        <div className="h-16 border-b border-slate-100 flex items-center justify-between px-4 bg-white z-20">
+        <div className="h-14 border-b border-gray-200 flex items-center justify-between px-4 bg-white">
           <div className="flex items-center gap-3">
-             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="md:hidden p-2 -ml-2 text-slate-600">
-               <Menu className="w-6 h-6" />
-             </button>
-             <div>
-               <h2 className="font-bold text-slate-800">Legal Assistant</h2>
-               <div className="flex items-center gap-1.5">
-                 <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                 <span className="text-xs text-slate-500">AI Active</span>
-               </div>
-             </div>
+            <button 
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)} 
+              className="p-2 hover:bg-gray-100 rounded-lg"
+            >
+              <Menu className="w-5 h-5 text-gray-600" />
+            </button>
+            <div>
+              <h2 className="font-semibold text-gray-900">Pocket Lawyer AI</h2>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                <span className="text-xs text-gray-500">Online</span>
+              </div>
+            </div>
           </div>
           <div className="flex items-center gap-2">
-             <button className="p-2 text-slate-400 hover:text-teal-600 transition-colors">
-               <MoreVertical className="w-5 h-5" />
-             </button>
+            <div className="relative">
+              <button 
+                onClick={() => setShowMenuDropdown(!showMenuDropdown)}
+                className="p-2 hover:bg-gray-100 rounded-lg"
+              >
+                <MoreVertical className="w-5 h-5 text-gray-600" />
+              </button>
+              {showMenuDropdown && (
+                <div className="absolute right-0 top-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-48">
+                  <Link
+                    to="/"
+                    onClick={() => setShowMenuDropdown(false)}
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-100"
+                  >
+                    <Home className="w-4 h-4 text-gray-600" />
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">Home</div>
+                      <div className="text-xs text-gray-500">Back to main page</div>
+                    </div>
+                  </Link>
+                  <Link
+                    to="/dashboard"
+                    onClick={() => setShowMenuDropdown(false)}
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-100"
+                  >
+                    <Layout className="w-4 h-4 text-gray-600" />
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">Dashboard</div>
+                      <div className="text-xs text-gray-500">View your dashboard</div>
+                    </div>
+                  </Link>
+                  <Link
+                    to="/settings"
+                    onClick={() => setShowMenuDropdown(false)}
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-100"
+                  >
+                    <Settings className="w-4 h-4 text-gray-600" />
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">Settings</div>
+                      <div className="text-xs text-gray-500">Account settings</div>
+                    </div>
+                  </Link>
+                  <Link
+                    to="/pricing"
+                    onClick={() => setShowMenuDropdown(false)}
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+                  >
+                    <CreditCard className="w-4 h-4 text-gray-600" />
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">Subscription</div>
+                      <div className="text-xs text-gray-500">Manage your plan</div>
+                    </div>
+                  </Link>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 bg-slate-50/50">
-          {messages.map((msg) => (
-            <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`flex max-w-[85%] md:max-w-[70%] gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${msg.role === 'user' ? 'bg-slate-200' : 'bg-teal-600'}`}>
-                  {msg.role === 'user' ? <User className="w-5 h-5 text-slate-600" /> : <Scale className="w-4 h-4 text-white" />}
-                </div>
-                <div className={`p-4 rounded-2xl shadow-sm whitespace-pre-wrap text-sm leading-relaxed ${
-                  msg.role === 'user' 
-                    ? 'bg-white text-slate-800 rounded-tr-none' 
-                    : 'bg-white text-slate-800 rounded-tl-none border border-slate-100'
-                }`}>
-                  {msg.content}
-                </div>
-              </div>
-            </div>
-          ))}
-          
-          {isTyping && (
-             <div className="flex justify-start">
-              <div className="flex max-w-[80%] gap-3">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-teal-600">
-                   <Scale className="w-4 h-4 text-white" />
-                </div>
-                <div className="bg-white p-4 rounded-2xl rounded-tl-none border border-slate-100 shadow-sm flex items-center gap-1">
-                  <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
-                  <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce delay-75"></div>
-                  <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce delay-150"></div>
+        <div className="flex-1 overflow-y-auto">
+          <div className="max-w-3xl mx-auto px-4 py-8">
+            {messages.map((msg) => (
+              <div key={msg.id} className={`mb-6 ${msg.role === 'user' ? 'flex justify-end' : 'flex justify-start'}`}>
+                <div className={`flex gap-3 max-w-2xl ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                    msg.role === 'user' 
+                      ? 'bg-gradient-to-br from-blue-500 to-blue-600' 
+                      : 'bg-gradient-to-br from-teal-500 to-teal-600'
+                  }`}>
+                    {msg.role === 'user' ? (
+                      <User className="w-4 h-4 text-white" />
+                    ) : (
+                      <Scale className="w-4 h-4 text-white" />
+                    )}
+                  </div>
+                  <div className={`px-4 py-3 rounded-lg ${
+                    msg.role === 'user'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-100 text-gray-900'
+                  }`}>
+                    <div className="text-sm whitespace-pre-wrap">{msg.content}</div>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-          <div ref={messagesEndRef} />
+            ))}
+            
+            {isTyping && (
+              <div className="flex justify-start mb-6">
+                <div className="flex gap-3 max-w-2xl">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center">
+                    <Scale className="w-4 h-4 text-white" />
+                  </div>
+                  <div className="bg-gray-100 px-4 py-3 rounded-lg">
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-75"></div>
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-150"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
         </div>
 
         {/* Input Area */}
-        <div className="p-4 bg-white border-t border-slate-100">
-           {/* Disclaimer Banner */}
-           <div className="mb-3 bg-yellow-50 border border-yellow-100 rounded-lg p-2 flex items-start gap-2">
-             <div className="text-yellow-600 mt-0.5"><Scale className="w-3 h-3" /></div>
-             <p className="text-[10px] text-yellow-800 leading-tight">
-               Disclaimer: Pocket Lawyer is an AI tool, not a law firm. Information provided is not legal advice. 
-               <Link to="/terms" className="underline ml-1">Learn more</Link>
-             </p>
-           </div>
-           
-           <form onSubmit={handleSendMessage} className="relative">
-             <div className="flex items-end gap-2 bg-slate-50 border border-slate-200 rounded-2xl p-2 focus-within:ring-2 focus-within:ring-teal-100 focus-within:border-teal-400 transition-all">
-               <button type="button" className="p-2 text-slate-400 hover:text-teal-600 rounded-full hover:bg-slate-200 transition-colors">
-                 <Paperclip className="w-5 h-5" />
-               </button>
-               <textarea 
-                 value={input}
-                 onChange={(e) => setInput(e.target.value)}
-                 onKeyDown={(e) => {
-                   if (e.key === 'Enter' && !e.shiftKey) {
-                     e.preventDefault();
-                     handleSendMessage(e);
-                   }
-                 }}
-                 placeholder="Type your legal question here..."
-                 className="flex-1 bg-transparent border-none focus:ring-0 resize-none max-h-32 py-2 text-slate-800 placeholder-slate-400 text-sm"
-                 rows={1}
-               />
-               <button 
-                type="submit"
-                disabled={!input.trim() || isTyping}
-                className="p-2 bg-teal-600 text-white rounded-xl hover:bg-teal-700 disabled:opacity-50 disabled:hover:bg-teal-600 transition-colors shadow-sm"
-               >
-                 <Send className="w-4 h-4" />
-               </button>
-             </div>
-           </form>
+        <div className="border-t border-gray-200 bg-white">
+          <div className="max-w-3xl mx-auto px-4 py-4">
+            {/* Engine and Style Selection */}
+            <div className="flex items-center gap-3 mb-3">
+              {/* Engine Selection */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowEngineDropdown(!showEngineDropdown)}
+                  className="flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm transition-colors"
+                >
+                  <Sparkles className="w-4 h-4 text-gray-600" />
+                  <span>{engines.find(e => e.id === selectedEngine)?.name}</span>
+                  <ChevronDown className="w-4 h-4 text-gray-600" />
+                </button>
+                {showEngineDropdown && (
+                  <div className="absolute bottom-full mb-2 left-0 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-48">
+                    {engines.map(engine => (
+                      <button
+                        key={engine.id}
+                        onClick={() => {
+                          setSelectedEngine(engine.id);
+                          setShowEngineDropdown(false);
+                        }}
+                        className="w-full text-left px-3 py-2 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0"
+                      >
+                        <div className="font-medium text-sm text-gray-900">{engine.name}</div>
+                        <div className="text-xs text-gray-500">{engine.description}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Style Selection */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowStyleDropdown(!showStyleDropdown)}
+                  className="flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm transition-colors"
+                >
+                  <span className="w-4 h-4 text-gray-600">🎭</span>
+                  <span>{styles.find(s => s.id === selectedStyle)?.name}</span>
+                  <ChevronDown className="w-4 h-4 text-gray-600" />
+                </button>
+                {showStyleDropdown && (
+                  <div className="absolute bottom-full mb-2 left-0 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-48">
+                    {styles.map(style => (
+                      <button
+                        key={style.id}
+                        onClick={() => {
+                          setSelectedStyle(style.id);
+                          setShowStyleDropdown(false);
+                        }}
+                        className="w-full text-left px-3 py-2 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0"
+                      >
+                        <div className="font-medium text-sm text-gray-900">{style.name}</div>
+                        <div className="text-xs text-gray-500">{style.description}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Disclaimer */}
+            <div className="mb-3 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+              <div className="flex items-start gap-2">
+                <Scale className="w-4 h-4 text-yellow-600 mt-0.5" />
+                <div className="text-xs text-yellow-800">
+                  <strong>Disclaimer:</strong> Pocket Lawyer is an AI tool, not a law firm. Information provided is not legal advice. 
+                  <Link to="/terms" className="underline ml-1">Learn more</Link>
+                </div>
+              </div>
+            </div>
+
+            {/* Message Input */}
+            <form onSubmit={handleSendMessage} className="relative">
+              <div className="flex items-end gap-2 bg-gray-50 border border-gray-200 rounded-lg p-2 focus-within:border-gray-400 focus-within:ring-1 focus-within:ring-gray-400 transition-all">
+                <button type="button" className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-200 transition-colors">
+                  <Paperclip className="w-5 h-5" />
+                </button>
+                <textarea 
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendMessage(e);
+                    }
+                  }}
+                  placeholder="Ask me anything about legal matters..."
+                  className="flex-1 bg-transparent border-none focus:ring-0 resize-none max-h-32 py-2 text-gray-900 placeholder-gray-500 text-sm"
+                  rows={1}
+                />
+                <button 
+                  type="submit"
+                  disabled={!input.trim() || isTyping}
+                  className="p-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:hover:bg-gray-900 transition-colors"
+                >
+                  <Send className="w-4 h-4" />
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
     </div>
   );
 };
-
-const SettingsIcon = () => (
-  <svg className="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-  </svg>
-);
 
 export default ChatPage;

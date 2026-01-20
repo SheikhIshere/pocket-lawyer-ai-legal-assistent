@@ -150,6 +150,18 @@ export const authService = {
     return true;
   },
 
+  // Change password
+  changePassword: async (oldPassword: string, newPassword: string) => {
+    return apiCall('/users/change-password/', {
+      method: 'POST',
+      body: JSON.stringify({ 
+        old_password: oldPassword, 
+        new_password: newPassword,
+        confirm_password: newPassword 
+      }),
+    });
+  },
+
   // Token management
   refreshToken: async () => {
     return apiCall('/users/token/refresh/', {
@@ -169,13 +181,36 @@ export const assistantService = {
   startSession: async () => {
     return apiCall('/assistant/sessions/', {
       method: 'POST',
+      body: JSON.stringify({ title: 'New Consultation' }),
+    });
+  },
+
+  createSession: async (title: string) => {
+    return apiCall('/assistant/sessions/', {
+      method: 'POST',
+      body: JSON.stringify({ title }),
     });
   },
 
   sendMessage: async (sessionId: string, message: string) => {
-    return apiCall(`/assistant/chat/`, {
+    return apiCall('/assistant/chat/', {
       method: 'POST',
-      body: JSON.stringify({ session: sessionId, message }),
+      body: JSON.stringify({
+        session: sessionId,
+        message: message,
+      }),
+    });
+  },
+
+  sendMessageWithEngine: async (message: string, sessionId: string, responseEngine: number, responseStyle: string) => {
+    return apiCall('/assistant/chat/', {
+      method: 'POST',
+      body: JSON.stringify({
+        session: sessionId,
+        message: message,
+        response_engine: responseEngine,
+        response_style: responseStyle,
+      }),
     });
   },
 
@@ -185,6 +220,10 @@ export const assistantService = {
 
   getSession: async (sessionId: string) => {
     return apiCall(`/assistant/sessions/${sessionId}/`);
+  },
+
+  checkStatus: async (messageId: string) => {
+    return apiCall(`/assistant/chat/${messageId}/`);
   },
 
   deleteSession: async (sessionId: string) => {
