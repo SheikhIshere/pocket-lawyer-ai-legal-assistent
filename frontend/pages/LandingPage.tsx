@@ -6,7 +6,8 @@ import {
   FileText, Scale, Star, Users, Zap, Globe, Award,
   Lock, BookOpen, Building, Target, ChevronRight,
   BarChart, TrendingUp, ShieldCheck, Headphones,
-  FileCheck, Search, Users2, Briefcase
+  FileCheck, Search, Users2, Briefcase,
+  UserPlus, MessageCircle, User
 } from 'lucide-react';
 import { Header, Footer } from '../components/Layout';
 
@@ -94,7 +95,7 @@ const LandingPage: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 flex flex-col">
       <Header />
 
       <main className="flex-grow">
@@ -141,7 +142,7 @@ const LandingPage: React.FC = () => {
                     className="group relative overflow-hidden bg-gradient-to-r from-[#0E8E82] to-[#0a6d62] text-white px-8 py-4 rounded-xl text-lg font-semibold hover:shadow-2xl hover:shadow-[#0E8E82]/30 transition-all duration-300 hover:-translate-y-0.5 inline-flex items-center justify-center gap-3"
                   >
                     <span className="relative z-10">
-                      {isAuthenticated ? "Go to Dashboard" : "Start Enterprise Trial"}
+                      {isAuthenticated ? "Go to Dashboard" : "Start Free Trial"}
                     </span>
                     <ArrowRight className="w-5 h-5 relative z-10 group-hover:translate-x-1 transition-transform" />
                     <div className="absolute inset-0 bg-gradient-to-r from-[#0a6d62] to-[#0E8E82] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -440,135 +441,138 @@ const LandingPage: React.FC = () => {
           </div>
         </section>
 
-        {/* Premium CTA Section */}
+        {/* 3-Step Process Section */}
         <section className="relative py-32 overflow-hidden">
           {/* Background with clear contrast */}
-          <div className="absolute inset-0 bg-gradient-to-b from-gray-900 to-gray-950">
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900/20 via-transparent to-transparent"></div>
+          <div className="absolute inset-0 bg-gradient-to-b from-slate-100 via-gray-50 to-slate-100">
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-teal-50/30 via-transparent to-transparent"></div>
           </div>
 
           {/* Floating glowing elements */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-64 bg-gradient-to-b from-blue-500/10 to-transparent blur-3xl"></div>
-          <div className="absolute top-20 left-20 w-64 h-64 bg-gradient-to-br from-blue-500/20 to-indigo-500/20 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-20 right-20 w-64 h-64 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-full blur-3xl"></div>
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-64 bg-gradient-to-b from-teal-500/10 to-transparent blur-3xl"></div>
+          <div className="absolute top-20 left-20 w-64 h-64 bg-gradient-to-br from-teal-500/20 to-cyan-500/20 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-20 right-20 w-64 h-64 bg-gradient-to-br from-cyan-500/20 to-teal-500/20 rounded-full blur-3xl"></div>
 
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative">
             <div className="text-center mb-16">
-              <div className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 mb-8">
-                <Award className="w-5 h-5 text-white" />
-                <span className="text-white font-semibold">Limited Time Offer</span>
+              <div className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-teal-100 backdrop-blur-sm border border-teal-200 mb-8">
+                <FileText className="w-5 h-5 text-teal-600" />
+                <span className="text-teal-700 font-semibold">Start Your Legal Journey</span>
               </div>
 
-              <h2 className="text-5xl lg:text-6xl font-bold text-white mb-6">
-                Elevate Your Legal Practice
-                <span className="block text-cyan-300 mt-2">with AI Precision</span>
+              <h2 className="text-5xl lg:text-6xl font-bold text-slate-800 mb-6">
+                Get Legal Help in 3 Simple Steps
+                <span className="block text-teal-600 mt-2">Authenticate • Verify • Chat</span>
               </h2>
 
-              <p className="text-xl text-blue-100 mb-12 max-w-3xl mx-auto leading-relaxed">
-                Experience the future of legal consultation. Join thousands of professionals
-                who have transformed their practice with PocketLawyer's cutting-edge AI.
+              <p className="text-xl text-slate-600 mb-12 max-w-3xl mx-auto leading-relaxed">
+                Experience seamless legal consultation. Sign up, verify your identity, and start chatting with our AI-powered legal assistant instantly.
               </p>
             </div>
 
-            {/* Main CTA Container */}
+            {/* Main Steps Container */}
             <div className="relative">
               {/* Glow effect behind */}
-              <div className="absolute -inset-4 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-3xl blur-2xl opacity-20"></div>
+              <div className="absolute -inset-4 bg-gradient-to-r from-teal-600 to-cyan-600 rounded-3xl blur-2xl opacity-20"></div>
 
-              {/* Main card */}
-              <div className="relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl border border-gray-700 overflow-hidden">
+              {/* Main steps card */}
+              <div className="relative bg-gradient-to-br from-white via-gray-50/50 to-slate-50/30 rounded-3xl border border-gray-200/50 overflow-hidden shadow-xl backdrop-blur-sm">
                 <div className="p-12">
                   <div className="grid lg:grid-cols-3 gap-8 items-center">
-                    {/* Left - Value Proposition */}
-                    <div className="lg:col-span-2 space-y-8">
-                      <div className="space-y-4">
-                        <h3 className="text-3xl font-bold text-white">
-                          Everything You Need in One Platform
-                        </h3>
-                        <ul className="space-y-3">
-                          {[
-                            "Unlimited AI legal consultations",
-                            "Document review & analysis",
-                            "Legal research assistant",
-                            "Priority support & training",
-                            "Enterprise security compliance",
-                            "Team collaboration tools"
-                          ].map((item, index) => (
-                            <li key={index} className="flex items-center gap-3 text-gray-300">
-                              <CheckCircle className="w-5 h-5 text-emerald-400 flex-shrink-0" />
-                              <span>{item}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-
-                      <div className="flex items-center gap-6">
-                        <div className="text-center">
-                          <div className="text-4xl font-bold text-white">$0</div>
-                          <div className="text-sm text-gray-400">First 14 days</div>
+                    {/* Step 1 - Authenticate */}
+                    <div className="text-center space-y-6">
+                      <div className="relative">
+                        <div className="w-16 h-16 bg-gradient-to-br from-teal-500 to-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-teal-500/50">
+                          <span className="text-2xl font-bold text-white">1</span>
                         </div>
-                        <div className="h-12 w-px bg-gray-700"></div>
-                        <div className="text-center">
-                          <div className="text-3xl font-bold text-white">50% OFF</div>
-                          <div className="text-sm text-gray-400">First 3 months</div>
+                        <div className="absolute -top-2 -right-2 w-6 h-6 bg-teal-400 rounded-full flex items-center justify-center">
+                          <User className="w-3 h-3 text-white" />
                         </div>
                       </div>
-                    </div>
-
-                    {/* Right - CTA Form */}
-                    <div className="bg-gradient-to-b from-gray-800 to-gray-900 rounded-2xl p-8 border border-gray-700">
-                      <h4 className="text-xl font-bold text-white mb-6">Start Your Trial</h4>
-
-                      <div className="space-y-4 mb-6">
-                        <input
-                          type="email"
-                          placeholder="Work email"
-                          className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
-                        <input
-                          type="text"
-                          placeholder="Company name"
-                          className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
-                        <select className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                          <option>Company size</option>
-                          <option>1-10 employees</option>
-                          <option>11-50 employees</option>
-                          <option>51-200 employees</option>
-                          <option>200+ employees</option>
-                        </select>
-                      </div>
-
+                      
+                      <h3 className="text-2xl font-bold text-slate-800 mb-3">Authenticate</h3>
+                      <p className="text-slate-600 leading-relaxed">
+                        Create your account with email and password. Secure, fast, and ready in seconds.
+                      </p>
+                      
                       <Link
                         to="/register"
-                        className="block w-full text-center bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-4 rounded-lg text-lg font-semibold hover:from-blue-500 hover:to-cyan-500 transition-all shadow-lg hover:shadow-xl hover:shadow-blue-500/20 mb-4"
+                        className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-teal-600 to-cyan-600 text-white rounded-lg font-semibold hover:from-teal-500 hover:to-cyan-500 transition-all shadow-lg hover:shadow-xl hover:shadow-teal-500/20"
                       >
-                        Start Free Trial
+                        <UserPlus className="w-4 h-4" />
+                        Sign Up Now
                       </Link>
+                    </div>
 
-                      <p className="text-xs text-gray-500 text-center">
-                        By clicking, you agree to our terms. No credit card required.
+                    {/* Step 2 - Verify */}
+                    <div className="text-center space-y-6">
+                      <div className="relative">
+                        <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/50">
+                          <span className="text-2xl font-bold text-white">2</span>
+                        </div>
+                        <div className="absolute -top-2 -right-2 w-6 h-6 bg-blue-400 rounded-full flex items-center justify-center">
+                          <Shield className="w-3 h-3 text-white" />
+                        </div>
+                      </div>
+                      
+                      <h3 className="text-2xl font-bold text-slate-800 mb-3">Verify Identity</h3>
+                      <p className="text-slate-600 leading-relaxed">
+                        Receive OTP verification code to secure your account and protect your legal consultations.
                       </p>
+                      
+                      <div className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-semibold opacity-75 cursor-not-allowed">
+                        <Shield className="w-4 h-4" />
+                        OTP Verification
+                      </div>
+                    </div>
+
+                    {/* Step 3 - Start Chat */}
+                    <div className="text-center space-y-6">
+                      <div className="relative">
+                        <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-500/50">
+                          <span className="text-2xl font-bold text-white">3</span>
+                        </div>
+                        <div className="absolute -top-2 -right-2 w-6 h-6 bg-emerald-400 rounded-full flex items-center justify-center">
+                          <MessageCircle className="w-3 h-3 text-white" />
+                        </div>
+                      </div>
+                      
+                      <h3 className="text-2xl font-bold text-slate-800 mb-3">Start Chatting</h3>
+                      <p className="text-slate-600 leading-relaxed">
+                        Begin your legal consultation instantly. Get AI-powered advice and export chat sessions to PDF.
+                      </p>
+                      
+                      <Link
+                        to="/chat"
+                        className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-lg font-semibold hover:from-emerald-500 hover:to-green-500 transition-all shadow-lg hover:shadow-xl hover:shadow-emerald-500/20"
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                        Start Chat
+                      </Link>
                     </div>
                   </div>
-                </div>
 
-                {/* Bottom trust bar */}
-                <div className="bg-gradient-to-r from-gray-800 to-gray-900 border-t border-gray-700 p-6">
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div className="flex items-center gap-4">
+                  {/* Process Flow */}
+                  <div className="mt-12 pt-8 border-t border-gray-200/50">
+                    <div className="flex items-center justify-center gap-4 text-slate-600">
                       <div className="flex items-center gap-2">
-                        <ShieldCheck className="w-5 h-5 text-emerald-400" />
-                        <span className="text-sm text-gray-300">SOC 2 Compliant</span>
+                        <div className="w-8 h-0.5 bg-teal-500 rounded-full"></div>
+                        <span className="text-sm">Create Account</span>
                       </div>
-                      <div className="h-4 w-px bg-gray-700"></div>
+                      
+                      <ChevronRight className="w-4 h-4 text-slate-400" />
+                      
                       <div className="flex items-center gap-2">
-                        <Lock className="w-5 h-5 text-blue-400" />
-                        <span className="text-sm text-gray-300">256-bit Encryption</span>
+                        <div className="w-8 h-0.5 bg-blue-500 rounded-full"></div>
+                        <span className="text-sm">Verify OTP</span>
                       </div>
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      <span className="text-white">4.9/5</span> rating from 1,200+ reviews
+                      
+                      <ChevronRight className="w-4 h-4 text-slate-400" />
+                      
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-0.5 bg-emerald-500 rounded-full"></div>
+                        <span className="text-sm">Start Chat</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -576,13 +580,13 @@ const LandingPage: React.FC = () => {
             </div>
 
             {/* Alternative CTA */}
-            <div className="mt-12 text-center">
-              <p className="text-gray-400 mb-4">Prefer to see it in action first?</p>
+            <div className="mt-16 text-center">
+              <p className="text-slate-600 mb-4">Already have an account?</p>
               <Link
-                to="/demo"
-                className="inline-flex items-center gap-3 text-white hover:text-cyan-300 transition-colors group"
+                to="/login"
+                className="inline-flex items-center gap-3 text-teal-600 hover:text-teal-700 transition-colors group"
               >
-                <span>Book a personalized demo with our team</span>
+                <span>Sign in to start chatting immediately</span>
                 <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Link>
             </div>

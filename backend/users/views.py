@@ -170,7 +170,7 @@ class ResendingOtpView(APIView):
     serializer_class = ResendingOtpSerializer
 
     def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+        serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
             user = serializer.validated_data['email']
             # expiring all previous otp

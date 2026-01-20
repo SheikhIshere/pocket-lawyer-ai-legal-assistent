@@ -10,18 +10,23 @@ const VerifyOtpPage: React.FC = () => {
   const [timeLeft, setTimeLeft] = useState(300); // 5 minutes in seconds
   const [isResending, setIsResending] = useState(false);
   
-  const { verifyOtp } = useAuth();
+  const { verifyRegistrationOtp, verifyLoginOtp, tempEmail, isRegistration } = useAuth();
   const navigate = useNavigate();
 
-  // Check if user has temp token from registration
+  // Check if user has temp email from registration/login
   React.useEffect(() => {
-    const tempToken = localStorage.getItem('temp_auth_token');
-    if (!tempToken) {
-      // No temp token, redirect to login
+    const storedEmail = localStorage.getItem('temp_email');
+    console.log('VerifyOtpPage - temp_email from localStorage:', storedEmail);
+    console.log('VerifyOtpPage - tempEmail from context:', tempEmail);
+    console.log('VerifyOtpPage - isRegistration:', isRegistration);
+    
+    if (!storedEmail) {
+      // No temp email, redirect to login
+      console.log('No temp email found, redirecting to login');
       navigate('/login');
       return;
     }
-  }, [navigate]);
+  }, [navigate, tempEmail, isRegistration]);
 
   // Timer countdown
   useEffect(() => {
@@ -44,16 +49,24 @@ const VerifyOtpPage: React.FC = () => {
       return;
     }
 
+    if (!tempEmail) {
+      setError('Email not found. Please try logging in again.');
+      return;
+    }
+
     setIsLoading(true);
     setError('');
     
     try {
-      // Check if we have a temp token (from registration)
-      const tempToken = localStorage.getItem('temp_auth_token');
-      console.log('OTP Verification - Temp token exists:', !!tempToken);
+      console.log('OTP Verification - Email:', tempEmail);
+      console.log('OTP Verification - Is Registration:', isRegistration);
       console.log('OTP Verification - Submitting code:', otp);
       
-      const result = await verifyOtp(otp);
+      // Use the appropriate verification method based on whether it's registration or login
+      const result = isRegistration ? 
+        await verifyRegistrationOtp(tempEmail, otp) : 
+        await verifyLoginOtp(tempEmail, otp);
+      
       console.log('OTP verification result:', result);
       
       // Check if verification was successful
@@ -97,13 +110,25 @@ const VerifyOtpPage: React.FC = () => {
     setError('');
     
     try {
-      // This would call a resend OTP API endpoint
-      console.log('Resending OTP...');
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      if (!tempEmail) {
+        setError('Email not found. Please try logging in again.');
+        return;
+      }
+
+      // Import authService for resend functionality
+      const { authService } = await import('../../services/api');
+      
+      // Use the appropriate resend method based on whether it's registration or login
+      const result = isRegistration ? 
+        await authService.resendRegistrationOtp(tempEmail) :
+        await authService.resendLoginOtp(tempEmail);
+      
+      console.log('Resend OTP result:', result);
+      
       setTimeLeft(300); // Reset timer
       setError('');
     } catch (err: any) {
+      console.error('Resend OTP error:', err);
       setError('Failed to resend code. Please try again.');
     } finally {
       setIsResending(false);

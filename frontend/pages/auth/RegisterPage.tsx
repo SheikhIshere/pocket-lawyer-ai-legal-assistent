@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { Shield, Eye, EyeOff, ArrowRight, User, Mail, Lock } from 'lucide-react';
+import { Shield, Eye, EyeOff, ArrowRight, User, Mail, Lock, UserPlus, Check } from 'lucide-react';
 
 const RegisterPage: React.FC = () => {
   const [full_name, setFullName] = useState('');
@@ -39,8 +39,9 @@ const RegisterPage: React.FC = () => {
       const result = await register({ email, password, full_name, password2: confirmPassword });
       console.log('Registration API result:', result);
       
-      // If registration is successful, user will be redirected to OTP page
-      // The AuthContext handles the navigation automatically
+      // The AuthContext will handle the redirection based on requiresOtp state
+      // No need to navigate manually here as the ProtectedRoute will handle it
+      
     } catch (err: any) {
       console.error('Registration error:', err);
       console.error('Error details:', {
@@ -172,51 +173,49 @@ const RegisterPage: React.FC = () => {
           <p className="text-center mt-8 text-slate-500 text-sm">
             Already have an account? <Link to="/login" className="text-teal-600 font-bold hover:underline">Log in</Link>
           </p>
+          
+          {/* Test Button */}
+          {/* <button
+            onClick={() => {
+              console.log('TEST BUTTON CLICKED');
+              navigate('/register-verify-otp');
+            }}
+            className="w-full mt-4 bg-red-600 text-white py-2 rounded-lg"
+          >
+            TEST: Go to OTP Page
+          </button> */}
         </div>
       </div>
 
        {/* Right Side - Visual */}
-       <div className="hidden lg:flex w-1/2 bg-slate-900 flex-col justify-center items-center text-white relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-teal-900 to-slate-900 opacity-90"></div>
+      <div className="hidden lg:flex w-1/2 bg-teal-600 flex-col justify-center items-center text-white relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-teal-500 to-blue-600 opacity-90"></div>
+        <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
         
-        {/* Robot/AI Image */}
-        <div className="relative z-10 text-center px-12">
-          <div className="relative mb-8">
-            <img 
-              src="https://picsum.photos/seed/ai-robot/400/300" 
-              alt="AI Legal Assistant Robot"
-              className="w-full max-w-md mx-auto rounded-2xl shadow-2xl border-2 border-teal-400/30"
-            />
-            {/* Floating elements around robot */}
-            <div className="absolute -top-4 -right-4 w-8 h-8 bg-teal-400 rounded-full opacity-60 animate-pulse"></div>
-            <div className="absolute -bottom-4 -left-4 w-6 h-6 bg-blue-400 rounded-full opacity-40 animate-bounce"></div>
-            <div className="absolute top-1/2 -left-8 w-4 h-4 bg-green-400 rounded-full opacity-50 animate-ping"></div>
-          </div>
-          
-          <Shield className="w-20 h-20 text-teal-400 mx-auto mb-8" />
-          <h2 className="text-3xl font-bold mb-4">Trusted by 250,000+ People</h2>
-          <p className="text-slate-400 mb-8">Join the fastest growing legal AI community.</p>
-          
-          <div className="grid grid-cols-3 gap-6 text-center">
-             <div className="bg-slate-800 p-4 rounded-xl border border-slate-700">
-               <div className="text-2xl font-bold text-white">4.8/5</div>
-               <div className="text-xs text-slate-400">Rating</div>
-             </div>
-             <div className="bg-slate-800 p-4 rounded-xl border border-slate-700">
-               <div className="text-2xl font-bold text-white">24/7</div>
-               <div className="text-xs text-slate-400">Support</div>
-             </div>
-             <div className="bg-slate-800 p-4 rounded-xl border border-slate-700">
-               <div className="text-2xl font-bold text-white">100%</div>
-               <div className="text-xs text-slate-400">Secure</div>
+        <div className="relative z-10 max-w-lg text-center px-8">
+          <div className="mb-8 flex justify-center">
+             <div className="w-24 h-24 bg-white/20 backdrop-blur-md rounded-3xl flex items-center justify-center border border-white/30 shadow-2xl">
+                <UserPlus className="w-12 h-12 text-white" />
              </div>
           </div>
+          <h2 className="text-4xl font-bold mb-6">Start Your Legal Journey Today</h2>
+          <p className="text-teal-100 text-lg leading-relaxed mb-12">
+            Join thousands of professionals who trust our AI-powered legal assistant for accurate, secure, and instant legal guidance.
+          </p>
           
-          {/* Tech badges */}
-          <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <span className="px-3 py-1 bg-teal-600/20 text-teal-400 text-xs rounded-full border border-teal-600/30">AI-Powered</span>
-            <span className="px-3 py-1 bg-blue-600/20 text-blue-400 text-xs rounded-full border border-blue-600/30">Bank-Level Security</span>
-            <span className="px-3 py-1 bg-green-600/20 text-green-400 text-xs rounded-full border border-green-600/30">GDPR Compliant</span>
+          <div className="space-y-4 text-left inline-block">
+             <div className="flex items-center gap-3">
+               <div className="bg-white/20 p-1 rounded-full"><Check className="w-4 h-4 text-white" /></div>
+               <span className="font-medium">Free Chat</span>
+             </div>
+             <div className="flex items-center gap-3">
+               <div className="bg-white/20 p-1 rounded-full"><Check className="w-4 h-4 text-white" /></div>
+               <span className="font-medium">No Credit Card Required</span>
+             </div>
+             <div className="flex items-center gap-3">
+               <div className="bg-white/20 p-1 rounded-full"><Check className="w-4 h-4 text-white" /></div>
+               <span className="font-medium">Instant Account Setup</span>
+             </div>
           </div>
         </div>
       </div>

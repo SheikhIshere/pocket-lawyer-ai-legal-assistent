@@ -30,6 +30,8 @@ urlpatterns = [
     path('v1/api/accounts/', include('accounts.urls')),
     path('v1/api/accounts/api-key/', include('api_key.urls')),
     path('v1/api/assistant/', include('chat_bot.urls')),
+    path('v1/api/newsletter/', include('newsletter.urls')),
+
     
 
 

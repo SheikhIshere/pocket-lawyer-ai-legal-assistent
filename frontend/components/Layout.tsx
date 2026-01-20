@@ -3,13 +3,13 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { 
   Scale, Menu, X, User, ChevronDown, 
-  LogOut, Settings, FileText, Briefcase, 
+  Settings, FileText, Briefcase, 
   Phone, Mail, MapPin, ExternalLink,
   Shield, Lock, Globe
 } from 'lucide-react';
 
 export const Header: React.FC = () => {
-  const { isAuthenticated, logout, user } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -23,11 +23,6 @@ export const Header: React.FC = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  const handleLogout = () => {
-    logout();
-    navigate('/');
-  };
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -100,10 +95,10 @@ export const Header: React.FC = () => {
                     className="flex items-center gap-3 p-1.5 rounded-xl hover:bg-gray-50 transition-colors border border-gray-200"
                   >
                     <div className="relative">
-                      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-teal-600 to-emerald-700 flex items-center justify-center text-white text-sm font-bold shadow-md">
+                      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#0E8E82] to-[#0a6d62] flex items-center justify-center text-white text-sm font-bold shadow-md">
                         {(user?.full_name || user?.name || 'U').charAt(0).toUpperCase()}
                       </div>
-                      <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white"></div>
+                      <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-[#0a6d62] rounded-full border-2 border-white"></div>
                     </div>
                     <div className="text-left mr-2">
                       <div className="text-sm font-semibold text-gray-900">{user?.name}</div>
@@ -153,16 +148,6 @@ export const Header: React.FC = () => {
                             <Settings className="w-4 h-4" />
                             Account Settings
                           </Link>
-                        </div>
-                        
-                        <div className="border-t border-gray-100 pt-2">
-                          <button 
-                            onClick={handleLogout}
-                            className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                          >
-                            <LogOut className="w-4 h-4" />
-                            Log Out
-                          </button>
                         </div>
                       </div>
                     </>
@@ -259,18 +244,13 @@ export const Header: React.FC = () => {
                     <Link to="/cases" className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-lg">
                       My Legal Cases
                     </Link>
-                    <Link to="/documents" className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-lg">
-                      Documents
-                    </Link>
-                    <button
-                      onClick={() => {
-                        handleLogout();
-                        setMobileMenuOpen(false);
-                      }}
-                      className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-lg"
-                    >
-                      Log Out
-                    </button>
+                    <Link 
+                            to="/documents" 
+                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-teal-50 hover:text-teal-700 transition-colors"
+                          >
+                            <FileText className="w-4 h-4" />
+                            Documents
+                          </Link>
                   </div>
                 </>
               ) : (
@@ -284,7 +264,7 @@ export const Header: React.FC = () => {
                   </Link>
                   <Link
                     to="/register"
-                    className="block px-4 py-3 text-center text-sm font-semibold bg-gradient-to-r from-teal-600 to-emerald-700 text-white rounded-lg hover:shadow-lg"
+                    className="block px-4 py-3 text-center bg-gradient-to-r from-teal-600 to-emerald-700 text-white text-sm font-semibold rounded-lg hover:opacity-90"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Get Started Free

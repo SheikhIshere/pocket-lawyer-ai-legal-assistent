@@ -220,9 +220,11 @@ class LoginOtpSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
     
     def validate(self, attrs):
-        user = User.objects.get(email=attrs['email'])
-        if not user:
+        try:
+            user = User.objects.get(email=attrs['email'])
+        except User.DoesNotExist:
             raise serializers.ValidationError({"error": "User not found."})
+        
         given_otp = attrs['otp']
 
         otp_obj = Otp.objects.filter(user=user, otp=given_otp, is_expired=False).first()
