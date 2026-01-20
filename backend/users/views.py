@@ -296,8 +296,24 @@ class LoginOtpCheckView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        # return JWT tokens only, no account creation
-        refresh = RefreshToken.for_user(request.user)
+        
+        # Get the user from the serializer validation
+        user = User.objects.get(email=request.data.get('email'))
+        
+        # Ensure user is verified and has Account before creating token
+        if not user.is_verified:
+            user.is_verified = True
+            user.save()
+        
+        # Create Account if it doesn't exist
+        from accounts.models import Account
+        Account.objects.get_or_create(
+            user=user,
+            defaults={"full_name": user.full_name},
+        )
+        
+        # Now create token for verified user
+        refresh = RefreshToken.for_user(user)
         return Response({
             "access": str(refresh.access_token),
             "refresh": str(refresh)

@@ -8,7 +8,7 @@ from rest_framework import serializers
 # validate password
 from django.contrib.auth.password_validation import validate_password
 
-from backend.accounts.models import Account
+from accounts.models import Account
 
 # user
 from .models import User
@@ -230,9 +230,6 @@ class LoginOtpSerializer(serializers.Serializer):
         if not otp_obj:
             raise serializers.ValidationError({"error": "Invalid OTP."})
 
-        if not user.is_verified:
-            raise serializers.ValidationError({"error": "Account is not verified."})
-
         if otp_obj.created_at + timezone.timedelta(minutes=5) < timezone.now():
             otp_obj.is_expired = True
             otp_obj.save()
@@ -242,6 +239,17 @@ class LoginOtpSerializer(serializers.Serializer):
         # success path
         otp_obj.is_expired = True
         otp_obj.save()
+
+        # Ensure user is verified and has an Account
+        if not user.is_verified:
+            user.is_verified = True
+            user.save()
+        
+        # Create Account if it doesn't exist
+        Account.objects.get_or_create(
+            user=user,
+            defaults={"full_name": user.full_name},
+        )
 
         return attrs
 
