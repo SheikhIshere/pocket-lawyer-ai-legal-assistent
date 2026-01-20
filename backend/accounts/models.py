@@ -25,6 +25,7 @@ class Account(BaseModel):
     full_name = models.CharField(max_length=100, blank=True)
     gender = models.CharField(max_length=10, choices=GenderChoice.choices, default=GenderChoice.OTHER)
     birth_day = models.DateField(null=True, blank=True)
+    phone_number = models.CharField(max_length=15, blank=True)
 
     # chat bot language preference
     language = models.CharField(max_length=10, choices=LanguageChoice.choices, default=LanguageChoice.ENGLISH)

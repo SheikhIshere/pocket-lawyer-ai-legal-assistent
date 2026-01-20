@@ -11,7 +11,7 @@ class AccountSerializer(serializers.ModelSerializer):
     class Meta:
         model = Account
         exclude = ('user', 'status', 'credit')  # Include plan, exclude status and credit
-        read_only_fields = ('created_at', 'updated_at')
+        read_only_fields = ('created_at', 'updated_at', 'plan')
     
     # keeping data when updating account
     def update(self, instance, validated_data):
