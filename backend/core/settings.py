@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'api_key',
     'chat_bot',
     'newsletter',
+    'contact_us',
 
     # 3rd package
     'rest_framework',

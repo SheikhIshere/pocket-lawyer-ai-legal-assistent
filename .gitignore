@@ -1,9 +1,72 @@
-.env
-venv
-test.json
+# Python cache
+__pycache__/
+*/__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Environment and virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# Node.js
+node_modules/
+
+# IDE and editors
+.cursor/
+.vscode/
+
+# Logs and temporary files
+*.log
 log.md
 prompt.txt
+prompt
+test.json
+
+# Configuration
+.env
+.env.local
+.env.production
+
+# Build and dist
+build/
+dist/
+
+# Database
+*.db
+*.sqlite3
+
+# Text files
+*.txt
+
+# Demo and test files
+demo/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
 node_modules
-.cursor
-__pycache__/
-*.pyc
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

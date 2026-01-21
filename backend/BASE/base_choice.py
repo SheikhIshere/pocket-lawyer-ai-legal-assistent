@@ -69,3 +69,19 @@ class ModelStyle(TextChoices):
     
     # up coming
     # PURAN_DHAKAIYA = "puran_dhakaiya", "Puran_dhakaiya"
+
+
+# for: backend/contact_us/models.py
+class ServiceType(TextChoices):
+    GENERAL_INQUIRY = "general_inquiry", "General_Inquiry"
+    DOCUMENT_REVIEW = "document_review", "Document_Review"
+    EMERGENCY_LEGAL_HELP = "emergency_legal_help", "Emergency_Legal_Help"
+    LEGAL_ADVICE = "legal_advice", "Legal_Advice"
+    LEGAL_RESEARCH = "legal_research", "Legal_Research"
+    BUG_REPORT = "bug_report", "Bug_Report"
+    OTHER = "other", "Other"
+
+class PriorityLevel(TextChoices):
+    NORMAL = "normal", "Normal"
+    URGENT = "urgent", "Urgent" 
+    EMERGENCY = "emergency" , "Emergency"

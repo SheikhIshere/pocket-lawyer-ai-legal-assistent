@@ -8,7 +8,10 @@ services:
       - 3000:3000
     volumes:
       - ./frontend:/frontend
+      - /frontend/node_modules
     command: npm run dev
+    environment:
+      - VITE_API_URL=http://localhost:8000
 
   # main backend
   backend:

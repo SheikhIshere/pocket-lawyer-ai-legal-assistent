@@ -15,6 +15,7 @@ urlpatterns = [
     
     # account address
     path('me/address/', AccountAddressViewSet.as_view(), name='account-address'),
+
 ]
 
 
