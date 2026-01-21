@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -14,6 +14,15 @@ import { Header, Footer } from '../components/Layout';
 const LandingPage: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState('individuals');
+  const [showFAB, setShowFAB] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowFAB(window.scrollY > 400);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const features = [
     {
@@ -95,19 +104,19 @@ const LandingPage: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 flex flex-col">
+    <div className="min-h-screen bg-white dark:bg-slate-950 flex flex-col transition-colors duration-500 pb-16 lg:pb-0">
       <Header />
 
       <main className="flex-grow">
         {/* Hero Section */}
-        <section className="relative overflow-hidden bg-gradient-to-b from-white to-gray-50 pt-24 pb-32">
+        <section className="relative overflow-hidden bg-white dark:bg-slate-900 pt-24 pb-32">
           {/* Background Pattern */}
           <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=%2220%22 height=%2220%22 viewBox=%220 0 20 20%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cg fill=%22%23f8fafc%22 fill-opacity=%221%22 fill-rule=%22evenodd%22%3E%3Ccircle cx=%223%22 cy=%223%22 r=%223%22/%3E%3Ccircle cx=%2213%22 cy=%2213%22 r=%223%22/%3E%3C/g%3E%3C/svg%3E')]"></div>
 
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
             <div className="grid lg:grid-cols-2 gap-16 items-center">
               <div className="space-y-8">
-                <div className="inline-flex items-center gap-3 px-4 py-2.5 rounded-full bg-gradient-to-r from-[#0E8E82]/10 to-[#0E8E82]/5 border border-[#0E8E82]/20">
+                <div className="inline-flex items-center gap-3 px-4 py-2.5 rounded-full bg-[#0E8E82]/10 dark:bg-[#0E8E82]/20 border border-[#0E8E82]/20 dark:border-[#0E8E82]/30">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-[#0E8E82] animate-pulse"></div>
                     <span className="text-sm font-semibold text-[#0E8E82]">
@@ -116,22 +125,22 @@ const LandingPage: React.FC = () => {
                   </div>
                   <div className="flex -space-x-2">
                     {[1, 2, 3].map((i) => (
-                      <div key={i} className="w-6 h-6 rounded-full bg-gradient-to-br from-[#0E8E82] to-[#0a6d62] border-2 border-white"></div>
+                      <div key={i} className="w-6 h-6 rounded-full bg-gradient-to-br from-[#0E8E82] to-[#0a6d62] border-2 border-white dark:border-slate-800"></div>
                     ))}
                   </div>
                 </div>
 
-                <h1 className="text-5xl lg:text-6xl xl:text-7xl font-bold text-gray-900 tracking-tight">
+                <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold text-gray-900 dark:text-white tracking-tight leading-tight">
                   Professional Legal
                   <span className="block mt-2">
-                    <span className="bg-gradient-to-r from-[#0E8E82] to-[#0a6d62] bg-clip-text text-transparent">
+                    <span className="bg-gradient-to-r from-teal-600 to-emerald-700 bg-clip-text text-transparent">
                       Consultation
                     </span>
-                    <span className="text-gray-900">, Redefined</span>
+                    <span className="text-gray-900 dark:text-white">, Redefined</span>
                   </span>
                 </h1>
 
-                <p className="text-xl text-gray-600 leading-relaxed max-w-xl">
+                <p className="text-xl text-gray-600 dark:text-gray-400 leading-relaxed max-w-xl">
                   Enterprise-grade AI legal assistant providing instant, accurate, and secure legal guidance.
                   Trusted by legal professionals and businesses worldwide.
                 </p>
@@ -139,22 +148,21 @@ const LandingPage: React.FC = () => {
                 <div className="flex flex-col sm:flex-row gap-4 pt-4">
                   <Link
                     to={isAuthenticated ? "/chat" : "/register"}
-                    className="group relative overflow-hidden bg-gradient-to-r from-[#0E8E82] to-[#0a6d62] text-white px-8 py-4 rounded-xl text-lg font-semibold hover:shadow-2xl hover:shadow-[#0E8E82]/30 transition-all duration-300 hover:-translate-y-0.5 inline-flex items-center justify-center gap-3"
+                    className="group relative overflow-hidden bg-gradient-to-r from-teal-600 to-emerald-700 text-white px-8 py-4 rounded-2xl text-lg font-semibold shadow-lg shadow-teal-500/20 active:scale-95 transition-all duration-300 inline-flex items-center justify-center gap-3"
                   >
                     <span className="relative z-10">
                       {isAuthenticated ? "Go to Dashboard" : "Start Free Trial"}
                     </span>
                     <ArrowRight className="w-5 h-5 relative z-10 group-hover:translate-x-1 transition-transform" />
-                    <div className="absolute inset-0 bg-gradient-to-r from-[#0a6d62] to-[#0E8E82] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   </Link>
 
                   <Link
                     to="/demo"
-                    className="group inline-flex items-center justify-center gap-3 bg-white text-gray-700 border border-gray-200 px-8 py-4 rounded-xl text-lg font-semibold hover:bg-gray-50 hover:border-gray-300 transition-all"
+                    className="group inline-flex items-center justify-center gap-3 bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-slate-700 px-8 py-4 rounded-2xl text-lg font-semibold hover:bg-gray-50 dark:hover:bg-slate-700 active:scale-95 transition-all"
                   >
                     <span>Watch Demo</span>
-                    <div className="w-10 h-10 rounded-full bg-[#0E8E82]/10 flex items-center justify-center group-hover:bg-[#0E8E82]/20 transition-colors">
-                      <svg className="w-5 h-5 text-[#0E8E82]" fill="currentColor" viewBox="0 0 24 24">
+                    <div className="w-10 h-10 rounded-full bg-teal-50 dark:bg-teal-900/20 flex items-center justify-center group-hover:bg-teal-100 dark:group-hover:bg-teal-900/40 transition-colors">
+                      <svg className="w-5 h-5 text-teal-600 dark:text-teal-400" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M8 5v14l11-7z" />
                       </svg>
                     </div>
@@ -163,21 +171,21 @@ const LandingPage: React.FC = () => {
 
                 <div className="grid grid-cols-2 gap-4 pt-8 max-w-lg">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-[#0E8E82]/10 flex items-center justify-center">
-                      <CheckCircle className="w-5 h-5 text-[#0E8E82]" />
+                    <div className="w-10 h-10 rounded-lg bg-[#0E8E82]/10 dark:bg-[#0E8E82]/20 flex items-center justify-center">
+                      <CheckCircle className="w-5 h-5 text-[#0E8E82] dark:text-teal-400" />
                     </div>
                     <div>
-                      <div className="font-semibold text-gray-900">AI-Powered</div>
-                      <div className="text-sm text-gray-600">Instant Analysis</div>
+                      <div className="font-semibold text-gray-900 dark:text-white">AI-Powered</div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">Instant Analysis</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-[#0E8E82]/10 flex items-center justify-center">
-                      <Lock className="w-5 h-5 text-[#0E8E82]" />
+                    <div className="w-10 h-10 rounded-lg bg-[#0E8E82]/10 dark:bg-[#0E8E82]/20 flex items-center justify-center">
+                      <Lock className="w-5 h-5 text-[#0E8E82] dark:text-teal-400" />
                     </div>
                     <div>
-                      <div className="font-semibold text-gray-900">Bank-Level</div>
-                      <div className="text-sm text-gray-600">Security</div>
+                      <div className="font-semibold text-gray-900 dark:text-white">Bank-Level</div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">Security</div>
                     </div>
                   </div>
                 </div>
@@ -185,7 +193,7 @@ const LandingPage: React.FC = () => {
 
               {/* Hero Chat Interface */}
               <div className="relative">
-                <div className="relative bg-white rounded-3xl shadow-2xl shadow-gray-200/50 border border-gray-100 overflow-hidden">
+                <div className="relative bg-white dark:bg-slate-800 rounded-3xl shadow-2xl shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-slate-700 overflow-hidden">
                   {/* Chat Header */}
                   <div className="bg-gradient-to-r from-gray-900 to-gray-800 p-6">
                     <div className="flex items-center justify-between">
@@ -198,20 +206,20 @@ const LandingPage: React.FC = () => {
                         </div>
                         <div>
                           <div className="font-semibold text-white">PocketLawyer AI</div>
-                          <div className="text-sm text-[#0E8E82]/80 flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-[#0E8E82] animate-pulse"></div>
+                          <div className="text-sm text-[#0E8E82]/80 dark:text-teal-400/80 flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-[#0E8E82] dark:bg-teal-400 animate-pulse"></div>
                             Online • Enterprise Edition
                           </div>
                         </div>
                       </div>
-                      <div className="text-xs font-medium px-3 py-1.5 rounded-full bg-gray-700 text-gray-200">
+                      <div className="text-xs font-medium px-3 py-1.5 rounded-full bg-gray-700 dark:bg-slate-700 text-gray-200">
                         Attorney Mode
                       </div>
                     </div>
                   </div>
 
                   {/* Chat Messages */}
-                  <div className="p-6 space-y-6 bg-gradient-to-b from-white to-gray-50/50">
+                  <div className="p-6 space-y-6 bg-gradient-to-b from-white to-gray-50/50 dark:from-slate-800 dark:to-slate-900/50">
                     {/* AI Message */}
                     <div className="flex gap-4">
                       <div className="flex-shrink-0">
@@ -221,8 +229,8 @@ const LandingPage: React.FC = () => {
                       </div>
                       <div className="flex-1">
                         <div className="text-xs font-semibold text-gray-900 mb-1">PocketLawyer AI</div>
-                        <div className="bg-gray-50 rounded-2xl rounded-tl-none p-4 border border-gray-100">
-                          <p className="text-sm text-gray-700 leading-relaxed">
+                        <div className="bg-gray-50 dark:bg-slate-900 rounded-2xl rounded-tl-none p-4 border border-gray-100 dark:border-slate-800">
+                          <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
                             Welcome to PocketLawyer Enterprise. I can assist with: contract analysis,
                             legal research, compliance checks, and document review. How may I help you today?
                           </p>
@@ -264,22 +272,22 @@ const LandingPage: React.FC = () => {
                       </div>
                       <div className="flex-1">
                         <div className="text-xs font-semibold text-gray-900 mb-1">PocketLawyer AI</div>
-                        <div className="bg-gray-50 rounded-2xl rounded-tl-none p-4 border border-gray-100">
-                          <p className="text-sm text-gray-700 leading-relaxed mb-3">
+                        <div className="bg-gray-50 dark:bg-slate-900 rounded-2xl rounded-tl-none p-4 border border-gray-100 dark:border-slate-800">
+                          <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-3">
                             I'll analyze the NDA. Key areas to review:
                           </p>
                           <ul className="space-y-2 text-sm">
                             <li className="flex items-center gap-2">
-                              <CheckCircle className="w-4 h-4 text-[#0E8E82]" />
-                              <span>Confidentiality scope and exclusions</span>
+                              <CheckCircle className="w-4 h-4 text-[#0E8E82] dark:text-teal-400" />
+                              <span className="text-gray-700 dark:text-gray-300">Confidentiality scope and exclusions</span>
                             </li>
                             <li className="flex items-center gap-2">
-                              <CheckCircle className="w-4 h-4 text-[#0E8E82]" />
-                              <span>Term duration and survival clauses</span>
+                              <CheckCircle className="w-4 h-4 text-[#0E8E82] dark:text-teal-400" />
+                              <span className="text-gray-700 dark:text-gray-300">Term duration and survival clauses</span>
                             </li>
                             <li className="flex items-center gap-2">
-                              <CheckCircle className="w-4 h-4 text-[#0E8E82]" />
-                              <span>Remedies for breach</span>
+                              <CheckCircle className="w-4 h-4 text-[#0E8E82] dark:text-teal-400" />
+                              <span className="text-gray-700 dark:text-gray-300">Remedies for breach</span>
                             </li>
                           </ul>
                         </div>
@@ -291,12 +299,12 @@ const LandingPage: React.FC = () => {
                   </div>
 
                   {/* Chat Input */}
-                  <div className="border-t border-gray-100 p-4 bg-white">
-                    <div className="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-3 border border-gray-200">
+                  <div className="border-t border-gray-100 dark:border-slate-700 p-4 bg-white dark:bg-slate-800">
+                    <div className="flex items-center gap-3 bg-gray-50 dark:bg-slate-900 rounded-xl px-4 py-3 border border-gray-200 dark:border-slate-700">
                       <input
                         type="text"
                         placeholder="Type your legal question or upload document..."
-                        className="bg-transparent flex-1 outline-none text-sm text-gray-600 placeholder-gray-400"
+                        className="bg-transparent flex-1 outline-none text-sm text-gray-600 dark:text-gray-400 placeholder-gray-400"
                         readOnly
                       />
                       <button className="flex items-center gap-2 bg-gradient-to-r from-[#0E8E82] to-[#0a6d62] text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:shadow-lg transition-all">
@@ -316,18 +324,16 @@ const LandingPage: React.FC = () => {
         </section>
 
         {/* Stats Section */}
-        <section className="py-16 bg-gradient-to-b from-gray-50 to-white border-t border-b border-gray-100">
+        <section className="py-16 bg-gray-50 dark:bg-slate-950 border-t border-b border-gray-100 dark:border-slate-800">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
               {stats.map((stat, index) => (
-                <div key={index} className="text-center group">
-                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-white to-gray-50 border border-gray-200 shadow-sm group-hover:shadow-md transition-shadow mb-6">
-                    <div className="text-[#0E8E82]">
-                      {stat.icon}
-                    </div>
+                <div key={index} className="bg-white dark:bg-slate-900/50 p-8 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm text-center group transition-all active:scale-95">
+                  <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400 mb-6 group-hover:scale-110 transition-transform">
+                    {stat.icon}
                   </div>
-                  <div className="text-4xl lg:text-5xl font-bold text-gray-900 mb-2">{stat.number}</div>
-                  <div className="text-gray-600 font-medium">{stat.label}</div>
+                  <div className="text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-2">{stat.number}</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400 font-medium uppercase tracking-wider">{stat.label}</div>
                 </div>
               ))}
             </div>
@@ -335,36 +341,36 @@ const LandingPage: React.FC = () => {
         </section>
 
         {/* Features Section */}
-        <section className="py-24 bg-white">
+        <section className="py-24 bg-white dark:bg-slate-900">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center max-w-3xl mx-auto mb-20">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#0E8E82]/10 text-[#0E8E82] text-sm font-semibold mb-6">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#0E8E82]/10 dark:bg-[#0E8E82]/20 text-[#0E8E82] dark:text-teal-400 text-sm font-semibold mb-6">
                 <Award className="w-4 h-4" />
                 Enterprise-Grade Features
               </div>
-              <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
+              <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-6">
                 Comprehensive Legal AI Platform
               </h2>
-              <p className="text-xl text-gray-600">
+              <p className="text-xl text-gray-600 dark:text-gray-400">
                 Advanced tools designed for professionals, backed by AI trained on millions of legal documents
               </p>
             </div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {features.map((feature, index) => (
-                <div key={index} className="group relative">
-                  <div className="absolute inset-0 bg-gradient-to-br from-white to-gray-50 rounded-2xl border border-gray-100 group-hover:border-blue-200 transition-all duration-300"></div>
-                  <div className="relative p-8">
-                    <div className={`inline-flex p-4 rounded-2xl bg-gradient-to-br ${feature.gradient} mb-6 group-hover:scale-110 transition-transform duration-300`}>
+                <div key={index} className="group relative transition-all active:scale-[0.98]">
+                  <div className="absolute inset-0 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-gray-100 dark:border-slate-800 shadow-sm group-hover:shadow-xl group-hover:shadow-teal-500/5 transition-all duration-300"></div>
+                  <div className="relative p-8 sm:p-10">
+                    <div className={`inline-flex p-4 rounded-2xl bg-gradient-to-br from-teal-600 to-emerald-700 mb-8 shadow-lg shadow-teal-500/20 transition-transform duration-300`}>
                       <div className="text-white">
                         {feature.icon}
                       </div>
                     </div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-4">{feature.title}</h3>
-                    <p className="text-gray-600 leading-relaxed mb-6">{feature.description}</p>
-                    <div className="flex items-center text-blue-600 font-medium group-hover:gap-3 transition-all">
-                      <span>Learn more</span>
-                      <ChevronRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 leading-tight">{feature.title}</h3>
+                    <p className="text-gray-600 dark:text-gray-400 leading-relaxed mb-8">{feature.description}</p>
+                    <div className="flex items-center text-teal-600 dark:text-teal-400 font-bold group-hover:translate-x-2 transition-transform h-6">
+                      <span className="text-sm">Explore Feature</span>
+                      <ChevronRight className="w-4 h-4 ml-1" />
                     </div>
                   </div>
                 </div>
@@ -374,13 +380,13 @@ const LandingPage: React.FC = () => {
         </section>
 
         {/* Industries Section */}
-        <section className="py-20 bg-gradient-to-b from-gray-50 to-white">
+        <section className="py-20 bg-gray-50 dark:bg-slate-950">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center max-w-3xl mx-auto mb-16">
-              <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
                 Trusted Across Industries
               </h2>
-              <p className="text-xl text-gray-600">
+              <p className="text-xl text-gray-600 dark:text-gray-400">
                 From startups to Fortune 500 companies, we provide tailored legal solutions
               </p>
             </div>
@@ -388,11 +394,11 @@ const LandingPage: React.FC = () => {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
               {industries.map((industry, index) => (
                 <div key={index} className="group">
-                  <div className="bg-white p-6 rounded-2xl border border-gray-200 hover:border-[#0E8E82] hover:shadow-lg transition-all duration-300 text-center">
-                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-[#0E8E82]/10 text-[#0E8E82] mb-4 group-hover:bg-gradient-to-br group-hover:from-[#0E8E82] group-hover:to-[#0a6d62] group-hover:text-white transition-colors">
+                  <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-gray-200 dark:border-slate-800 hover:border-[#0E8E82] dark:hover:border-teal-400 hover:shadow-lg transition-all duration-300 text-center">
+                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-[#0E8E82]/10 dark:bg-[#0E8E82]/20 text-[#0E8E82] dark:text-teal-400 mb-4 group-hover:bg-gradient-to-br group-hover:from-[#0E8E82] group-hover:to-[#0a6d62] group-hover:text-white transition-colors">
                       {industry.icon}
                     </div>
-                    <div className="font-semibold text-gray-900">{industry.name}</div>
+                    <div className="font-semibold text-gray-900 dark:text-white text-sm">{industry.name}</div>
                   </div>
                 </div>
               ))}
@@ -401,35 +407,35 @@ const LandingPage: React.FC = () => {
         </section>
 
         {/* Testimonials Section */}
-        <section className="py-24 bg-white">
+        <section className="py-24 bg-white dark:bg-slate-900">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center max-w-3xl mx-auto mb-20">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#0E8E82]/10 text-[#0E8E82] text-sm font-semibold mb-6">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#0E8E82]/10 dark:bg-[#0E8E82]/20 text-[#0E8E82] dark:text-teal-400 text-sm font-semibold mb-6">
                 <Star className="w-4 h-4 fill-[#0E8E82]" />
                 Client Testimonials
               </div>
-              <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
+              <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-6">
                 Trusted by Legal Professionals
               </h2>
-              <p className="text-xl text-gray-600">
+              <p className="text-xl text-gray-600 dark:text-gray-400">
                 See how leading organizations leverage PocketLawyer for their legal needs
               </p>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {testimonials.map((testimonial, index) => (
-                <div key={index} className="group">
-                  <div className="bg-gradient-to-b from-white to-gray-50 p-8 rounded-2xl border border-gray-200 hover:border-[#0E8E82] hover:shadow-xl transition-all duration-300 h-full">
-                    <div className="flex items-center gap-1 mb-6">
+                <div key={index} className="group h-full">
+                  <div className="bg-slate-50 dark:bg-slate-900/50 p-8 rounded-[2rem] border border-gray-100 dark:border-slate-800 hover:shadow-2xl hover:shadow-teal-500/5 transition-all duration-300 h-full flex flex-col">
+                    <div className="flex items-center gap-1 mb-8">
                       {[...Array(testimonial.rating)].map((_, i) => (
-                        <Star key={i} className="w-5 h-5 fill-amber-400 text-amber-400" />
+                        <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
                       ))}
                     </div>
-                    <p className="text-gray-700 mb-8 leading-relaxed text-lg italic">"{testimonial.content}"</p>
-                    <div className="pt-6 border-t border-gray-200">
-                      <div className="font-semibold text-gray-900 text-lg">{testimonial.name}</div>
-                      <div className="text-gray-600 mb-2">{testimonial.role}</div>
-                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-sm">
+                    <p className="text-gray-700 dark:text-gray-300 mb-8 leading-relaxed text-lg flex-grow font-medium">"{testimonial.content}"</p>
+                    <div className="pt-8 border-t border-gray-200/60 dark:border-slate-800">
+                      <div className="font-bold text-gray-900 dark:text-white text-lg">{testimonial.name}</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-3">{testimonial.role}</div>
+                      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400 text-xs font-bold uppercase tracking-wider">
                         <Briefcase className="w-3 h-3" />
                         {testimonial.company}
                       </div>
@@ -442,30 +448,27 @@ const LandingPage: React.FC = () => {
         </section>
 
         {/* 3-Step Process Section */}
-        <section className="relative py-32 overflow-hidden">
-          {/* Background with clear contrast */}
-          <div className="absolute inset-0 bg-gradient-to-b from-slate-100 via-gray-50 to-slate-100">
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-teal-50/30 via-transparent to-transparent"></div>
-          </div>
+        <section className="relative py-32 overflow-hidden bg-slate-50 dark:bg-slate-950">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-teal-50/30 dark:from-teal-900/10 via-transparent to-transparent"></div>
 
           {/* Floating glowing elements */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-64 bg-gradient-to-b from-teal-500/10 to-transparent blur-3xl"></div>
-          <div className="absolute top-20 left-20 w-64 h-64 bg-gradient-to-br from-teal-500/20 to-cyan-500/20 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-20 right-20 w-64 h-64 bg-gradient-to-br from-cyan-500/20 to-teal-500/20 rounded-full blur-3xl"></div>
+          <div className="absolute top-20 left-20 w-64 h-64 bg-gradient-to-br from-teal-500/10 to-transparent rounded-full blur-3xl"></div>
+          <div className="absolute bottom-20 right-20 w-64 h-64 bg-gradient-to-br from-cyan-500/10 to-transparent rounded-full blur-3xl"></div>
 
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative">
             <div className="text-center mb-16">
-              <div className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-teal-100 backdrop-blur-sm border border-teal-200 mb-8">
-                <FileText className="w-5 h-5 text-teal-600" />
-                <span className="text-teal-700 font-semibold">Start Your Legal Journey</span>
+              <div className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-teal-100 dark:bg-teal-900/30 backdrop-blur-sm border border-teal-200 dark:border-teal-800/50 mb-8">
+                <FileText className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+                <span className="text-teal-700 dark:text-teal-400 font-semibold">Start Your Legal Journey</span>
               </div>
 
-              <h2 className="text-5xl lg:text-6xl font-bold text-slate-800 mb-6">
+              <h2 className="text-5xl lg:text-6xl font-bold text-slate-800 dark:text-white mb-6">
                 Get Legal Help in 3 Simple Steps
-                <span className="block text-teal-600 mt-2">Authenticate • Verify • Chat</span>
+                <span className="block text-teal-600 dark:text-teal-400 mt-2">Authenticate • Verify • Chat</span>
               </h2>
 
-              <p className="text-xl text-slate-600 mb-12 max-w-3xl mx-auto leading-relaxed">
+              <p className="text-xl text-slate-600 dark:text-gray-400 mb-12 max-w-3xl mx-auto leading-relaxed">
                 Experience seamless legal consultation. Sign up, verify your identity, and start chatting with our AI-powered legal assistant instantly.
               </p>
             </div>
@@ -476,7 +479,7 @@ const LandingPage: React.FC = () => {
               <div className="absolute -inset-4 bg-gradient-to-r from-teal-600 to-cyan-600 rounded-3xl blur-2xl opacity-20"></div>
 
               {/* Main steps card */}
-              <div className="relative bg-gradient-to-br from-white via-gray-50/50 to-slate-50/30 rounded-3xl border border-gray-200/50 overflow-hidden shadow-xl backdrop-blur-sm">
+              <div className="relative bg-white dark:bg-slate-900/50 rounded-3xl border border-gray-200/50 dark:border-slate-800 overflow-hidden shadow-xl backdrop-blur-sm">
                 <div className="p-12">
                   <div className="grid lg:grid-cols-3 gap-8 items-center">
                     {/* Step 1 - Authenticate */}
@@ -489,12 +492,12 @@ const LandingPage: React.FC = () => {
                           <User className="w-3 h-3 text-white" />
                         </div>
                       </div>
-                      
-                      <h3 className="text-2xl font-bold text-slate-800 mb-3">Authenticate</h3>
-                      <p className="text-slate-600 leading-relaxed">
+
+                      <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-3">Authenticate</h3>
+                      <p className="text-slate-600 dark:text-gray-400 leading-relaxed">
                         Create your account with email and password. Secure, fast, and ready in seconds.
                       </p>
-                      
+
                       <Link
                         to="/register"
                         className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-teal-600 to-cyan-600 text-white rounded-lg font-semibold hover:from-teal-500 hover:to-cyan-500 transition-all shadow-lg hover:shadow-xl hover:shadow-teal-500/20"
@@ -514,12 +517,12 @@ const LandingPage: React.FC = () => {
                           <Shield className="w-3 h-3 text-white" />
                         </div>
                       </div>
-                      
-                      <h3 className="text-2xl font-bold text-slate-800 mb-3">Verify Identity</h3>
-                      <p className="text-slate-600 leading-relaxed">
+
+                      <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-3">Verify Identity</h3>
+                      <p className="text-slate-600 dark:text-gray-400 leading-relaxed">
                         Receive OTP verification code to secure your account and protect your legal consultations.
                       </p>
-                      
+
                       <div className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-semibold opacity-75 cursor-not-allowed">
                         <Shield className="w-4 h-4" />
                         OTP Verification
@@ -536,12 +539,12 @@ const LandingPage: React.FC = () => {
                           <MessageCircle className="w-3 h-3 text-white" />
                         </div>
                       </div>
-                      
-                      <h3 className="text-2xl font-bold text-slate-800 mb-3">Start Chatting</h3>
-                      <p className="text-slate-600 leading-relaxed">
+
+                      <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-3">Start Chatting</h3>
+                      <p className="text-slate-600 dark:text-gray-400 leading-relaxed">
                         Begin your legal consultation instantly. Get AI-powered advice and export chat sessions to PDF.
                       </p>
-                      
+
                       <Link
                         to="/chat"
                         className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-lg font-semibold hover:from-emerald-500 hover:to-green-500 transition-all shadow-lg hover:shadow-xl hover:shadow-emerald-500/20"
@@ -553,22 +556,22 @@ const LandingPage: React.FC = () => {
                   </div>
 
                   {/* Process Flow */}
-                  <div className="mt-12 pt-8 border-t border-gray-200/50">
-                    <div className="flex items-center justify-center gap-4 text-slate-600">
+                  <div className="mt-12 pt-8 border-t border-gray-200/50 dark:border-slate-800">
+                    <div className="flex items-center justify-center gap-4 text-slate-600 dark:text-gray-400">
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-0.5 bg-teal-500 rounded-full"></div>
                         <span className="text-sm">Create Account</span>
                       </div>
-                      
-                      <ChevronRight className="w-4 h-4 text-slate-400" />
-                      
+
+                      <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-600" />
+
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-0.5 bg-blue-500 rounded-full"></div>
                         <span className="text-sm">Verify OTP</span>
                       </div>
-                      
-                      <ChevronRight className="w-4 h-4 text-slate-400" />
-                      
+
+                      <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-600" />
+
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-0.5 bg-emerald-500 rounded-full"></div>
                         <span className="text-sm">Start Chat</span>
@@ -581,10 +584,10 @@ const LandingPage: React.FC = () => {
 
             {/* Alternative CTA */}
             <div className="mt-16 text-center">
-              <p className="text-slate-600 mb-4">Already have an account?</p>
+              <p className="text-slate-600 dark:text-gray-400 mb-4">Already have an account?</p>
               <Link
                 to="/login"
-                className="inline-flex items-center gap-3 text-teal-600 hover:text-teal-700 transition-colors group"
+                className="inline-flex items-center gap-3 text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300 transition-colors group"
               >
                 <span>Sign in to start chatting immediately</span>
                 <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -593,6 +596,19 @@ const LandingPage: React.FC = () => {
           </div>
         </section>
       </main>
+
+      {/* floating Action Button (Android-Style) */}
+      <div
+        className={`lg:hidden fixed bottom-24 right-6 z-[70] transition-all duration-500 ${showFAB ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-10 opacity-0 scale-0'
+          }`}
+      >
+        <Link
+          to="/chat"
+          className="flex items-center justify-center w-14 h-14 bg-gradient-to-br from-teal-600 to-emerald-700 text-white rounded-2xl shadow-2xl shadow-teal-500/40 active:scale-90 transition-transform"
+        >
+          <MessageCircle className="w-6 h-6" />
+        </Link>
+      </div>
 
       <Footer />
     </div>

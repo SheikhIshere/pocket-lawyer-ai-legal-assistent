@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Header, Footer } from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
-import { accountService, authService } from '../services/api';
+import api from '../services/api';
 import { User, Lock, FileText, Settings, CreditCard, LogOut, Camera, Mail, Phone, Calendar, MapPin, Briefcase, Globe, Shield, Edit2, Save, X, Loader2, Key, Plus, Trash2, Eye, EyeOff, Code, Database, Zap, ShieldCheck, Brain, RefreshCw } from 'lucide-react';
 
 const SettingsPage: React.FC = () => {
@@ -56,7 +56,7 @@ const SettingsPage: React.FC = () => {
         language: formData.language
       };
       
-      const updated = await accountService.updateProfile(apiData);
+      const updated = await api.accountService.updateProfile(apiData);
       // Update user state with new data
       const updatedUser = {
         ...user,
@@ -83,7 +83,7 @@ const SettingsPage: React.FC = () => {
       return;
     }
     try {
-      await authService.changePassword(passwordData.old_password, passwordData.new_password);
+      await api.authService.changePassword(passwordData.old_password, passwordData.new_password);
       alert('Password changed successfully');
       setPasswordData({ old_password: '', new_password: '', confirm_password: '' });
     } catch (error) {
@@ -94,7 +94,7 @@ const SettingsPage: React.FC = () => {
 
   const fetchApiKeys = async () => {
     try {
-      const keys = await accountService.getApiKeys();
+      const keys = await api.accountService.getApiKeys();
       setApiKeys(keys);
     } catch (error) {
       console.error('Failed to fetch API keys:', error);
@@ -103,7 +103,7 @@ const SettingsPage: React.FC = () => {
 
   const createApiKey = async () => {
     try {
-      const newKey = await accountService.createApiKey({ name: `API Key ${new Date().toISOString()}` });
+      const newKey = await api.accountService.createApiKey({ name: `API Key ${new Date().toISOString()}` });
       setApiKeys([...apiKeys, newKey]);
       setNewApiKey(newKey.key);
       setShowNewKeyForm(false);
@@ -119,7 +119,7 @@ const SettingsPage: React.FC = () => {
     
     try {
       console.log('Deleting API key with ID:', id);
-      await accountService.deleteApiKey(id);
+      await api.accountService.deleteApiKey(id);
       console.log('API key deleted successfully');
     } catch (error: any) {
       console.error('Failed to delete API key:', error);
@@ -156,7 +156,7 @@ const SettingsPage: React.FC = () => {
       return;
     }
     try {
-      const newKey = await accountService.createApiKey({ api_key: newApiKeyInput });
+      const newKey = await api.accountService.createApiKey({ api_key: newApiKeyInput });
       setApiKeys([...apiKeys, newKey]);
       setNewApiKeyInput('');
       setShowNewKeyForm(false);

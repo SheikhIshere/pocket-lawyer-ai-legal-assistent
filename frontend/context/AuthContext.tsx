@@ -2,10 +2,10 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, AuthState } from '../types';
 
 interface AuthContextType extends AuthState {
-  login: (email: string, pass: string) => Promise<void>;
-  register: (data: any) => Promise<void>;
-  verifyRegistrationOtp: (email: string, otp: string) => Promise<void>;
-  verifyLoginOtp: (email: string, otp: string) => Promise<void>;
+  login: (email: string, pass: string) => Promise<any>;
+  register: (data: any) => Promise<any>;
+  verifyRegistrationOtp: (email: string, otp: string) => Promise<any>;
+  verifyLoginOtp: (email: string, otp: string) => Promise<any>;
   logout: () => void;
   updateUser: (user: User) => void;
   tempEmail: string | null;
@@ -21,7 +21,7 @@ export const useAuth = () => {
   return context;
 };
 
-import { authService, accountService } from '../services/api';
+import api from '../services/api';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, setState] = useState<AuthState & { isInitializing?: boolean }>({
@@ -51,28 +51,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const storedTempEmail = localStorage.getItem('temp_email');
       const storedIsRegistration = localStorage.getItem('is_registration');
       const storedIsForgotPassword = localStorage.getItem('is_forgot_password');
-
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/3b5466ef-e4ad-485a-98f1-d363bc9e423a', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId: 'debug-session',
-          runId: 'pre-fix',
-          hypothesisId: 'H1',
-          location: 'AuthContext.tsx:initializeAuth:start',
-          message: 'initializeAuth starting with stored values',
-          data: {
-            hasStoredToken: !!storedToken,
-            hasStoredUser: !!storedUser,
-            hasTempEmail: !!storedTempEmail,
-            isRegistrationFlag: storedIsRegistration === 'true',
-            isForgotPasswordFlag: storedIsForgotPassword === 'true'
-          },
-          timestamp: Date.now()
-        })
-      }).catch(() => {});
-      // #endregion agent log
       
       if (storedToken && storedUser) {
         try {
@@ -86,30 +64,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             token: storedToken,
             isInitializing: false // Done initializing
           });
-
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/3b5466ef-e4ad-485a-98f1-d363bc9e423a', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              sessionId: 'debug-session',
-              runId: 'pre-fix',
-              hypothesisId: 'H2',
-              location: 'AuthContext.tsx:initializeAuth:token-branch',
-              message: 'Auth initialized from stored token/user',
-              data: {
-                isAuthenticated: true,
-                requiresOtp: false
-              },
-              timestamp: Date.now()
-            })
-          }).catch(() => {});
-          // #endregion agent log
           
-          // Validate token by making a simple API call
-          try {
-            await accountService.getProfile();
-            console.log('Token validation successful');
+            // Validate token by making a simple API call
+            try {
+              await api.accountService.getProfile();
+              console.log('Token validation successful');
           } catch (error: any) {
             console.error('Token validation failed:', error);
             
@@ -159,79 +118,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             isRegistration: false,
             isInitializing: false // Done initializing
           }));
-
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/3b5466ef-e4ad-485a-98f1-d363bc9e423a', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              sessionId: 'debug-session',
-              runId: 'pre-fix',
-              hypothesisId: 'H3',
-              location: 'AuthContext.tsx:initializeAuth:temp-email-branch',
-              message: 'Auth initialized in OTP-required state due to temp_email',
-              data: {
-                hasTempEmail: true,
-                isRegistrationFlag: localStorage.getItem('is_registration') === 'true',
-                isForgotPasswordFlag: localStorage.getItem('is_forgot_password') === 'true'
-              },
-              timestamp: Date.now()
-            })
-          }).catch(() => {});
-          // #endregion agent log
-        } else {
-          // Clear any stale OTP flags if no temp email
-          localStorage.removeItem('is_registration');
-          localStorage.removeItem('is_forgot_password');
-          setState(prev => ({
-            ...prev,
-            requiresOtp: false,
-            isInitializing: false // Done initializing
-          }));
-
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/3b5466ef-e4ad-485a-98f1-d363bc9e423a', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              sessionId: 'debug-session',
-              runId: 'pre-fix',
-              hypothesisId: 'H4',
-              location: 'AuthContext.tsx:initializeAuth:no-auth-branch',
-              message: 'Auth initialized with no token and no OTP requirement',
-              data: {
-                hasTempEmail: false
-              },
-              timestamp: Date.now()
-            })
-          }).catch(() => {});
-          // #endregion agent log
-        }
-      }
-    };
-    
+         } else {
+           // Clear any stale OTP flags if no temp email
+           localStorage.removeItem('is_registration');
+           localStorage.removeItem('is_forgot_password');
+           setState(prev => ({
+             ...prev,
+             requiresOtp: false,
+             isInitializing: false // Done initializing
+           }));
+         }
+       }
+     };
+     
     initializeAuth();
   }, []);
 
   const login = async (email: string, pass: string) => {
     try {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/3b5466ef-e4ad-485a-98f1-d363bc9e423a', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId: 'debug-session',
-          runId: 'pre-fix',
-          hypothesisId: 'H5',
-          location: 'AuthContext.tsx:login:entry',
-          message: 'Login called',
-          data: { hasEmail: !!email },
-          timestamp: Date.now()
-        })
-      }).catch(() => {});
-      // #endregion agent log
-
-      const res = await authService.login(email, pass);
+      const res = await api.authService.login(email, pass);
       
       // Handle login response structure - now returns message and user info, not token
       if (res.message && res.user) {
@@ -246,27 +151,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           ...prev, 
           requiresOtp: true
         }));
-
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/3b5466ef-e4ad-485a-98f1-d363bc9e423a', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            sessionId: 'debug-session',
-            runId: 'pre-fix',
-            hypothesisId: 'H6',
-            location: 'AuthContext.tsx:login:otp-set',
-            message: 'Login completed, OTP required state set',
-            data: {
-              requiresOtp: true,
-              isRegistration: false
-            },
-            timestamp: Date.now()
-          })
-        }).catch(() => {});
-        // #endregion agent log
-      } else {
-        throw new Error('Login failed');
+       } else {
+         throw new Error('Login failed');
       }
     } catch (error) {
       console.error('Login error:', error);
@@ -285,7 +171,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         password2: data.password2
       };
       
-      const res = await authService.register(registerData);
+      const res = await api.authService.register(registerData);
       console.log('Registration API response:', res);
       
       // Check if registration was successful
@@ -309,25 +195,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           ...prev, 
           requiresOtp: true
         }));
-
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/3b5466ef-e4ad-485a-98f1-d363bc9e423a', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            sessionId: 'debug-session',
-            runId: 'post-fix',
-            hypothesisId: 'H8',
-            location: 'AuthContext.tsx:register:otp-set',
-            message: 'Register completed, OTP required state set',
-            data: {
-              requiresOtp: true,
-              isRegistration: true
-            },
-            timestamp: Date.now()
-          })
-        }).catch(() => {});
-        // #endregion agent log
         
         console.log('OTP state set - should redirect to register-verify-otp page');
         console.log('localStorage is_registration:', localStorage.getItem('is_registration'));
@@ -348,7 +215,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const verifyRegistrationOtp = async (email: string, otp: string) => {
     try {
       console.log('verifyRegistrationOtp called with:', { email, otp });
-      const res = await authService.verifyRegistrationOtp(email, otp);
+      const res = await api.authService.verifyRegistrationOtp(email, otp);
       console.log('OTP verification API response:', res);
       
       // Check for different possible success response structures
@@ -368,7 +235,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.setItem('pl_token', finalToken);
         
         // Fetch user profile data after successful OTP verification
-        const profileData = await accountService.getProfile();
+        const profileData = await api.accountService.getProfile();
         console.log('User profile data:', profileData);
         
         // Create user object with backend structure
@@ -461,7 +328,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const verifyLoginOtp = async (email: string, otp: string) => {
     try {
-      const res = await authService.verifyLoginOtp(email, otp);
+      const res = await api.authService.verifyLoginOtp(email, otp);
       
       if (res.access && res.refresh) {
         const finalToken = res.access;
@@ -470,7 +337,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.setItem('pl_token', finalToken);
         
         // Fetch user profile data after successful OTP verification
-        const profileData = await accountService.getProfile();
+        const profileData = await api.accountService.getProfile();
         
         // Create user object with backend structure
         const user: User = {

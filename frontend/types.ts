@@ -27,19 +27,36 @@ export interface AuthState {
 export interface ChatSession {
   id: string;
   title: string;
+  messages: Message[] | string; // API might return stringified JSON
   created_at: string;
-  messages?: any;
-  updated_at?: string;
+  updated_at: string;
 }
 
 export interface Message {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: number;
-  response?: string;
-  error?: string;
+  id?: string; // Optional for backward compatibility
+  message?: string; // User input (for API compatibility)
+  content?: string; // User input (for UI compatibility)
+  response?: string; // AI output (optional for user messages)
+  role?: 'user' | 'assistant';
+  timestamp?: number;
   status?: 'pending' | 'completed' | 'failed';
+  error?: string;
+  created_at?: string;
+}
+
+export interface AiRequest {
+  id: string;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  response?: string;
+  message?: string;
+}
+
+export interface CreateSessionPayload {
+  title?: string;
+}
+
+export interface SendMessagePayload {
+  message: string;
 }
 
 export interface ServiceItem {

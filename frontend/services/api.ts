@@ -1,41 +1,32 @@
-// frontend/services/api.ts
 import { User, ChatSession, Message, RequestStatus } from '../types';
 
-const API_BASE_URL = '/v1/api'; // keep your base prefix
+const API_BASE_URL = '/v1/api';
 
-// Helper function for API calls
 const apiCall = async (endpoint: string, options: RequestInit = {}) => {
-  // OTP endpoints detection (same as your logic)
-  const isOtpEndpoint = endpoint.includes('/users/register/activate/via-otp/') ||
-    endpoint.includes('/users/login/otp/verify/') ||
-    endpoint.includes('/users/register/activate/otp/resend/') ||
-    endpoint.includes('/users/login/otp/resend/') ||
-    endpoint.includes('/users/forget-password/otp/verify/') ||
-    endpoint.includes('/users/forget-password/otp/resend/');
+  console.log(`API Call: ${options.method || 'GET'} ${API_BASE_URL}${endpoint}`);
+  console.log('Request options:', options);
 
-  // token
-  const token = !isOtpEndpoint ? localStorage.getItem('pl_token') : null;
+  const isAuthEndpoint = endpoint.startsWith('/users/');
+  const isOtpEndpoint = endpoint.includes('/otp/') || endpoint.includes('/activate/via-otp') || endpoint.includes('/forget-password/confirm');
+
+  const token = localStorage.getItem('pl_token');
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+
+  if (token && !isOtpEndpoint) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
 
   const config: RequestInit = {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-      ...options.headers,
-    },
+    headers: { ...headers, ...options.headers },
     ...options,
   };
 
-  console.log(`API Call: ${API_BASE_URL}${endpoint}`, {
-    method: config.method || 'GET',
-    headers: config.headers,
-    body: config.body ? (() => {
-      try { return JSON.parse(config.body as string); } catch { return config.body; }
-    })() : undefined,
-    hasToken: !!token
-  });
 
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+    console.log(`Response status: ${response.status} for ${endpoint}`);
 
     if (response.status === 401) {
       console.warn('401 Unauthorized - Token may be expired');
@@ -44,165 +35,340 @@ const apiCall = async (endpoint: string, options: RequestInit = {}) => {
       localStorage.removeItem('temp_email');
       const error = new Error('Token expired');
       (error as any).status = 401;
-      (error as any).isTokenExpired = true;
       throw error;
     }
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      console.error('Error response data:', errorData);
       const error = new Error(errorData.error || errorData.message || `HTTP ${response.status}`);
       (error as any).status = response.status;
       (error as any).response = { status: response.status, data: errorData };
       throw error;
     }
 
-    const result = await response.json().catch(() => ({}));
-    console.log(`API Success: ${endpoint}`, result);
+    const result = await response.json();
+    console.log('API response result:', result);
     return result;
   } catch (error) {
     console.error('API call failed:', error);
+    console.error('API call error details:', {
+      endpoint,
+      method: options.method || 'GET',
+      errorType: typeof error,
+      errorMessage: error?.message,
+      errorStack: error?.stack
+    });
     throw error;
   }
 };
 
-export const authService = {
-  login: async (email: string, password: string) => apiCall('/users/login/', {
-    method: 'POST',
-    body: JSON.stringify({ email, password }),
-  }),
-  register: async (data: { email: string; password: string; full_name: string; password2: string }) => apiCall('/users/register/', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  }),
-  verifyRegistrationOtp: async (email: string, otp: string) => apiCall('/users/register/activate/via-otp/', {
-    method: 'POST',
-    body: JSON.stringify({ email, otp }),
-  }),
-  verifyLoginOtp: async (email: string, otp: string) => apiCall('/users/login/otp/verify/', {
-    method: 'POST',
-    body: JSON.stringify({ email, otp }),
-  }),
-  resendRegistrationOtp: async (email: string) => apiCall('/users/register/activate/otp/resend/', {
-    method: 'POST',
-    body: JSON.stringify({ email }),
-  }),
-  resendLoginOtp: async (email: string) => apiCall('/users/login/otp/resend/', {
-    method: 'POST',
-    body: JSON.stringify({ email }),
-  }),
-  forgotPassword: async (email: string) => apiCall('/users/forget-password/', {
-    method: 'POST',
-    body: JSON.stringify({ email }),
-  }),
-  verifyForgotPasswordOtp: async (email: string, otp: string) => apiCall('/users/forget-password/otp/verify/', {
-    method: 'POST',
-    body: JSON.stringify({ email, otp }),
-  }),
-  resetPassword: async (email: string, newPassword: string) => apiCall('/users/forget-password/confirm/', {
-    method: 'POST',
-    body: JSON.stringify({ email, new_password: newPassword }),
-  }),
-  resendForgotPasswordOtp: async (email: string) => apiCall('/users/forget-password/otp/resend/', {
-    method: 'POST',
-    body: JSON.stringify({ email }),
-  }),
-  logout: async () => {
-    localStorage.removeItem('pl_token');
-    localStorage.removeItem('pl_user');
-    localStorage.removeItem('temp_auth_token');
-    localStorage.removeItem('temp_email');
-    return true;
-  },
-  changePassword: async (oldPassword: string, newPassword: string) => apiCall('/users/change-password/', {
-    method: 'POST',
-    body: JSON.stringify({
-      old_password: oldPassword,
-      new_password: newPassword,
-      confirm_password: newPassword
-    }),
-  }),
-  refreshToken: async () => apiCall('/users/token/refresh/', { method: 'POST' }),
-  verifyToken: async (token: string) => apiCall('/users/token/verify/', {
-    method: 'POST',
-    body: JSON.stringify({ token }),
-  }),
-};
-
-// --------- assistantService (matching demo endpoints) ----------
-export const assistantService = {
-  createSession: async (title: string) => {
-    return apiCall('/assistant/sessions/', {
+const authService = {
+  login: async (email: string, password: string) => {
+    return apiCall('/users/login/', {
       method: 'POST',
-      body: JSON.stringify({ title }),
+      body: JSON.stringify({ email, password }),
     });
   },
 
-  sendMessage: async (message: string, sessionId: string | null = null) => {
-    if (!sessionId) {
-      // Create new session first
-      const session = await apiCall('/assistant/sessions/', {
-        method: 'POST',
-        body: JSON.stringify({ title: 'New Chat' }),
-      });
-      sessionId = session.data?.id || session.id;
-    }
+  register: async (data: { email: string; password: string; full_name: string; password2: string }) => {
+    return apiCall('/users/register/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
 
-    return apiCall('/assistant/requests/', {
+  verifyRegistrationOtp: async (email: string, otp: string) => {
+    return apiCall('/users/register/activate/via-otp/', {
+      method: 'POST',
+      body: JSON.stringify({ email, otp }),
+    });
+  },
+
+  verifyLoginOtp: async (email: string, otp: string) => {
+    return apiCall('/users/login/otp/verify/', {
+      method: 'POST',
+      body: JSON.stringify({ email, otp }),
+    });
+  },
+
+  resendRegistrationOtp: async (email: string) => {
+    return apiCall('/users/register/activate/otp/resend/', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  },
+
+  resendLoginOtp: async (email: string) => {
+    return apiCall('/users/login/otp/resend/', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  },
+
+  forgotPassword: async (email: string) => {
+    return apiCall('/users/forget-password/', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  },
+
+  verifyForgotPasswordOtp: async (email: string, otp: string) => {
+    return apiCall('/users/forget-password/otp/verify/', {
+      method: 'POST',
+      body: JSON.stringify({ email, otp }),
+    });
+  },
+
+  resetPassword: async (email: string, newPassword: string) => {
+    return apiCall('/users/forget-password/confirm/', {
+      method: 'POST',
+      body: JSON.stringify({ email, new_password: newPassword }),
+    });
+  },
+
+  resendForgotPasswordOtp: async (email: string) => {
+    return apiCall('/users/forget-password/otp/resend/', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  },
+
+  changePassword: async (oldPassword: string, newPassword: string) => {
+    return apiCall('/users/change-password/', {
       method: 'POST',
       body: JSON.stringify({
-        message,
-        session: sessionId
+        old_password: oldPassword,
+        new_password: newPassword,
+        confirm_password: newPassword
       }),
     });
   },
 
-  getSessions: async () => {
-    return apiCall('/assistant/sessions/');
-  },
-
-  getSession: async (sessionId: string) => {
-    return apiCall(`/assistant/sessions/${sessionId}/`);
-  },
-
-  checkStatus: async (messageId: string) => {
-    return apiCall(`/assistant/requests/${messageId}/`);
-  },
-
-  deleteSession: async (sessionId: string) => {
-    return apiCall(`/assistant/sessions/${sessionId}/`, { method: 'DELETE' });
-  }
-};
-
-// --------- accountService unchanged (kept for completeness) ----------
-export const accountService = {
-  getProfile: async () => apiCall('/accounts/me/'),
-  updateProfile: async (data: any) => apiCall('/accounts/me/', { method: 'PUT', body: JSON.stringify(data) }),
-  patchProfile: async (data: any) => apiCall('/accounts/me/', { method: 'PATCH', body: JSON.stringify(data) }),
-  deleteAccount: async () => apiCall('/accounts/me/', { method: 'DELETE' }),
-  getAddress: async () => apiCall('/accounts/me/address/'),
-  updateAddress: async (data: any) => apiCall('/accounts/me/address/', { method: 'PATCH', body: JSON.stringify(data) }),
-  getApiKeys: async () => apiCall('/accounts/api-key/'),
-  createApiKey: async (data: any) => apiCall('/accounts/api-key/', { method: 'POST', body: JSON.stringify(data) }),
-  deleteApiKey: async (id: string) => apiCall(`/accounts/api-key/${id}/`, { method: 'DELETE' }),
-  getDashboardStats: async () => {
-    // Mock data for now - replace with actual API endpoint when available
-    return {
-      documents: 12,
-      cases: 3,
-      apiCalls: 1547,
-      storageUsed: 512,
-    };
-  },
-};
-
-// --------- newsletterService ----------
-export const newsletterService = {
-  subscribe: async (email: string) => {
-    return apiCall('/newsletter/submit/', {
+  refreshToken: async () => {
+    return apiCall('/users/token/refresh/', {
       method: 'POST',
-      body: JSON.stringify({ email }),
+    });
+  },
+
+  verifyToken: async (token: string) => {
+    return apiCall('/users/token/verify/', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
     });
   }
 };
 
-export default assistantService;
+const accountService = {
+  getProfile: async () => {
+    return apiCall('/accounts/me/');
+  },
+
+  updateProfile: async (data: any) => {
+    return apiCall('/accounts/me/', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  patchProfile: async (data: any) => {
+    return apiCall('/accounts/me/', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteAccount: async () => {
+    return apiCall('/accounts/me/', {
+      method: 'DELETE',
+    });
+  },
+
+  getAddress: async () => {
+    return apiCall('/accounts/me/address/');
+  },
+
+  updateAddress: async (data: any) => {
+    return apiCall('/accounts/me/address/', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+
+  getApiKeys: async () => {
+    return apiCall('/accounts/api-key/');
+  },
+
+  createApiKey: async (data: any) => {
+    return apiCall('/accounts/api-key/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteApiKey: async (id: string) => {
+    return apiCall(`/accounts/api-key/${id}/`, {
+      method: 'DELETE',
+    });
+  },
+
+  getDashboardStats: async () => {
+    return apiCall('/accounts/dashboard-stats/');
+  },
+};
+
+const assistantService = {
+  getSessions: async (): Promise<ChatSession[]> => {
+    return apiCall('/assistant/sessions/');
+  },
+
+  createSession: async (title?: string): Promise<ChatSession> => {
+    const payload = title ? { title } : {};
+    return apiCall('/assistant/sessions/', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  getSession: async (sessionId: string): Promise<ChatSession> => {
+    const data = await apiCall(`/assistant/sessions/${sessionId}/`);
+
+    // Parse messages if they are strings
+    if (typeof data.messages === 'string') {
+      try {
+        data.messages = JSON.parse(data.messages);
+      } catch (e) {
+        console.error("Failed to parse messages JSON", e);
+        data.messages = [];
+      }
+    }
+
+    // Standardize messages to internal format
+    if (Array.isArray(data.messages)) {
+      const adaptedMessages: Message[] = [];
+      data.messages.forEach((msg: any, idx: number) => {
+        if (msg.message) {
+          adaptedMessages.push({
+            id: `${sessionId}-msg-${idx}-user`,
+            content: msg.message,
+            role: 'user',
+            timestamp: new Date(msg.created_at).getTime(),
+            status: 'completed',
+            created_at: msg.created_at
+          });
+        }
+        if (msg.response) {
+          adaptedMessages.push({
+            id: `${sessionId}-msg-${idx}-assistant`,
+            content: msg.response,
+            role: 'assistant',
+            timestamp: new Date(msg.created_at).getTime(),
+            status: 'completed',
+            created_at: msg.created_at
+          });
+        }
+      });
+      data.messages = adaptedMessages;
+    }
+
+    return data;
+  },
+
+  sendMessage: async (message: string, sessionId: string | null = null, responseEngine: number = 2, responseStyle: string = "supportive"): Promise<any> => {
+    console.log('API sendMessage called:', { message, sessionId, responseEngine, responseStyle });
+
+    const payload = {
+      message: message,
+      response_engine: responseEngine,
+      response_style: responseStyle,
+    };
+
+    if (sessionId) {
+      console.log('Sending to existing session:', sessionId);
+      return apiCall(`/assistant/sessions/${sessionId}/send/`, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+    } else {
+      console.log('Creating new session first');
+      // If no session, create a new session first
+      return apiCall('/assistant/sessions/', {
+        method: 'POST',
+        body: JSON.stringify({ title: "New Chat" }),
+      }).then(session => {
+        console.log('New session created:', session);
+        // Then send message to new session
+        return apiCall(`/assistant/sessions/${session.id}/send/`, {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+      });
+    }
+  },
+
+  checkStatus: async (messageId: string): Promise<any> => {
+    return apiCall(`/assistant/requests/${messageId}/`);
+  },
+
+  pollForCompletion: async (requestId: string): Promise<void> => {
+    console.log('Starting pollForCompletion for:', requestId);
+    const startTime = Date.now();
+    const POLLING_INTERVAL_MS = 1000;
+    const POLLING_TIMEOUT_MS = 60000;
+
+    return new Promise((resolve, reject) => {
+      const checkStatus = async () => {
+        try {
+          console.log('Checking status for request:', requestId);
+          if (Date.now() - startTime > POLLING_TIMEOUT_MS) {
+            console.error('Request timed out');
+            reject(new Error('Request timed out'));
+            return;
+          }
+
+          const data = await apiCall(`/assistant/requests/${requestId}/`);
+          console.log('Status check result:', data);
+
+          if (data.status?.toUpperCase() === 'COMPLETED') {
+            console.log('Request completed successfully');
+            resolve();
+          } else if (data.status?.toUpperCase() === 'FAILED') {
+            console.error('AI Request failed on server');
+            reject(new Error('AI Request failed on server'));
+          } else {
+            console.log(`Request status is ${data.status}, polling again...`);
+            // Still pending or running
+            setTimeout(checkStatus, POLLING_INTERVAL_MS);
+          }
+        } catch (error) {
+          console.error('Polling error:', error);
+          reject(error);
+        }
+      };
+
+      checkStatus();
+    });
+  },
+
+  deleteSession: async (sessionId: string): Promise<void> => {
+    return apiCall(`/assistant/sessions/${sessionId}/`, {
+      method: 'DELETE',
+    });
+  }
+};
+
+export default {
+  authService,
+  accountService,
+  assistantService,
+  newsletterService: {
+    subscribe: async (email: string) => {
+      return apiCall('/newsletter/subscribe/', {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      });
+    }
+  }
+};
+
+

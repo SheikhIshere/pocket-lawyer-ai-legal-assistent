@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Header, Footer } from '../components/Layout';
-import { 
-  Mail, Phone, MapPin, Send, MessageSquare, Clock, 
+import {
+  Mail, Phone, MapPin, Send, MessageSquare, Clock,
   Shield, Users, ArrowRight, HelpCircle, CheckCircle2,
-  AlertCircle, ChevronRight, Star, Zap, Headphones
+  AlertCircle, ChevronRight, Star, Zap, Headphones, 
+  Sparkles, Globe, ShieldCheck
 } from 'lucide-react';
 
 const ContactPage: React.FC = () => {
@@ -25,14 +26,13 @@ const ContactPage: React.FC = () => {
   const [characterCount, setCharacterCount] = useState(0);
 
   const services = [
-    { value: 'general_inquiry', label: 'General Inquiry', icon: <HelpCircle className="w-4 h-4" /> },
-    { value: 'legal_advice', label: 'Legal Advice', icon: <Shield className="w-4 h-4" /> },
-    { value: 'document_review', label: 'Document Review', icon: <MessageSquare className="w-4 h-4" /> },
-    { value: 'emergency_legal_help', label: 'Emergency Legal Help', icon: <AlertCircle className="w-4 h-4" /> },
-    { value: 'legal_advice', label: 'Legal Advice', icon: <Shield className="w-4 h-4" /> },
-    { value: 'legal_research', label: 'Legal Research', icon: <Users className="w-4 h-4" /> },
-    { value: 'bug_report', label: 'Bug Report', icon: <Zap className="w-4 h-4" /> },
-    { value: 'other', label: 'Other', icon: <Star className="w-4 h-4" /> }
+    { value: 'general_inquiry', label: 'General Inquiry', icon: HelpCircle },
+    { value: 'legal_advice', label: 'Legal Advice', icon: Shield },
+    { value: 'document_review', label: 'Document Review', icon: MessageSquare },
+    { value: 'emergency_legal_help', label: 'Emergency Legal Help', icon: AlertCircle },
+    { value: 'legal_research', label: 'Legal Research', icon: Users },
+    { value: 'bug_report', label: 'Bug Report', icon: Zap },
+    { value: 'other', label: 'Other', icon: Star }
   ];
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -41,7 +41,7 @@ const ContactPage: React.FC = () => {
       ...prev,
       [name]: value
     }));
-    
+
     if (name === 'message') {
       setCharacterCount(value.length);
     }
@@ -50,7 +50,7 @@ const ContactPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
+
     try {
       const response = await fetch('http://localhost:8000/v1/api/contact-us/submit/', {
         method: 'POST',
@@ -67,9 +67,8 @@ const ContactPage: React.FC = () => {
           message: formData.message
         })
       });
-      
+
       if (response.ok) {
-        const data = await response.json();
         setSubmitStatus('success');
         setFormData({
           name: '',
@@ -81,11 +80,8 @@ const ContactPage: React.FC = () => {
           other: ''
         });
         setCharacterCount(0);
-        
-        // Reset success message after 5 seconds
         setTimeout(() => setSubmitStatus('idle'), 5000);
       } else {
-        const errorData = await response.json();
         setSubmitStatus('error');
         setTimeout(() => setSubmitStatus('idle'), 5000);
       }
@@ -97,358 +93,195 @@ const ContactPage: React.FC = () => {
     }
   };
 
-  const contactInfo = [
-    {
-      icon: <Mail className="w-6 h-6 text-teal-600" />,
-      title: "Email Us",
-      details: "support@pocketlawyer.com",
-      description: "We respond within 24 hours",
-      action: "mailto:support@pocketlawyer.com"
-    },
-    {
-      icon: <Phone className="w-6 h-6 text-teal-600" />,
-      title: "Call Us",
-      details: "1-800-LAWYER",
-      description: "Mon-Fri 9AM-6PM EST",
-      action: "tel:+1800529937"
-    },
-    {
-      icon: <MapPin className="w-6 h-6 text-teal-600" />,
-      title: "Visit Us",
-      details: "123 Legal Street, New York, NY 10001",
-      description: "By appointment only",
-      action: "https://maps.google.com"
-    },
-    {
-      icon: <MessageSquare className="w-6 h-6 text-teal-600" />,
-      title: "Live Chat",
-      details: "Available 24/7",
-      description: "Get instant help",
-      action: isAuthenticated ? "/chat" : "/login"
-    }
-  ];
-
-  const faqs = [
-    {
-      question: "How quickly will I receive a response?",
-      answer: "We typically respond to all inquiries within 24 hours during business days. For urgent legal matters, our live chat is available 24/7."
-    },
-    {
-      question: "Is my information confidential?",
-      answer: "Yes, absolutely. All communications are protected by bank-level encryption and we never share your information with third parties without your consent."
-    },
-    {
-      question: "Do you provide human lawyer services?",
-      answer: "Yes, while our AI provides instant guidance, we can connect you with verified local attorneys for complex cases requiring human representation."
-    },
-    {
-      question: "What types of legal issues can you help with?",
-      answer: "We assist with contract reviews, landlord-tenant disputes, employment issues, family law matters, traffic violations, and general legal guidance."
-    }
-  ];
-
-  const responseTimes = [
-    { type: "Email", time: "Within 24 hours", icon: <Mail className="w-4 h-4" /> },
-    { type: "Phone", time: "Mon-Fri 9AM-6PM EST", icon: <Phone className="w-4 h-4" /> },
-    { type: "Live Chat", time: "Available 24/7", icon: <MessageSquare className="w-4 h-4" /> },
-    { type: "Emergency", time: "Immediate response", icon: <AlertCircle className="w-4 h-4" /> }
-  ];
-
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-white dark:bg-slate-950 flex flex-col transition-colors duration-500 pb-20 lg:pb-0">
       <Header />
-      
+
       <main className="flex-grow">
-        {/* Hero Section */}
-        <section className="relative bg-gradient-to-br from-slate-50 via-white to-teal-50/30 pt-24 pb-20 overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-            <div className="absolute top-20 right-10 w-72 h-72 bg-teal-200/10 rounded-full blur-3xl"></div>
-            <div className="absolute bottom-10 left-10 w-96 h-96 bg-blue-200/10 rounded-full blur-3xl"></div>
-          </div>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-            <div className="text-center max-w-4xl mx-auto">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-teal-100 text-teal-700 rounded-full text-sm font-medium mb-6">
-                <Headphones className="w-4 h-4" />
-                We're here to help
-              </div>
-              <h1 className="text-5xl lg:text-6xl font-bold text-slate-900 leading-tight mb-6">
-                Get in <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-blue-600">Touch</span>
-              </h1>
-              <p className="text-xl text-slate-600 leading-relaxed mb-10 max-w-3xl mx-auto">
-                Have questions about our services? Need legal assistance? Our team of experts is here to help you navigate any legal challenge.
-              </p>
+        {/* Modern Hero Section */}
+        <section className="relative pt-24 pb-16 px-4 overflow-hidden">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-teal-500/10 rounded-full blur-[100px] pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px] pointer-events-none" />
+          
+          <div className="max-w-7xl mx-auto relative z-10 text-center">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-teal-50 dark:bg-teal-900/30 rounded-full mb-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+              <Headphones className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+              <span className="text-xs font-black text-teal-700 dark:text-teal-400 uppercase tracking-widest">Global Support Ecosystem</span>
             </div>
+            
+            <h1 className="text-5xl md:text-8xl font-black text-slate-900 dark:text-white tracking-tighter leading-[0.85] mb-10 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+              We're Here <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-blue-600">To Solve Your Case</span>
+            </h1>
+            
+            <p className="text-lg md:text-2xl text-slate-500 dark:text-gray-400 font-medium max-w-2xl mx-auto mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
+              Connect with our legal experts and AI specialists for tailored solutions 
+              to your legal challenges.
+            </p>
           </div>
         </section>
 
-        {/* Contact Info Cards */}
-        <section className="py-20 bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-4xl font-bold text-slate-900 mb-4">
-                Multiple Ways to Reach Us
-              </h2>
-              <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-                Choose the method that works best for you. Our team is ready to assist with any legal questions or concerns.
-              </p>
-            </div>
-            
+        {/* Contact Method Cards - MD3 Overhaul */}
+        <section className="py-12 px-4">
+          <div className="max-w-7xl mx-auto">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {contactInfo.map((info, index) => (
-                <a
-                  key={index}
-                  href={info.action}
-                  className="group block"
-                >
-                  <div className="bg-gradient-to-br from-white to-slate-50 p-8 rounded-2xl border border-slate-200 hover:border-teal-300 hover:shadow-xl hover:shadow-teal-500/10 transition-all duration-300 h-full">
-                    <div className="mb-6 transform group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
-                      <div className="w-14 h-14 bg-gradient-to-br from-teal-100 to-blue-100 rounded-xl flex items-center justify-center">
-                        {info.icon}
-                      </div>
-                    </div>
-                    <h3 className="text-xl font-bold text-slate-900 mb-2 group-hover:text-teal-700 transition-colors">
-                      {info.title}
-                    </h3>
-                    <p className="text-teal-600 font-semibold text-lg mb-2 group-hover:text-teal-800">
-                      {info.details}
-                    </p>
-                    <p className="text-slate-600 text-sm">{info.description}</p>
-                    <div className="mt-4 flex items-center gap-2 text-sm text-teal-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <span>Get in touch</span>
-                      <ChevronRight className="w-4 h-4" />
-                    </div>
+              {[
+                { icon: Mail, title: 'Email Us', value: 'support@pocketlawyer.ai', desc: 'Response within 4h', color: 'teal' },
+                { icon: Phone, title: 'Call Us', value: '1-800-LAWYER', desc: 'Mon-Fri 9AM-6PM', color: 'blue' },
+                { icon: MapPin, title: 'Visit Us', value: '123 Legal Plaza', desc: 'NY, New York 10001', color: 'indigo' },
+                { icon: MessageSquare, title: 'Live Chat', value: 'Instant Access', desc: 'Available 24/7', color: 'emerald' }
+              ].map((item, i) => (
+                <div key={i} className="group p-10 rounded-[3rem] bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:scale-105 active:scale-95 transition-all duration-500 hover:shadow-2xl flex flex-col items-center text-center">
+                  <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-8 shadow-sm transition-transform group-hover:rotate-12
+                    ${item.color === 'teal' ? 'bg-teal-50 dark:bg-teal-900/40 text-teal-600' : ''}
+                    ${item.color === 'blue' ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-600' : ''}
+                    ${item.color === 'indigo' ? 'bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600' : ''}
+                    ${item.color === 'emerald' ? 'bg-emerald-50 dark:bg-emerald-900/40 text-emerald-600' : ''}
+                  `}>
+                    <item.icon className="w-8 h-8" />
                   </div>
-                </a>
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white mb-2">{item.title}</h3>
+                  <div className="text-teal-600 dark:text-teal-400 font-bold mb-1">{item.value}</div>
+                  <p className="text-xs text-slate-400 font-medium uppercase tracking-widest">{item.desc}</p>
+                </div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* Contact Form & Information */}
-        <section className="py-20 bg-gradient-to-b from-slate-50 to-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid lg:grid-cols-2 gap-16 items-start">
-              {/* Left Column - Information */}
-              <div className="space-y-8">
+        {/* Main Form Section - MD3 Layout */}
+        <section className="py-24 px-4 bg-slate-50 dark:bg-slate-900/30">
+          <div className="max-w-7xl mx-auto">
+            <div className="grid lg:grid-cols-5 gap-16 items-start">
+              {/* Information Column */}
+              <div className="lg:col-span-2 space-y-12">
                 <div>
-                  <h2 className="text-4xl font-bold text-slate-900 mb-6">
-                    Send Us a Message
+                  <h2 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter mb-6 leading-tight">
+                    Submit Your <br />
+                    <span className="text-teal-600">Legal Inquiry</span>
                   </h2>
-                  <p className="text-lg text-slate-600 leading-relaxed mb-8">
-                    Fill out the form and our team will get back to you within 24 hours. For urgent matters, use our live chat for immediate assistance.
+                  <p className="text-lg text-slate-500 dark:text-gray-400 font-medium">
+                    We've designed our inquiry process to be as fast as our AI. 
+                    Expect a human review within hours for urgent matters.
                   </p>
                 </div>
 
-                {/* Response Times */}
-                <div className="bg-gradient-to-br from-white to-teal-50/30 p-8 rounded-2xl border border-teal-100 shadow-lg shadow-teal-500/5">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="w-12 h-12 bg-teal-100 rounded-xl flex items-center justify-center">
-                      <Clock className="w-6 h-6 text-teal-600" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-bold text-slate-900">Response Times</h3>
-                      <p className="text-sm text-slate-600">We value your time</p>
-                    </div>
-                  </div>
-                  <div className="space-y-4">
-                    {responseTimes.map((item, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-white/50 rounded-lg border border-slate-100">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center">
-                            {item.icon}
-                          </div>
-                          <span className="font-medium text-slate-700">{item.type}</span>
-                        </div>
-                        <span className="font-semibold text-slate-900">{item.time}</span>
+                <div className="space-y-4">
+                  {[
+                    { title: 'Secure Protocol', desc: 'End-to-end encrypted submission', icon: Shield },
+                    { title: 'Priority Routing', desc: 'Smart sorting based on case urgency', icon: Zap },
+                    { title: 'Expert Oversight', desc: 'Verified by our legal operations team', icon: ShieldCheck }
+                  ].map((feat, i) => (
+                    <div key={i} className="flex items-center gap-4 p-4 bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800">
+                      <div className="w-12 h-12 rounded-xl bg-teal-50 dark:bg-teal-900/30 flex items-center justify-center text-teal-600">
+                        <feat.icon className="w-6 h-6" />
                       </div>
-                    ))}
-                  </div>
+                      <div>
+                        <div className="font-black text-slate-900 dark:text-white text-sm">{feat.title}</div>
+                        <div className="text-xs text-slate-500 dark:text-gray-500 uppercase tracking-widest">{feat.desc}</div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-
-                {/* Why Choose Us */}
-                <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-lg">
-                  <h3 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
-                    <Star className="w-5 h-5 text-amber-500" />
-                    Why Choose PocketLawyer
-                  </h3>
-                  <div className="space-y-4">
-                    <div className="flex items-start gap-3">
-                      <CheckCircle2 className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <p className="font-medium text-slate-900">Expert Legal Team</p>
-                        <p className="text-sm text-slate-600">Licensed attorneys with years of experience</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <CheckCircle2 className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <p className="font-medium text-slate-900">24/7 Availability</p>
-                        <p className="text-sm text-slate-600">Round-the-clock support for urgent matters</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <CheckCircle2 className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <p className="font-medium text-slate-900">Confidential & Secure</p>
-                        <p className="text-sm text-slate-600">Bank-level encryption for all communications</p>
-                      </div>
-                    </div>
-                  </div>
+                
+                <div className="p-8 rounded-[2.5rem] bg-indigo-600 text-white shadow-2xl relative overflow-hidden group">
+                  <div className="absolute -top-12 -right-12 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform"></div>
+                  <h4 className="text-2xl font-black mb-4 relative z-10">Need Instant Help?</h4>
+                  <p className="text-indigo-100 mb-8 font-medium">Our AI is ready to provide immediate guidance 24/7.</p>
+                  <Link to="/chat" className="inline-flex items-center gap-2 bg-white text-indigo-600 px-8 py-3 rounded-full font-black text-sm hover:translate-x-4 transition-all duration-500">
+                    Enter Active Chat
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
                 </div>
               </div>
 
-              {/* Right Column - Form */}
-              <div className="sticky top-8">
-                <div className="bg-white p-8 rounded-2xl shadow-2xl border border-slate-100">
+              {/* Form Column */}
+              <div className="lg:col-span-3">
+                <div className="bg-white dark:bg-slate-900 p-8 md:p-12 rounded-[4rem] border border-slate-100 dark:border-slate-800 shadow-2xl shadow-slate-200/50 dark:shadow-none">
                   {submitStatus === 'success' && (
-                    <div className="mb-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 rounded-xl border border-green-200 animate-in fade-in slide-in-from-top-2">
-                      <div className="flex items-center gap-3">
-                        <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
-                        <div>
-                          <p className="font-medium">Message sent successfully!</p>
-                          <p className="text-sm opacity-90">We'll respond within 24 hours.</p>
-                        </div>
+                    <div className="mb-8 p-6 bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400 rounded-3xl border border-teal-100 dark:border-teal-800 flex items-center gap-4 animate-in slide-in-from-top-4">
+                      <div className="w-12 h-12 rounded-full bg-teal-500 text-white flex items-center justify-center">
+                        <CheckCircle2 className="w-6 h-6" />
                       </div>
-                    </div>
-                  )}
-
-                  {submitStatus === 'error' && (
-                    <div className="mb-6 p-4 bg-gradient-to-r from-red-50 to-rose-50 text-red-700 rounded-xl border border-red-200 animate-in fade-in slide-in-from-top-2">
-                      <div className="flex items-center gap-3">
-                        <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-                        <div>
-                          <p className="font-medium">Something went wrong</p>
-                          <p className="text-sm opacity-90">Please try again or contact us directly.</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">
-                          Full Name *
-                        </label>
+                        <p className="font-black">Mission Accomplished!</p>
+                        <p className="text-sm font-medium">Your request has been received. Sit tight.</p>
+                      </div>
+                    </div>
+                  )}
+
+                  <form onSubmit={handleSubmit} className="space-y-8">
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-4">Full Identity</label>
                         <input
                           type="text"
                           name="name"
                           value={formData.name}
                           onChange={handleInputChange}
                           required
-                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all placeholder:text-slate-400"
-                          placeholder="John Doe"
+                          className="w-full px-6 py-5 bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-teal-500 rounded-[2rem] text-slate-900 dark:text-white font-bold outline-none transition-all"
+                          placeholder="Ex: Imran Rafi"
                         />
                       </div>
-
-                      <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">
-                          Email Address *
-                        </label>
+                      <div className="space-y-2">
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-4">Email Channel</label>
                         <input
                           type="email"
                           name="email"
                           value={formData.email}
                           onChange={handleInputChange}
                           required
-                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all placeholder:text-slate-400"
-                          placeholder="john@example.com"
+                          className="w-full px-6 py-5 bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-teal-500 rounded-[2rem] text-slate-900 dark:text-white font-bold outline-none transition-all"
+                          placeholder="you@example.com"
                         />
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">
-                          Service Type *
-                        </label>
-                        <div className="relative">
-                          <select
-                            name="service"
-                            value={formData.service}
-                            onChange={handleInputChange}
-                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all appearance-none"
-                          >
-                            {services.map(service => (
-                              <option key={service.value} value={service.value}>
-                                {service.label}
-                              </option>
-                            ))}
-                          </select>
-                          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                            <ChevronRight className="w-4 h-4 text-slate-400 rotate-90" />
-                          </div>
-                        </div>
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-4">Service Category</label>
+                        <select
+                          name="service"
+                          value={formData.service}
+                          onChange={handleInputChange}
+                          className="w-full px-6 py-5 bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-teal-500 rounded-[2rem] text-slate-900 dark:text-white font-bold outline-none transition-all appearance-none"
+                        >
+                          {services.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                        </select>
                       </div>
-
-                      {formData.service === 'other' && (
-                        <div>
-                          <label className="block text-sm font-semibold text-slate-700 mb-2">
-                            Please specify service type *
-                          </label>
-                          <input
-                            type="text"
-                            name="other"
-                            value={formData.other}
-                            onChange={handleInputChange}
-                            required
-                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all placeholder:text-slate-400"
-                            placeholder="Please describe what type of service you need..."
-                          />
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">
-                          Priority Level
-                        </label>
-                        <div className="relative">
-                          <select
-                            name="priority"
-                            value={formData.priority}
-                            onChange={handleInputChange}
-                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all appearance-none"
-                          >
-                            <option value="normal">Normal (24h response)</option>
-                            <option value="urgent">Urgent (6h response)</option>
-                            <option value="emergency">Emergency (1h response)</option>
-                          </select>
-                          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                            <ChevronRight className="w-4 h-4 text-slate-400 rotate-90" />
-                          </div>
-                        </div>
-                      </div>
-
-                      <div>
-                        {/* Empty div for grid layout */}
+                      <div className="space-y-2">
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-4">Priority Protocol</label>
+                        <select
+                          name="priority"
+                          value={formData.priority}
+                          onChange={handleInputChange}
+                          className="w-full px-6 py-5 bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-teal-500 rounded-[2rem] text-slate-900 dark:text-white font-bold outline-none transition-all appearance-none text-teal-600 dark:text-teal-400"
+                        >
+                          <option value="normal">Standard (24h)</option>
+                          <option value="urgent">Urgent (6h)</option>
+                          <option value="emergency">Emergency (1h)</option>
+                        </select>
                       </div>
                     </div>
 
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">
-                        Subject *
-                      </label>
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-4">Subject Directive</label>
                       <input
                         type="text"
                         name="subject"
                         value={formData.subject}
                         onChange={handleInputChange}
                         required
-                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all placeholder:text-slate-400"
-                        placeholder="How can we help you today?"
+                        className="w-full px-6 py-5 bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-teal-500 rounded-[2rem] text-slate-900 dark:text-white font-bold outline-none transition-all"
+                        placeholder="Core matter of your request"
                       />
                     </div>
 
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="block text-sm font-semibold text-slate-700">
-                          Message *
-                        </label>
-                        <span className={`text-xs ${characterCount > 450 ? 'text-red-500' : 'text-slate-500'}`}>
-                          {characterCount}/500
-                        </span>
+                    <div className="space-y-2">
+                      <div className="flex justify-between px-4">
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Case Description</label>
+                        <span className="text-[10px] font-black text-slate-300">{characterCount}/500</span>
                       </div>
                       <textarea
                         name="message"
@@ -457,35 +290,29 @@ const ContactPage: React.FC = () => {
                         required
                         maxLength={500}
                         rows={5}
-                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none resize-none transition-all placeholder:text-slate-400"
-                        placeholder="Please provide as much detail as possible about your legal needs..."
+                        className="w-full px-6 py-6 bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-teal-500 rounded-[3rem] text-slate-900 dark:text-white font-bold outline-none transition-all resize-none"
+                        placeholder="Detail your requirements for professional assessment..."
                       />
                     </div>
 
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="w-full bg-gradient-to-r from-teal-600 to-blue-600 text-white px-6 py-4 rounded-xl font-semibold hover:shadow-xl hover:shadow-teal-500/25 hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 group"
+                      className="w-full bg-teal-600 text-white rounded-[2.5rem] py-6 text-xl font-black shadow-2xl shadow-teal-500/30 hover:shadow-teal-500/50 hover:scale-[1.02] active:scale-95 transition-all duration-500 flex items-center justify-center gap-4 disabled:opacity-50"
                     >
                       {isSubmitting ? (
-                        <>
-                          <div className="w-5 h-5 border-2 border-white border-t-transparent animate-spin rounded-full"></div>
-                          <span>Sending Message...</span>
-                        </>
+                        <div className="w-8 h-8 border-4 border-white border-t-transparent animate-spin rounded-full"></div>
                       ) : (
                         <>
-                          <Send className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                          <span>Send Message</span>
+                          <span>Deploy Message</span>
+                          <Send className="w-6 h-6" />
                         </>
                       )}
                     </button>
-
-                    <div className="text-center pt-4 border-t border-slate-200">
-                      <div className="flex items-center justify-center gap-2 text-sm text-slate-500">
-                        <Shield className="w-4 h-4" />
-                        Your information is secure and confidential
-                      </div>
-                    </div>
+                    
+                    <p className="text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                      End-to-End Encrypted Transmission Active
+                    </p>
                   </form>
                 </div>
               </div>
@@ -493,90 +320,28 @@ const ContactPage: React.FC = () => {
           </div>
         </section>
 
-        {/* FAQ Section */}
-        <section className="py-20 bg-gradient-to-b from-white to-slate-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-4xl font-bold text-slate-900 mb-4">
-                Frequently Asked Questions
-              </h2>
-              <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-                Quick answers to common questions about our services and how we can help you.
-              </p>
-            </div>
-            
-            <div className="grid md:grid-cols-2 gap-6">
-              {faqs.map((faq, index) => (
-                <div 
-                  key={index} 
-                  className="group bg-white p-8 rounded-2xl border border-slate-200 hover:border-teal-300 hover:shadow-xl transition-all duration-300"
-                >
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 bg-teal-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <HelpCircle className="w-6 h-6 text-teal-600" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-lg font-bold text-slate-900 mb-3 group-hover:text-teal-700 transition-colors">
-                        {faq.question}
-                      </h3>
-                      <p className="text-slate-600 leading-relaxed">{faq.answer}</p>
-                    </div>
-                  </div>
+        {/* FAQ - Android Expansion Panel Style */}
+        <section className="py-24 px-4">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-4xl font-black text-center text-slate-900 dark:text-white mb-16 tracking-tighter">Support Commons</h2>
+            <div className="space-y-4">
+              {[
+                { q: "How fast is the verification process?", a: "AI-driven preliminary verification is instant. Human review for complex cases takes 1-4 business hours." },
+                { q: "Are my documents legally protected?", a: "Yes. Every byte is encrypted with AES-256 and subject to strict confidentiality protocols." },
+                { q: "Can I cancel a priority request?", a: "Priority requests are routed immediately and cannot be cancelled once processing has begun." },
+                { q: "Global availability status?", a: "PocketLawyer operates 24/7/365 with specialized nodes for various legal jurisdictions." }
+              ].map((faq, i) => (
+                <div key={i} className="p-8 rounded-[2.5rem] bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:border-teal-500 transition-all">
+                  <h3 className="text-lg font-black text-slate-900 dark:text-white mb-4 uppercase tracking-tight flex items-center gap-3">
+                    <HelpCircle className="w-5 h-5 text-teal-500" />
+                    {faq.q}
+                  </h3>
+                  <p className="text-slate-500 dark:text-gray-400 font-medium leading-relaxed pl-8">
+                    {faq.a}
+                  </p>
                 </div>
               ))}
             </div>
-          </div>
-        </section>
-
-        {/* CTA Section */}
-        <section className="relative py-24 bg-gradient-to-r from-teal-600 via-blue-600 to-indigo-600 overflow-hidden">
-          <div className="absolute inset-0 overflow-hidden">
-            <div className="absolute -top-20 -right-20 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
-            <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
-          </div>
-          
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-            <div className="inline-flex items-center gap-2 px-5 py-2 bg-white/20 backdrop-blur-sm text-white rounded-full text-sm font-medium mb-8">
-              <Zap className="w-4 h-4" />
-              Need Immediate Help?
-            </div>
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-              Ready to Get Legal Help?
-            </h2>
-            <p className="text-xl text-white/90 mb-10 max-w-3xl mx-auto">
-              Join thousands of satisfied clients who have found legal solutions with PocketLawyer. Fast, reliable, and confidential.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              {isAuthenticated ? (
-                <Link 
-                  to="/chat" 
-                  className="group inline-flex items-center justify-center gap-3 bg-white text-teal-600 px-8 py-4 rounded-xl text-lg font-semibold hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 shadow-xl"
-                >
-                  <MessageSquare className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                  Start Chat with AI Lawyer
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </Link>
-              ) : (
-                <Link 
-                  to="/register" 
-                  className="group inline-flex items-center justify-center gap-3 bg-white text-teal-600 px-8 py-4 rounded-xl text-lg font-semibold hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 shadow-xl"
-                >
-                  <Star className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                  Start Free Trial
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </Link>
-              )}
-              <Link 
-                to="/services" 
-                className="group inline-flex items-center justify-center gap-3 bg-transparent text-white border-2 border-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-white hover:text-teal-600 transition-all duration-300"
-              >
-                <Shield className="w-5 h-5" />
-                Explore Services
-              </Link>
-            </div>
-            <p className="text-white/70 text-sm mt-8">
-              No credit card required • 7-day free trial • Cancel anytime
-            </p>
           </div>
         </section>
       </main>
@@ -587,6 +352,3 @@ const ContactPage: React.FC = () => {
 };
 
 export default ContactPage;
-
-
-
