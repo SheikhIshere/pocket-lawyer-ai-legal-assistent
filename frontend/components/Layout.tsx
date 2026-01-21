@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { newsletterService } from '../services/api';
 import { 
   Scale, Menu, X, User, ChevronDown, 
   Settings, FileText, Briefcase, 
@@ -280,6 +281,28 @@ export const Header: React.FC = () => {
 };
 
 export const Footer: React.FC = () => {
+  const [email, setEmail] = useState('');
+  const [isSubscribing, setIsSubscribing] = useState(false);
+  const [subscribeMessage, setSubscribeMessage] = useState('');
+
+  const handleNewsletterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || isSubscribing) return;
+
+    setIsSubscribing(true);
+    setSubscribeMessage('');
+
+    try {
+      await newsletterService.subscribe(email.trim());
+      setSubscribeMessage('Successfully subscribed! Check your email for confirmation.');
+      setEmail('');
+    } catch (error: any) {
+      setSubscribeMessage(error?.response?.data?.message || 'Failed to subscribe. Please try again.');
+    } finally {
+      setIsSubscribing(false);
+    }
+  };
+
   return (
     <footer className="bg-gradient-to-b from-gray-900 to-gray-950 text-gray-300 pt-16 pb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -366,18 +389,27 @@ export const Footer: React.FC = () => {
             <p className="text-sm text-gray-400 mb-4">
               Subscribe to our newsletter for legal insights and updates.
             </p>
-            <form className="space-y-3">
+            <form className="space-y-3" onSubmit={handleNewsletterSubmit}>
               <input
                 type="email"
                 placeholder="Your email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-transparent"
+                required
               />
               <button
                 type="submit"
-                className="w-full bg-gradient-to-r from-teal-600 to-emerald-700 text-white py-3 rounded-lg text-sm font-semibold hover:shadow-lg hover:shadow-teal-600/20 transition-all"
+                disabled={isSubscribing}
+                className="w-full bg-gradient-to-r from-teal-600 to-emerald-700 text-white py-3 rounded-lg text-sm font-semibold hover:shadow-lg hover:shadow-teal-600/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Subscribe
+                {isSubscribing ? 'Subscribing...' : 'Subscribe'}
               </button>
+              {subscribeMessage && (
+                <div className={`text-sm ${subscribeMessage.includes('Successfully') ? 'text-green-400' : 'text-red-400'}`}>
+                  {subscribeMessage}
+                </div>
+              )}
             </form>
             <div className="mt-6 pt-6 border-t border-gray-800">
               <div className="flex items-center gap-2 text-sm text-gray-400">

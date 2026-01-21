@@ -10,6 +10,7 @@ interface AuthContextType extends AuthState {
   updateUser: (user: User) => void;
   tempEmail: string | null;
   isRegistration: boolean;
+  isInitializing?: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);

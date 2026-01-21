@@ -31,6 +31,9 @@ const SettingsPage: React.FC = () => {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedApiKey, setSelectedApiKey] = useState<any>(null);
   const [showFullKey, setShowFullKey] = useState<{ [key: number]: boolean }>({});
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [keyToDelete, setKeyToDelete] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
   
   const [formData, setFormData] = useState({
     full_name: user?.full_name || user?.name || '',
@@ -44,14 +47,23 @@ const SettingsPage: React.FC = () => {
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const updated = await accountService.updateProfile(formData);
+      // Map form data to API field names
+      const apiData = {
+        full_name: formData.full_name,
+        gender: formData.gender,
+        birth_day: formData.birth_day,
+        phone_number: formData.phone, // Map phone to phone_number
+        language: formData.language
+      };
+      
+      const updated = await accountService.updateProfile(apiData);
       // Update user state with new data
       const updatedUser = {
         ...user,
         full_name: updated.full_name,
         name: updated.full_name, // backward compatibility
         email: user?.email || '', // Email comes from user model, not account
-        phone: updated.phone || user?.phone || '',
+        phone: updated.phone_number || user?.phone || '',
         gender: updated.gender,
         birth_day: updated.birth_day,
         language: updated.language
@@ -101,17 +113,46 @@ const SettingsPage: React.FC = () => {
   };
 
   const deleteApiKey = async (id: string) => {
+    // Optimistically remove from UI immediately
+    const originalKeys = [...apiKeys];
+    setApiKeys(apiKeys.filter(key => key.id !== id));
+    
     try {
+      console.log('Deleting API key with ID:', id);
       await accountService.deleteApiKey(id);
-      setApiKeys(apiKeys.filter(key => key.id !== id));
-    } catch (error) {
+      console.log('API key deleted successfully');
+    } catch (error: any) {
       console.error('Failed to delete API key:', error);
+      
+      // Restore the key if deletion failed
+      setApiKeys(originalKeys);
+      
+      // Handle specific backend errors
+      let errorMessage = 'Failed to delete API key. Please try again.';
+      
+      if (error?.response?.data) {
+        const errorData = error.response.data;
+        
+        if (typeof errorData === 'string') {
+          errorMessage = errorData;
+        } else if (errorData?.detail) {
+          errorMessage = errorData.detail;
+        } else if (errorData?.non_field_errors) {
+          errorMessage = errorData.non_field_errors[0];
+        }
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
+      setError(errorMessage);
+      setTimeout(() => setError(null), 5000);
     }
   };
 
   const handleAddApiKey = async () => {
     if (!newApiKeyInput.trim()) {
-      alert('Please enter an API key');
+      setError('Please enter an API key');
+      setTimeout(() => setError(null), 3000);
       return;
     }
     try {
@@ -120,24 +161,52 @@ const SettingsPage: React.FC = () => {
       setNewApiKeyInput('');
       setShowNewKeyForm(false);
       setNewApiKey(newKey.api_key);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to add API key:', error);
-      alert('Failed to add API key');
+      
+      // Handle specific backend errors
+      let errorMessage = 'Failed to add API key. Please try again.';
+      
+      if (error?.response?.data) {
+        const errorData = error.response.data;
+        
+        if (typeof errorData === 'string') {
+          errorMessage = errorData;
+        } else if (errorData?.api_key) {
+          errorMessage = errorData.api_key;
+        } else if (errorData?.non_field_errors) {
+          errorMessage = errorData.non_field_errors[0];
+        } else if (errorData?.detail) {
+          errorMessage = errorData.detail;
+        }
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
+      setError(errorMessage);
+      setTimeout(() => setError(null), 5000);
     }
   };
 
   useEffect(() => {
-    if (activeTab === 'security' && securityTab === 'api-keys') {
+    if (activeTab === 'api' || activeTab === 'api-keys') {
       fetchApiKeys();
     }
-    if (activeTab === 'api') {
-      fetchApiKeys();
-    }
-  }, [activeTab, securityTab]);
+  }, [activeTab]);
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <Header />
+      
+      {/* Error Popup */}
+      {error && (
+        <div className="fixed top-4 right-4 z-50 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-pulse">
+          <div className="w-5 h-5 bg-white rounded-full flex items-center justify-center">
+            <X className="w-3 h-3 text-red-500" />
+          </div>
+          <span className="font-medium">{error}</span>
+        </div>
+      )}
       
       <main className="flex-grow max-w-7xl mx-auto px-4 py-8 w-full">
         <h1 className="text-2xl font-bold text-slate-900 mb-8">Account Settings</h1>
@@ -321,17 +390,6 @@ const SettingsPage: React.FC = () => {
                     <Lock className="w-4 h-4 inline mr-2" />
                     Change Password
                   </button>
-                  <button
-                    onClick={() => setSecurityTab('api-keys')}
-                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                      securityTab === 'api-keys'
-                        ? 'border-[#0D9488] text-[#0D9488]'
-                        : 'border-transparent text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    <Key className="w-4 h-4 inline mr-2" />
-                    API Keys
-                  </button>
                 </div>
 
                 {/* Password Change Tab */}
@@ -402,102 +460,9 @@ const SettingsPage: React.FC = () => {
                     </button>
                   </form>
                 )}
-
-                {/* API Keys Tab */}
-                {securityTab === 'api-keys' && (
-                  <div className="space-y-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-lg font-semibold text-slate-900">API Keys</h3>
-                        <p className="text-sm text-slate-600">Manage your API keys for external integrations</p>
-                      </div>
-                      <button
-                        onClick={() => setShowNewKeyForm(!showNewKeyForm)}
-                        className="bg-[#0D9488] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0f766e] flex items-center gap-2"
-                      >
-                        <Plus className="w-4 h-4" />
-                        Create New Key
-                      </button>
-                    </div>
-
-                    {/* New API Key Form */}
-                    {showNewKeyForm && (
-                      <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                        <h4 className="font-medium text-slate-900 mb-3">Create New API Key</h4>
-                        <div className="flex gap-3">
-                          <input
-                            type="text"
-                            placeholder="Key name (optional)"
-                            className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#0D9488]"
-                          />
-                          <button
-                            onClick={createApiKey}
-                            className="bg-[#0D9488] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#0f766e]"
-                          >
-                            Create
-                          </button>
-                          <button
-                            onClick={() => setShowNewKeyForm(false)}
-                            className="bg-slate-200 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-300"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* New Key Display */}
-                    {newApiKey && (
-                      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <h4 className="font-medium text-green-900 mb-2">New API Key Created</h4>
-                            <p className="text-xs text-green-700 mb-2">Copy this key now. It won't be shown again.</p>
-                            <div className="bg-white rounded border border-green-200 p-3 font-mono text-sm break-all">
-                              {newApiKey}
-                            </div>
-                          </div>
-                          <button
-                            onClick={() => setNewApiKey('')}
-                            className="text-green-600 hover:text-green-800"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Existing API Keys */}
-                    <div className="space-y-3">
-                      {apiKeys.map((key) => (
-                        <div key={key.id} className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <h4 className="font-medium text-slate-900">{key.name || 'API Key'}</h4>
-                              <p className="text-sm text-slate-600">Created: {new Date(key.created_at).toLocaleDateString()}</p>
-                              <p className="text-xs text-slate-500 font-mono">Key: {key.key?.substring(0, 20)}...</p>
-                            </div>
-                            <button
-                              onClick={() => deleteApiKey(key.id)}
-                              className="text-red-600 hover:text-red-800 p-2"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                      {apiKeys.length === 0 && (
-                        <div className="text-center py-8 text-slate-500">
-                          <Key className="w-12 h-12 mx-auto mb-3 text-slate-300" />
-                          <p>No API keys yet. Create your first key to get started.</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
               </div>
             )}
-
+            
             {activeTab === 'api' && (
               <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8">
                 <h2 className="text-xl font-bold text-slate-900 mb-6">API Keys Management</h2>
@@ -657,9 +622,8 @@ const SettingsPage: React.FC = () => {
                                 </button>
                                 <button
                                   onClick={() => {
-                                    if (window.confirm('Are you sure you want to delete this API key? This action cannot be undone.')) {
-                                      deleteApiKey(key.id);
-                                    }
+                                    setKeyToDelete(key);
+                                    setShowDeleteModal(true);
                                   }}
                                   className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                                   title="Delete API Key"
@@ -760,15 +724,23 @@ const SettingsPage: React.FC = () => {
                       )}
                     </div>
 
-                    {/* API Management Actions */}
-                    <div className="flex gap-4">
-                      <button 
-                        onClick={fetchApiKeys}
-                        className="bg-blue-500 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-blue-600 flex items-center gap-2"
-                      >
-                        <RefreshCw className="w-4 h-4" />
-                        Refresh Keys
-                      </button>
+                    {/* Auto-reload indicator */}
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${
+                          apiKeys.some((key) => key.worker_status === 'RUNNING' || key.worker_status === 'PENDING')
+                            ? 'bg-yellow-500 animate-pulse'
+                            : 'bg-green-500'
+                        }`}></div>
+                        <span className="text-sm text-gray-600">
+                          {apiKeys.some((key) => key.worker_status === 'RUNNING' || key.worker_status === 'PENDING')
+                            ? 'Testing in progress...'
+                            : 'All keys ready'}
+                        </span>
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        Last updated: {new Date().toLocaleTimeString()}
+                      </div>
                     </div>
                   </div>
 
@@ -986,6 +958,76 @@ const SettingsPage: React.FC = () => {
                             >
                               Close
                             </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Delete Confirmation Modal */}
+                    {showDeleteModal && keyToDelete && (
+                      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                        <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
+                          <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-lg font-semibold text-slate-900">Delete API Key</h3>
+                            <button
+                              onClick={() => {
+                                setShowDeleteModal(false);
+                                setKeyToDelete(null);
+                              }}
+                              className="text-gray-400 hover:text-gray-600"
+                            >
+                              <X className="w-5 h-5" />
+                            </button>
+                          </div>
+
+                          <div className="space-y-4">
+                            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                                  <Trash2 className="w-6 h-6 text-red-600" />
+                                </div>
+                                <div>
+                                  <h4 className="font-semibold text-red-900">Are you sure?</h4>
+                                  <p className="text-sm text-red-700 mt-1">
+                                    This action cannot be undone. This will permanently delete the API key and remove all associated data.
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="bg-gray-50 rounded-lg p-3">
+                              <p className="text-sm text-gray-600">
+                                <span className="font-medium">API Key:</span> 
+                                <code className="ml-2 text-xs bg-gray-200 px-2 py-1 rounded">
+                                  {keyToDelete.api_key ? keyToDelete.api_key.substring(0, 8) + '...' : 'Loading...'}
+                                </code>
+                              </p>
+                              <p className="text-sm text-gray-600 mt-1">
+                                <span className="font-medium">Created:</span> {new Date(keyToDelete.created_at).toLocaleDateString()}
+                              </p>
+                            </div>
+
+                            <div className="flex gap-3 pt-4">
+                              <button
+                                onClick={() => {
+                                  setShowDeleteModal(false);
+                                  setKeyToDelete(null);
+                                }}
+                                className="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-300 transition-colors"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                onClick={() => {
+                                  deleteApiKey(keyToDelete.id);
+                                  setShowDeleteModal(false);
+                                  setKeyToDelete(null);
+                                }}
+                                className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
+                              >
+                                Delete API Key
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>

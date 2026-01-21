@@ -27,8 +27,9 @@ export interface AuthState {
 export interface ChatSession {
   id: string;
   title: string;
-  date: string;
-  preview: string;
+  created_at: string;
+  messages?: any;
+  updated_at?: string;
 }
 
 export interface Message {
@@ -36,6 +37,9 @@ export interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: number;
+  response?: string;
+  error?: string;
+  status?: 'pending' | 'completed' | 'failed';
 }
 
 export interface ServiceItem {

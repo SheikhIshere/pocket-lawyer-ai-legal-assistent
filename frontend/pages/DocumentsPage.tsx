@@ -315,12 +315,7 @@ const DocumentsPage: React.FC = () => {
                     Clear
                   </button>
                 </div>
-              )}
-              
-              <button className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-teal-600 to-emerald-600 text-white rounded-lg hover:opacity-90 transition-all duration-200 font-medium shadow-md hover:shadow-lg">
-                <Plus className="w-4 h-4" />
-                New Document
-              </button>
+              )}            
             </div>
           </div>
         </div>
