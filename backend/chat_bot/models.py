@@ -379,10 +379,18 @@ class AiRequest(BaseModel):
             update_fields = ['status', 'response', 'response_engine']
             if hasattr(self, 'updated_at'):
                 update_fields.append('updated_at')
+            
             try:
+                print(f"DEBUG: About to save AiRequest {self.id} with status {self.status}")
+                print(f"DEBUG: Update fields: {update_fields}")
+                print(f"DEBUG: Has response: {bool(self.response)}")
+                print(f"DEBUG: Response length: {len(self.response) if self.response else 0}")
+                
                 self.save(update_fields=[f for f in update_fields if hasattr(self, f) or f == 'response'])
+                print(f"DEBUG: Successfully saved AiRequest {self.id}")
             except Exception as save_exc:
                 print("AiRequest.save failed in handle():", save_exc)
+                # Don't re-raise, just log it
 
     def save(self, **kwargs):
         is_new = self._state.adding
@@ -412,7 +420,3 @@ class AiRequest(BaseModel):
             except Exception:
                 # if queuing fails, don't break saving; the worker will mark failed later
                 pass
-
-
-
-

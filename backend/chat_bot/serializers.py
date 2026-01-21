@@ -2,76 +2,78 @@
 from pydantic import ValidationError
 from rest_framework import serializers
 from .models import ChatSession, AiRequest
-
+from api_key.models import ApiKey
 # choice
 from BASE.base_choice import CeleryStatus
 
 
-class ChatSessionListSerializer(serializers.ModelSerializer):
-    """For listing all sessions (sidebar/history list)."""
+class ChatSessionSerializer(serializers.ModelSerializer):
     class Meta:
         model = ChatSession
-        fields = ['id', 'title', 'created_at']
+        fields = [
+            "id",
+            "title",
+            "messages",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["messages", "created_at", "updated_at"]
 
-class ChatSessionDetailSerializer(serializers.ModelSerializer):
-    """For seeing specific session messages."""
-    class Meta:
-        model = ChatSession
-        fields = ['id', 'title', 'messages', 'created_at', 'updated_at']
+
 
 class AiRequestCreateSerializer(serializers.ModelSerializer):
-    """For posting a new message."""
-    class Meta:
-        model = AiRequest
-        fields = ['session', 'message', 'response_engine', 'response_style']
-        extra_kwargs = {
-            'session': {'required': False} # if this field stay null, model.save() creates new one
-        }
-    
-    def validate(self, attrs):
-        message = attrs.get("message", "")
-        session = attrs.get("session")
-
-        # 1: checking is message is empty or not
-        if not message:
-            raise serializers.ValidationError("Message is required")
-        
-        # 2: does this chat have any session or not
-        if session:
-            # 2: checking is last message is still on process or not
-            last_message = (
-                    AiRequest.objects.filter(session=session)
-                    .order_by("-created_at")
-                    .values_list('status', flat=True) # Optimized: only get the status string
-                    .first()
-                )
-            
-            if last_message in [CeleryStatus.RUNNING, CeleryStatus.PENDING]:
-                raise serializers.ValidationError("Please wait, the AI is still responding to your last message")
-            
-            # 3: if one session have like 30 message i won't let user post more rather tell to create new session
-            if session and session.ai_request_count >= 30:
-                raise serializers.ValidationError("You have reached the maximum number of messages for this session. Please create a new session.")
-
-        return attrs
-
-
-class AiRequestDetailSerializer(serializers.ModelSerializer):
-    """For checking the status/response of a specific request."""
     class Meta:
         model = AiRequest
         fields = [
-            'id', 
-            'account_id', 
-            'session', 
-            'message',
-            'response',
-            'status',
-            'response_engine',
-            'response_style',
-            'created_at',
-            'updated_at',
+            "id",
+            "session",
+            "message",
+            "status",
+            "response_engine",
+            "response_style",
+            "response",            
+            "created_at",
         ]
+        read_only_fields = ["status", "response", "created_at"]
 
+    def validate(self, attrs):        
+        message = attrs.get("message", "")
+        session = attrs.get("session")
+        user = self.context.get("request").user
 
+        # checking is it user not not
+        if not user:
+            raise serializers.ValidationError(
+                {"error": "User not found"}
+            )
 
+        # checking do user have a active api key or not
+        api_key = ApiKey.objects.filter(account_id__user=user, is_working=True).first()
+        if not api_key:
+            raise serializers.ValidationError(
+                {"error": "User does not have an Working API key."}
+            )
+
+        # Message validation
+        if not message or not message.strip():
+            raise serializers.ValidationError(
+                {"message": "Message cannot be empty."}
+            )
+
+        # 3️⃣ BLOCK if last request is still running or pending
+        last_request = (
+            AiRequest.objects
+            .filter(session=session)
+            .order_by("-created_at")
+            .first()
+        )
+
+        if last_request and last_request.status in (
+            CeleryStatus.PENDING,
+            CeleryStatus.RUNNING,
+        ):
+            raise serializers.ValidationError(
+                "Please wait for the previous response to complete."
+            )
+
+        return attrs
