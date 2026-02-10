@@ -46,16 +46,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Check local storage on load and validate token
   useEffect(() => {
     const initializeAuth = async () => {
-      const storedToken = localStorage.getItem('pl_token');
+      const storedToken = localStorage.getItem('pl_access_token') || localStorage.getItem('pl_token');
+      const storedRefreshToken = localStorage.getItem('pl_refresh_token');
       const storedUser = localStorage.getItem('pl_user');
       const storedTempEmail = localStorage.getItem('temp_email');
       const storedIsRegistration = localStorage.getItem('is_registration');
       const storedIsForgotPassword = localStorage.getItem('is_forgot_password');
-      
+
       if (storedToken && storedUser) {
         try {
           const userData = JSON.parse(storedUser);
-          
+
           // Set initial state immediately for better UX
           setState({
             user: userData,
@@ -64,22 +65,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             token: storedToken,
             isInitializing: false // Done initializing
           });
-          
-            // Validate token by making a simple API call
-            try {
-              await api.accountService.getProfile();
-              console.log('Token validation successful');
+
+          // Validate token by making a simple API call
+          try {
+            await api.accountService.getProfile();
+            console.log('Token validation successful');
           } catch (error: any) {
             console.error('Token validation failed:', error);
-            
+
             // Check if it's a 401 Unauthorized error (token expired)
             if (error?.status === 401 || error?.response?.status === 401) {
               console.log('Token expired, clearing authentication');
               // Clear invalid token
               localStorage.removeItem('pl_token');
+              localStorage.removeItem('pl_access_token');
+              localStorage.removeItem('pl_refresh_token');
               localStorage.removeItem('pl_user');
               localStorage.removeItem('temp_email');
-              
+
               setState({
                 user: null,
                 isAuthenticated: false,
@@ -96,9 +99,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.error('Error parsing stored user data:', error);
           // Clear invalid data
           localStorage.removeItem('pl_token');
+          localStorage.removeItem('pl_access_token');
+          localStorage.removeItem('pl_refresh_token');
           localStorage.removeItem('pl_user');
           localStorage.removeItem('temp_email');
-          
+
           setState({
             user: null,
             isAuthenticated: false,
@@ -111,33 +116,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Check for temp email and redirect to OTP if exists
         const tempEmail = localStorage.getItem('temp_email');
         if (tempEmail) {
-          setState(prev => ({ 
-            ...prev, 
+          setState(prev => ({
+            ...prev,
             requiresOtp: true,
             tempEmail,
             isRegistration: false,
             isInitializing: false // Done initializing
           }));
-         } else {
-           // Clear any stale OTP flags if no temp email
-           localStorage.removeItem('is_registration');
-           localStorage.removeItem('is_forgot_password');
-           setState(prev => ({
-             ...prev,
-             requiresOtp: false,
-             isInitializing: false // Done initializing
-           }));
-         }
-       }
-     };
-     
+        } else {
+          // Clear any stale OTP flags if no temp email
+          localStorage.removeItem('is_registration');
+          localStorage.removeItem('is_forgot_password');
+          setState(prev => ({
+            ...prev,
+            requiresOtp: false,
+            isInitializing: false // Done initializing
+          }));
+        }
+      }
+    };
+
     initializeAuth();
   }, []);
 
   const login = async (email: string, pass: string) => {
     try {
       const res = await api.authService.login(email, pass);
-      
+
       // Handle login response structure - now returns message and user info, not token
       if (res.message && res.user) {
         // Store email for OTP verification
@@ -146,13 +151,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.removeItem('is_forgot_password'); // Clear forgot password flag
         setTempEmail(email);
         setIsRegistration(false);
-        
-        setState(prev => ({ 
-          ...prev, 
+
+        setState(prev => ({
+          ...prev,
           requiresOtp: true
         }));
-       } else {
-         throw new Error('Login failed');
+      } else {
+        throw new Error('Login failed');
       }
     } catch (error) {
       console.error('Login error:', error);
@@ -163,24 +168,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const register = async (data: { email: string; password: string; full_name: string; password2: string }) => {
     try {
       console.log('Register function called with:', { email: data.email, full_name: data.full_name });
-      
+
       const registerData = {
         email: data.email,
         password: data.password,
         full_name: data.full_name,
         password2: data.password2
       };
-      
+
       const res = await api.authService.register(registerData);
       console.log('Registration API response:', res);
-      
+
       // Check if registration was successful
       console.log('Checking registration success conditions:');
       console.log('- res.message:', res.message);
       console.log('- res.user:', res.user);
       console.log('- res.status:', res.status);
       console.log('- res:', res);
-      
+
       // More flexible success condition
       if (res.message || res.user || res.status === 'success' || res.id) {
         console.log('Registration successful - storing email and setting OTP required');
@@ -190,12 +195,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.removeItem('is_forgot_password'); // Clear forgot password flag
         setTempEmail(data.email);
         setIsRegistration(true);
-        
-        setState(prev => ({ 
-          ...prev, 
+
+        setState(prev => ({
+          ...prev,
           requiresOtp: true
         }));
-        
+
         console.log('OTP state set - should redirect to register-verify-otp page');
         console.log('localStorage is_registration:', localStorage.getItem('is_registration'));
         console.log('localStorage temp_email:', localStorage.getItem('temp_email'));
@@ -217,7 +222,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('verifyRegistrationOtp called with:', { email, otp });
       const res = await api.authService.verifyRegistrationOtp(email, otp);
       console.log('OTP verification API response:', res);
-      
+
       // Check for different possible success response structures
       console.log('Checking OTP verification success conditions:');
       console.log('- res.access:', res.access);
@@ -226,18 +231,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('- res.success:', res.success);
       console.log('- res.status:', res.status);
       console.log('- res:', res);
-      
+
       if (res.access && res.refresh) {
         console.log('OTP verification successful - tokens received');
         const finalToken = res.access;
-        
-        // Store token immediately before making any API calls
-        localStorage.setItem('pl_token', finalToken);
-        
+
+        // Store tokens
+        localStorage.setItem('pl_access_token', res.access);
+        localStorage.setItem('pl_refresh_token', res.refresh);
+        localStorage.removeItem('pl_token'); // Migration
+
         // Fetch user profile data after successful OTP verification
         const profileData = await api.accountService.getProfile();
         console.log('User profile data:', profileData);
-        
+
         // Create user object with backend structure
         const user: User = {
           id: profileData.id?.toString() || '',
@@ -254,18 +261,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           credit: profileData.credit || 0,
           is_verified: true
         };
-        
+
         console.log('Created user object:', user);
-        
+
         // Store user data
         localStorage.setItem('pl_user', JSON.stringify(user));
-        
+
         // Remove temp data
         localStorage.removeItem('temp_email');
         localStorage.removeItem('is_registration');
         setTempEmail(null);
         setIsRegistration(false);
-        
+
         console.log('Setting auth state to authenticated');
         setState({
           user,
@@ -273,16 +280,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           requiresOtp: false,
           token: finalToken
         });
-        
+
         console.log('User authentication complete');
         return true;
       } else if (res.token || res.success || res.status === 'success') {
         console.log('OTP verification successful - alternative success format');
         const finalToken = res.token || res.access;
-        
+
         if (finalToken) {
-          localStorage.setItem('pl_token', finalToken);
-          
+          localStorage.setItem('pl_access_token', finalToken);
+          if (res.refresh) localStorage.setItem('pl_refresh_token', res.refresh);
+          localStorage.removeItem('pl_token'); // Migration
+
           // Create basic user object if we can't fetch profile
           const user: User = {
             id: res.id?.toString() || '',
@@ -299,20 +308,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             credit: res.credit || 0,
             is_verified: true
           };
-          
+
           localStorage.setItem('pl_user', JSON.stringify(user));
           localStorage.removeItem('temp_email');
           localStorage.removeItem('is_registration');
           setTempEmail(null);
           setIsRegistration(false);
-          
+
           setState({
             user,
             isAuthenticated: true,
             requiresOtp: false,
             token: finalToken
           });
-          
+
           console.log('User authentication complete (basic)');
           return true;
         }
@@ -329,16 +338,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const verifyLoginOtp = async (email: string, otp: string) => {
     try {
       const res = await api.authService.verifyLoginOtp(email, otp);
-      
+
       if (res.access && res.refresh) {
         const finalToken = res.access;
-        
-        // Store token immediately before making any API calls
-        localStorage.setItem('pl_token', finalToken);
-        
+
+        // Store tokens
+        localStorage.setItem('pl_access_token', res.access);
+        localStorage.setItem('pl_refresh_token', res.refresh);
+        localStorage.removeItem('pl_token'); // Migration
+
         // Fetch user profile data after successful OTP verification
         const profileData = await api.accountService.getProfile();
-        
+
         // Create user object with backend structure
         const user: User = {
           id: profileData.id?.toString() || '',
@@ -355,15 +366,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           credit: profileData.credit || 0,
           is_verified: true
         };
-        
+
         // Store user data
         localStorage.setItem('pl_user', JSON.stringify(user));
-        
+
         // Remove temp data
         localStorage.removeItem('temp_email');
         setTempEmail(null);
         setIsRegistration(false);
-        
+
         setState({
           user,
           isAuthenticated: true,
@@ -382,10 +393,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => {
     // Clear all authentication data from localStorage
     localStorage.removeItem('pl_token');
+    localStorage.removeItem('pl_access_token');
+    localStorage.removeItem('pl_refresh_token');
     localStorage.removeItem('pl_user');
     localStorage.removeItem('temp_email');
     localStorage.removeItem('temp_auth_token');
-    
+
     // Reset all state
     setState({
       user: null,
@@ -393,10 +406,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       requiresOtp: false,
       token: null
     });
-    
+
     setTempEmail(null);
     setIsRegistration(false);
-    
+
     console.log('User logged out successfully');
   };
 
@@ -409,18 +422,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateUser = (user: User) => {
-    setState(prev => ({...prev, user}));
+    setState(prev => ({ ...prev, user }));
     localStorage.setItem('pl_user', JSON.stringify(user));
   }
 
   return (
-    <AuthContext.Provider value={{ 
-      ...state, 
-      login, 
-      register, 
-      verifyRegistrationOtp, 
-      verifyLoginOtp, 
-      logout, 
+    <AuthContext.Provider value={{
+      ...state,
+      login,
+      register,
+      verifyRegistrationOtp,
+      verifyLoginOtp,
+      logout,
       updateUser,
       tempEmail,
       isRegistration
