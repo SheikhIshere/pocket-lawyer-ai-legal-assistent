@@ -9,7 +9,7 @@ const RegisterVerifyOtpPage: React.FC = () => {
   const [error, setError] = useState('');
   const [timeLeft, setTimeLeft] = useState(300); // 5 minutes in seconds
   const [isResending, setIsResending] = useState(false);
-  
+
   const { verifyRegistrationOtp, tempEmail } = useAuth();
   const navigate = useNavigate();
 
@@ -18,7 +18,7 @@ const RegisterVerifyOtpPage: React.FC = () => {
     const storedEmail = localStorage.getItem('temp_email');
     console.log('RegisterVerifyOtpPage - temp_email from localStorage:', storedEmail);
     console.log('RegisterVerifyOtpPage - tempEmail from context:', tempEmail);
-    
+
     if (!storedEmail) {
       // No temp email, redirect to register
       console.log('No temp email found, redirecting to register');
@@ -55,15 +55,15 @@ const RegisterVerifyOtpPage: React.FC = () => {
 
     setIsLoading(true);
     setError('');
-    
+
     try {
       console.log('Registration OTP Verification - Email:', tempEmail);
       console.log('Registration OTP Verification - Submitting code:', otp);
-      
+
       const result = await verifyRegistrationOtp(tempEmail, otp);
-      
+
       console.log('Registration OTP verification result:', result);
-      
+
       // Check if verification was successful
       if (result) {
         console.log('Registration OTP verification successful - navigating to chat');
@@ -80,10 +80,10 @@ const RegisterVerifyOtpPage: React.FC = () => {
         status: err?.status,
         statusText: err?.statusText
       });
-      
+
       // Handle different error types
       let errorMessage = 'Verification failed. Please try again.';
-      
+
       if (err?.status === 400) {
         errorMessage = err?.message || err?.detail || 'Invalid verification code. Please check your email and try again.';
       } else if (err?.status === 401) {
@@ -93,7 +93,7 @@ const RegisterVerifyOtpPage: React.FC = () => {
       } else if (err?.status === 429) {
         errorMessage = 'Too many attempts. Please wait before trying again.';
       }
-      
+
       setError(errorMessage);
     } finally {
       setIsLoading(false);
@@ -102,29 +102,29 @@ const RegisterVerifyOtpPage: React.FC = () => {
 
   const handleResend = async () => {
     if (isResending || timeLeft > 240) return; // Prevent spam (wait at least 1 minute)
-    
+
     console.log('RESEND: Starting resend process');
     console.log('RESEND: Email:', tempEmail);
     console.log('RESEND: Time left:', timeLeft);
-    
+
     setIsResending(true);
     setError('');
-    
+
     try {
       // Import authService for resend functionality
       const { authService, accountService } = await import('../../services/api');
-      
+
       console.log('RESEND: Calling authService.resendRegistrationOtp');
       const result = await authService.resendRegistrationOtp(tempEmail);
       console.log('RESEND: API response:', result);
-      
+
       // Reset timer
       setTimeLeft(300);
-      
+
       // Show success message
       setError('Verification code sent successfully!');
       setTimeout(() => setError(''), 3000);
-      
+
     } catch (err: any) {
       console.error('RESEND: Error details:', {
         message: err?.message,
@@ -133,10 +133,10 @@ const RegisterVerifyOtpPage: React.FC = () => {
         statusText: err?.statusText,
         stack: err?.stack
       });
-      
+
       // Handle different error types
       let errorMessage = 'Failed to resend verification code. Please try again.';
-      
+
       if (err?.status === 400) {
         errorMessage = err?.message || err?.detail || 'Invalid email address.';
       } else if (err?.status === 404) {
@@ -146,7 +146,7 @@ const RegisterVerifyOtpPage: React.FC = () => {
       } else if (err?.status === 500) {
         errorMessage = 'Server error. Please try again later.';
       }
-      
+
       setError(errorMessage);
     } finally {
       setIsResending(false);
@@ -161,12 +161,12 @@ const RegisterVerifyOtpPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-teal-50 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center px-4 transition-colors duration-500">
       {/* Background Pattern */}
       <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=&quot;60&quot; height=&quot;60&quot; viewBox=&quot;0 0 60 60&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot;%3E%3Cg fill=&quot;none&quot; fill-rule=&quot;evenodd&quot;%3E%3Cg fill=&quot;%239CA3AF&quot; fill-opacity=&quot;0.1&quot;%3E%3Ccircle cx=&quot;30&quot; cy=&quot;30&quot; r=&quot;2&quot;/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-40"></div>
-      
+
       <div className="relative z-10 w-full max-w-lg">
-        <div className="bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden">
           {/* Header */}
           <div className="bg-gradient-to-r from-teal-600 to-cyan-600 p-6 text-white">
             <div className="flex items-center justify-center mb-4">
@@ -183,13 +183,13 @@ const RegisterVerifyOtpPage: React.FC = () => {
           {/* Content */}
           <div className="p-8">
             {error && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+              <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30 rounded-lg flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
                 <div>
-                  <div className="font-semibold text-red-800 mb-1">
+                  <div className="font-semibold text-red-800 dark:text-red-200 mb-1">
                     {error.includes('sent successfully') ? 'Code Sent' : 'Verification Failed'}
                   </div>
-                  <div className={`text-sm ${error.includes('sent successfully') ? 'text-green-700' : 'text-red-700'}`}>
+                  <div className={`text-sm ${error.includes('sent successfully') ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-300'}`}>
                     {error}
                   </div>
                 </div>
@@ -198,12 +198,12 @@ const RegisterVerifyOtpPage: React.FC = () => {
 
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Email Display */}
-              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                <div className="flex items-center gap-3 text-gray-600">
+              <div className="bg-gray-50 dark:bg-slate-800 rounded-lg p-4 border border-gray-200 dark:border-slate-700">
+                <div className="flex items-center gap-3 text-gray-600 dark:text-gray-400">
                   <Mail className="w-5 h-5" />
                   <div>
                     <p className="text-sm font-medium">Verification code sent to:</p>
-                    <p className="font-semibold text-gray-900">{tempEmail}</p>
+                    <p className="font-semibold text-gray-900 dark:text-white">{tempEmail}</p>
                   </div>
                 </div>
               </div>
@@ -218,7 +218,7 @@ const RegisterVerifyOtpPage: React.FC = () => {
                     maxLength={6}
                     value={otp}
                     onChange={(e) => handleOtpChange(e.target.value)}
-                    className="w-full text-center text-3xl tracking-[0.5em] font-bold py-4 px-4 border-2 border-slate-200 rounded-xl focus:border-teal-500 focus:ring-4 focus:ring-teal-500/20 outline-none transition-all text-slate-800 bg-slate-50"
+                    className="w-full text-center text-3xl tracking-[0.5em] font-bold py-4 px-4 border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:border-teal-500 focus:ring-4 focus:ring-teal-500/20 outline-none transition-all text-slate-800 dark:text-white bg-slate-50 dark:bg-slate-800"
                     placeholder="000000"
                     autoFocus
                     disabled={isLoading}
@@ -234,7 +234,7 @@ const RegisterVerifyOtpPage: React.FC = () => {
               {/* Timer */}
               <div className="text-center">
                 {timeLeft > 0 ? (
-                  <div className="flex items-center justify-center gap-2 text-slate-600">
+                  <div className="flex items-center justify-center gap-2 text-slate-600 dark:text-gray-400">
                     <Clock className="w-4 h-4" />
                     <span className="text-sm">Code expires in {formatTime(timeLeft)}</span>
                   </div>
@@ -272,7 +272,7 @@ const RegisterVerifyOtpPage: React.FC = () => {
                 >
                   {isResending ? (
                     <>
-                      <div className="w-4 h-4 border-2 border-teal-600 border-t-transparent animate-spin rounded-full"></div>
+                      <div className="w-4 h-4 border-2 border-teal-600 dark:border-teal-400 border-t-transparent animate-spin rounded-full"></div>
                       <span>Sending...</span>
                     </>
                   ) : (
@@ -282,11 +282,11 @@ const RegisterVerifyOtpPage: React.FC = () => {
                     </>
                   )}
                 </button>
-                
+
                 <div className="text-center mt-4">
-                  <button 
-                    onClick={() => navigate('/register')} 
-                    className="flex items-center justify-center gap-2 text-slate-400 hover:text-slate-600 mx-auto text-sm transition-colors"
+                  <button
+                    onClick={() => navigate('/register')}
+                    className="flex items-center justify-center gap-2 text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300 mx-auto text-sm transition-colors"
                   >
                     <ArrowLeft className="w-4 h-4" />
                     <span>Back to Register</span>
@@ -297,7 +297,7 @@ const RegisterVerifyOtpPage: React.FC = () => {
           </div>
 
           {/* Security Badge */}
-          <div className="bg-slate-50 px-6 py-4 border-t border-slate-100">
+          <div className="bg-slate-50 dark:bg-slate-900/50 px-6 py-4 border-t border-slate-100 dark:border-slate-800">
             <div className="flex items-center justify-center gap-2 text-xs text-slate-500">
               <Shield className="w-3 h-3" />
               <span>Your code is encrypted and secure</span>

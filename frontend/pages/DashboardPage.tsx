@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
-import { Header, Footer } from '../components/Layout';
+// Header and Footer are now globally handled by Layout in App.tsx
 import {
   User, Mail, Calendar, Globe, CreditCard, Shield,
   FileText, Briefcase, ChevronRight,
@@ -92,8 +92,7 @@ const DashboardPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#020617] transition-colors duration-500 pb-20 lg:pb-0 font-sans">
-      <Header />
+    <div className="min-h-screen bg-slate-50 dark:bg-[#020617] transition-colors duration-500 pb-24 lg:pb-0 font-sans">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-16">
 
         {/* Welcome Section */}
@@ -290,7 +289,6 @@ const DashboardPage: React.FC = () => {
           </div>
         </div>
       </main>
-      <Footer />
     </div>
   );
 };

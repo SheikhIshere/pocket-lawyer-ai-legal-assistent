@@ -556,7 +556,7 @@ const ChatPage = () => {
           </div>
         </div>
 
-        <div className={`p-4 pb-20 lg:p-6 lg:pb-6 border-t transition-all duration-500 ${isLight
+        <div className={`p-4 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:p-6 lg:pb-6 border-t transition-all duration-500 ${isLight
           ? 'bg-white/80 backdrop-blur-xl border-slate-200/60 shadow-[0_-8px_30px_rgb(0,0,0,0.02)]'
           : 'bg-[#020617]/90 backdrop-blur-xl border-slate-800/40 shadow-[0_-8px_30px_rgb(0,0,0,0.15)]'
           }`}>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Header, Footer } from '../components/Layout';
+// Header and Footer are now globally handled by Layout in App.tsx
+
 import { 
   FileText, Download, Search, Filter, Plus, 
   Calendar, User, Eye, Trash2, Share2,
@@ -239,8 +240,8 @@ const DocumentsPage: React.FC = () => {
 
   if (documents.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
-        <Header />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 pb-24 md:pb-0">
+
         <main className="pb-20">
           <div className="max-w-4xl mx-auto px-4 py-8">
           {/* Header */}
@@ -278,14 +279,14 @@ const DocumentsPage: React.FC = () => {
           </div>
         </div>
       </main>
-      <Footer />
     </div>
+
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
-      <Header />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 pb-24 md:pb-0">
+
       <main className="pb-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
@@ -658,8 +659,8 @@ const DocumentsPage: React.FC = () => {
         )}
         </div>
       </main>
-      <Footer />
     </div>
+
   );
 };
 

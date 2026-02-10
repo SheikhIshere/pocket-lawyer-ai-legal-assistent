@@ -29,7 +29,7 @@ const RegisterPage: React.FC = () => {
       data: { pathHash: window.location.hash },
       timestamp: Date.now()
     })
-  }).catch(() => {});
+  }).catch(() => { });
   // #endregion agent log
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -48,15 +48,15 @@ const RegisterPage: React.FC = () => {
         data: { hasEmail: !!email, hasFullName: !!full_name },
         timestamp: Date.now()
       })
-    }).catch(() => {});
+    }).catch(() => { });
     // #endregion agent log
-    
+
     console.log('Form validation:', {
       password,
       confirmPassword,
       passwordsMatch: password === confirmPassword
     });
-    
+
     if (password !== confirmPassword) {
       // #region agent log
       fetch('http://127.0.0.1:7242/ingest/3b5466ef-e4ad-485a-98f1-d363bc9e423a', {
@@ -71,7 +71,7 @@ const RegisterPage: React.FC = () => {
           data: {},
           timestamp: Date.now()
         })
-      }).catch(() => {});
+      }).catch(() => { });
       // #endregion agent log
 
       setError("Passwords don't match");
@@ -79,10 +79,10 @@ const RegisterPage: React.FC = () => {
     }
 
     console.log('Submitting registration with data:', { email, full_name, password: '***', confirmPassword: '***' });
-    
+
     setIsLoading(true);
     setError('');
-    
+
     try {
       // #region agent log
       fetch('http://127.0.0.1:7242/ingest/3b5466ef-e4ad-485a-98f1-d363bc9e423a', {
@@ -97,7 +97,7 @@ const RegisterPage: React.FC = () => {
           data: { hasEmail: !!email, hasFullName: !!full_name },
           timestamp: Date.now()
         })
-      }).catch(() => {});
+      }).catch(() => { });
       // #endregion agent log
 
       const result = await register({ email, password, full_name, password2: confirmPassword });
@@ -116,9 +116,9 @@ const RegisterPage: React.FC = () => {
           data: { pathHash: window.location.hash },
           timestamp: Date.now()
         })
-      }).catch(() => {});
+      }).catch(() => { });
       // #endregion agent log
-      
+
       // We explicitly navigate now because PublicOnlyRoute allows /register even when requiresOtp=true
       navigate('/register-verify-otp');
 
@@ -135,9 +135,9 @@ const RegisterPage: React.FC = () => {
           data: { pathHash: window.location.hash },
           timestamp: Date.now()
         })
-      }).catch(() => {});
+      }).catch(() => { });
       // #endregion agent log
-      
+
     } catch (err: any) {
       console.error('Registration error:', err);
       console.error('Error details:', {
@@ -145,10 +145,10 @@ const RegisterPage: React.FC = () => {
         stack: err?.stack,
         status: err?.status
       });
-      
+
       // Handle different error types
       let errorMessage = 'Registration failed. Please try again.';
-      
+
       if (err?.message?.includes('Email already exists')) {
         errorMessage = 'This email is already registered. Please use a different email or try logging in.';
       } else if (err?.message?.includes('Passwords do not match')) {
@@ -156,7 +156,7 @@ const RegisterPage: React.FC = () => {
       } else if (err?.message?.includes('Password too weak')) {
         errorMessage = 'Password is too weak. Please choose a stronger password.';
       }
-      
+
       setError(errorMessage);
     } finally {
       setIsLoading(false);
@@ -164,71 +164,71 @@ const RegisterPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex bg-slate-50">
+    <div className="min-h-screen flex flex-col lg:flex-row bg-slate-50 dark:bg-slate-950 transition-colors duration-500">
       {/* Left Side - Form */}
-      <div className="w-full lg:w-1/2 flex flex-col justify-center px-8 sm:px-12 lg:px-24 py-12 bg-white">
+      <div className="w-full lg:w-1/2 flex flex-col justify-center px-8 sm:px-12 lg:px-24 py-12 bg-white dark:bg-slate-900 border-r border-transparent dark:border-slate-800 transition-colors duration-500">
         <Link to="/" className="flex items-center gap-2 mb-8">
-          <Shield className="w-8 h-8 text-teal-600" />
-          <span className="text-2xl font-bold text-slate-800">Pocket Lawyer</span>
+          <Shield className="w-8 h-8 text-teal-600 dark:text-teal-400" />
+          <span className="text-2xl font-bold text-slate-800 dark:text-white">Pocket Lawyer</span>
         </Link>
-        
+
         <div className="max-w-md w-full mx-auto">
-          <h2 className="text-3xl font-bold text-slate-900 mb-2">Create Account</h2>
-          <p className="text-slate-500 mb-8">Join 50,000+ users getting instant legal help.</p>
+          <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Create Account</h2>
+          <p className="text-slate-500 dark:text-gray-400 mb-8">Join 50,000+ users getting instant legal help.</p>
 
           {error && (
-            <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-lg text-sm">
+            <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-900/30 rounded-lg text-sm">
               {error}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">Full Name</label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-gray-500" />
                 <input
                   type="text"
                   required
                   value={full_name}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none"
+                  className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none dark:text-white"
                   placeholder="John Doe"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Email Address</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">Email Address</label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-gray-500" />
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none"
+                  className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none dark:text-white"
                   placeholder="name@example.com"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">Password</label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-gray-500" />
                 <input
                   type={showPassword ? "text" : "password"}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none"
+                  className="w-full pl-10 pr-12 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none dark:text-white"
                   placeholder="••••••••••••"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300 p-1"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -236,21 +236,21 @@ const RegisterPage: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Confirm Password</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1">Confirm Password</label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-gray-500" />
                 <input
                   type={showConfirmPassword ? "text" : "password"}
                   required
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full pl-10 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none"
+                  className="w-full pl-10 pr-12 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none dark:text-white"
                   placeholder="••••••••••••"
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300 p-1"
                 >
                   {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -260,16 +260,16 @@ const RegisterPage: React.FC = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full mt-4 bg-teal-600 text-white py-3.5 rounded-xl font-bold hover:bg-teal-700 transition-colors shadow-lg shadow-teal-600/20"
+              className="w-full mt-4 bg-teal-600 dark:bg-teal-500 text-white py-3.5 rounded-xl font-bold hover:bg-teal-700 dark:hover:bg-teal-600 transition-all shadow-lg shadow-teal-600/20 active:scale-[0.98]"
             >
               {isLoading ? "Creating Account..." : "Create Account"}
             </button>
           </form>
 
-          <p className="text-center mt-8 text-slate-500 text-sm">
-            Already have an account? <Link to="/login" className="text-teal-600 font-bold hover:underline">Log in</Link>
+          <p className="text-center mt-8 text-slate-500 dark:text-gray-400 text-sm">
+            Already have an account? <Link to="/login" className="text-teal-600 dark:text-teal-400 font-bold hover:underline">Log in</Link>
           </p>
-          
+
           {/* Test Button */}
           {/* <button
             onClick={() => {
@@ -283,35 +283,35 @@ const RegisterPage: React.FC = () => {
         </div>
       </div>
 
-       {/* Right Side - Visual */}
+      {/* Right Side - Visual */}
       <div className="hidden lg:flex w-1/2 bg-teal-600 flex-col justify-center items-center text-white relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-teal-500 to-blue-600 opacity-90"></div>
         <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
-        
+
         <div className="relative z-10 max-w-lg text-center px-8">
           <div className="mb-8 flex justify-center">
-             <div className="w-24 h-24 bg-white/20 backdrop-blur-md rounded-3xl flex items-center justify-center border border-white/30 shadow-2xl">
-                <UserPlus className="w-12 h-12 text-white" />
-             </div>
+            <div className="w-24 h-24 bg-white/20 backdrop-blur-md rounded-3xl flex items-center justify-center border border-white/30 shadow-2xl">
+              <UserPlus className="w-12 h-12 text-white" />
+            </div>
           </div>
           <h2 className="text-4xl font-bold mb-6">Start Your Legal Journey Today</h2>
           <p className="text-teal-100 text-lg leading-relaxed mb-12">
             Join thousands of professionals who trust our AI-powered legal assistant for accurate, secure, and instant legal guidance.
           </p>
-          
+
           <div className="space-y-4 text-left inline-block">
-             <div className="flex items-center gap-3">
-               <div className="bg-white/20 p-1 rounded-full"><Check className="w-4 h-4 text-white" /></div>
-               <span className="font-medium">Free Chat</span>
-             </div>
-             <div className="flex items-center gap-3">
-               <div className="bg-white/20 p-1 rounded-full"><Check className="w-4 h-4 text-white" /></div>
-               <span className="font-medium">No Credit Card Required</span>
-             </div>
-             <div className="flex items-center gap-3">
-               <div className="bg-white/20 p-1 rounded-full"><Check className="w-4 h-4 text-white" /></div>
-               <span className="font-medium">Instant Account Setup</span>
-             </div>
+            <div className="flex items-center gap-3">
+              <div className="bg-white/20 p-1 rounded-full"><Check className="w-4 h-4 text-white" /></div>
+              <span className="font-medium">Free Chat</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="bg-white/20 p-1 rounded-full"><Check className="w-4 h-4 text-white" /></div>
+              <span className="font-medium">No Credit Card Required</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="bg-white/20 p-1 rounded-full"><Check className="w-4 h-4 text-white" /></div>
+              <span className="font-medium">Instant Account Setup</span>
+            </div>
           </div>
         </div>
       </div>

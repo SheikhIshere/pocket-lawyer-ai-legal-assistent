@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Header, Footer } from '../components/Layout';
+// Header and Footer are now globally handled by Layout in App.tsx
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { User, Lock, FileText, Settings, CreditCard, LogOut, Camera, Mail, Phone, Calendar, MapPin, Briefcase, Globe, Shield, Edit2, Save, X, Loader2, Key, Plus, Trash2, Eye, EyeOff, Code, Database, Zap, ShieldCheck, Brain, RefreshCw, Send } from 'lucide-react';
@@ -261,8 +261,7 @@ const SettingsPage: React.FC = () => {
   return (
     <>
       <style>{shakeAnimation}</style>
-      <div className="min-h-screen bg-slate-50 flex flex-col">
-        <Header />
+      <div className="min-h-screen bg-slate-50 dark:bg-[#020617] flex flex-col transition-colors duration-500 pb-24 lg:pb-0">
 
         {/* Error Popup */}
         {error && (
@@ -290,8 +289,8 @@ const SettingsPage: React.FC = () => {
           <h1 className="text-2xl font-bold text-slate-900 mb-8">Account Settings</h1>
 
           <div className="flex flex-col lg:flex-row gap-8">
-            {/* Sidebar */}
-            <aside className="w-full lg:w-64 flex-shrink-0">
+            {/* Sidebar (Desktop) */}
+            <aside className="hidden lg:block w-full lg:w-64 flex-shrink-0">
               <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
                 <nav className="flex flex-col">
                   <button
@@ -328,6 +327,35 @@ const SettingsPage: React.FC = () => {
                 </nav>
               </div>
             </aside>
+
+            {/* Mobile Tab Navigation (Horizontal Scroll) */}
+            <div className="lg:hidden -mx-4 px-4 mb-6 sticky top-0 z-10 bg-slate-50 dark:bg-[#020617] py-2 overflow-x-auto scrollbar-hide flex gap-2">
+              {[
+                { id: 'profile', label: 'Profile', icon: User },
+                { id: 'security', label: 'Security', icon: Lock },
+                { id: 'api', label: 'API Keys', icon: Key },
+                { id: 'billing', label: 'Plans', icon: CreditCard },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-black whitespace-nowrap transition-all ${activeTab === tab.id
+                    ? 'bg-teal-600 text-white shadow-lg shadow-teal-500/20'
+                    : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border border-slate-100 dark:border-slate-800'
+                    }`}
+                >
+                  <tab.icon className="w-4 h-4" />
+                  {tab.label}
+                </button>
+              ))}
+              <button
+                onClick={logout}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-black whitespace-nowrap bg-red-50 dark:bg-red-900/10 text-red-600 border border-red-100 dark:border-red-900/20"
+              >
+                <LogOut className="w-4 h-4" />
+                Logout
+              </button>
+            </div>
 
             {/* Content */}
             <div className="flex-1">
@@ -460,8 +488,8 @@ const SettingsPage: React.FC = () => {
                     <button
                       onClick={() => setSecurityTab('password')}
                       className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${securityTab === 'password'
-                          ? 'border-[#0D9488] text-[#0D9488]'
-                          : 'border-transparent text-slate-600 hover:text-slate-900'
+                        ? 'border-[#0D9488] text-[#0D9488]'
+                        : 'border-transparent text-slate-600 hover:text-slate-900'
                         }`}
                     >
                       <Lock className="w-4 h-4 inline mr-2" />
@@ -724,18 +752,18 @@ const SettingsPage: React.FC = () => {
                                     }`}></div>
                                   <h3 className="font-semibold text-gray-900 text-lg">API Key</h3>
                                   <span className={`px-3 py-1 rounded-full text-xs font-medium ${key.is_working
-                                      ? 'bg-green-100 text-green-700'
-                                      : 'bg-red-100 text-red-700'
+                                    ? 'bg-green-100 text-green-700'
+                                    : 'bg-red-100 text-red-700'
                                     }`}>
                                     {key.is_working ? 'Active' : 'Inactive'}
                                   </span>
                                   <span className={`px-3 py-1 rounded-full text-xs font-medium ${key.worker_status === 'COMPLETED'
-                                      ? 'bg-blue-100 text-blue-700'
-                                      : key.worker_status === 'PENDING'
-                                        ? 'bg-yellow-100 text-yellow-700'
-                                        : key.worker_status === 'RUNNING'
-                                          ? 'bg-purple-100 text-purple-700'
-                                          : 'bg-red-100 text-red-700'
+                                    ? 'bg-blue-100 text-blue-700'
+                                    : key.worker_status === 'PENDING'
+                                      ? 'bg-yellow-100 text-yellow-700'
+                                      : key.worker_status === 'RUNNING'
+                                        ? 'bg-purple-100 text-purple-700'
+                                        : 'bg-red-100 text-red-700'
                                     }`}>
                                     {key.worker_status === 'COMPLETED' ? 'Ready' :
                                       key.worker_status === 'PENDING' ? 'Pending' :
@@ -829,9 +857,9 @@ const SettingsPage: React.FC = () => {
                                         <div className="w-3 h-3 bg-red-500 rounded-full"></div>
                                       )}
                                       <span className={`text-sm font-medium ${key.worker_status === 'COMPLETED' ? 'text-blue-700' :
-                                          key.worker_status === 'PENDING' ? 'text-yellow-700' :
-                                            key.worker_status === 'RUNNING' ? 'text-purple-700' :
-                                              'text-red-700'
+                                        key.worker_status === 'PENDING' ? 'text-yellow-700' :
+                                          key.worker_status === 'RUNNING' ? 'text-purple-700' :
+                                            'text-red-700'
                                         }`}>
                                         {key.worker_status === 'COMPLETED' ? 'Ready to use' :
                                           key.worker_status === 'PENDING' ? 'Waiting to test' :
@@ -861,8 +889,8 @@ const SettingsPage: React.FC = () => {
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2">
                           <div className={`w-2 h-2 rounded-full ${apiKeys.some((key) => key.worker_status === 'RUNNING' || key.worker_status === 'PENDING')
-                              ? 'bg-yellow-500 animate-pulse'
-                              : 'bg-green-500'
+                            ? 'bg-yellow-500 animate-pulse'
+                            : 'bg-green-500'
                             }`}></div>
                           <span className="text-sm text-gray-600">
                             {apiKeys.some((key) => key.worker_status === 'RUNNING' || key.worker_status === 'PENDING')
@@ -926,9 +954,9 @@ const SettingsPage: React.FC = () => {
                                 </div>
                                 <div className="text-center">
                                   <div className={`text-lg font-semibold ${selectedApiKey.worker_status === 'COMPLETED' ? 'text-blue-700' :
-                                      selectedApiKey.worker_status === 'PENDING' ? 'text-yellow-700' :
-                                        selectedApiKey.worker_status === 'RUNNING' ? 'text-purple-700' :
-                                          'text-red-700'
+                                    selectedApiKey.worker_status === 'PENDING' ? 'text-yellow-700' :
+                                      selectedApiKey.worker_status === 'RUNNING' ? 'text-purple-700' :
+                                        'text-red-700'
                                     }`}>
                                     {selectedApiKey.worker_status === 'COMPLETED' ? 'Ready' :
                                       selectedApiKey.worker_status === 'PENDING' ? 'Pending' :
@@ -976,8 +1004,8 @@ const SettingsPage: React.FC = () => {
                                     <div className="space-y-4">
                                       {Object.entries(models).map(([engine, isActive]: [string, any]) => (
                                         <div key={engine} className={`group relative overflow-hidden rounded-2xl border-2 transition-all duration-300 ${isActive
-                                            ? 'bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 border-transparent shadow-xl hover:shadow-2xl transform hover:-translate-y-1'
-                                            : 'bg-gray-100 border-gray-300 opacity-70'
+                                          ? 'bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 border-transparent shadow-xl hover:shadow-2xl transform hover:-translate-y-1'
+                                          : 'bg-gray-100 border-gray-300 opacity-70'
                                           }`}>
                                           {/* Active Model Glow Effect */}
                                           {isActive && (
@@ -989,8 +1017,8 @@ const SettingsPage: React.FC = () => {
                                               <div className="flex items-center gap-4">
                                                 {/* Model Icon */}
                                                 <div className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-all ${isActive
-                                                    ? 'bg-white/20 backdrop-blur-sm shadow-lg'
-                                                    : 'bg-gray-200'
+                                                  ? 'bg-white/20 backdrop-blur-sm shadow-lg'
+                                                  : 'bg-gray-200'
                                                   }`}>
                                                   {isActive ? (
                                                     <div className="w-8 h-8 bg-white rounded-xl flex items-center justify-center">
@@ -1015,8 +1043,8 @@ const SettingsPage: React.FC = () => {
                                                   </h5>
                                                   <div className="flex items-center gap-3">
                                                     <span className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-bold ${isActive
-                                                        ? 'bg-white/20 text-white backdrop-blur-sm border border-white/30'
-                                                        : 'bg-gray-200 text-gray-600'
+                                                      ? 'bg-white/20 text-white backdrop-blur-sm border border-white/30'
+                                                      : 'bg-gray-200 text-gray-600'
                                                       }`}>
                                                       {isActive ? 'Available' : 'Unavailable'}
                                                     </span>
@@ -1038,8 +1066,8 @@ const SettingsPage: React.FC = () => {
 
                                               {/* Status Icon */}
                                               <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${isActive
-                                                  ? 'bg-white/20 backdrop-blur-sm'
-                                                  : 'bg-gray-200'
+                                                ? 'bg-white/20 backdrop-blur-sm'
+                                                : 'bg-gray-200'
                                                 }`}>
                                                 {isActive ? (
                                                   <Zap className="w-6 h-6 text-white" />
@@ -1196,7 +1224,6 @@ const SettingsPage: React.FC = () => {
             </div>
           </div>
         </main>
-        <Footer />
         <ForgotPasswordModal
           isOpen={showForgotPasswordModal}
           onClose={() => setShowForgotPasswordModal(false)}

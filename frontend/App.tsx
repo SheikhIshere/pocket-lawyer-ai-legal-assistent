@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Layout } from './components/Layout';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import LoadingScreen from './components/LoadingScreen';
@@ -227,42 +228,44 @@ const AppContent: React.FC = () => {
 
   return (
     <Router>
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/about" element={<AboutPage />} />
-        <Route path="/contact" element={<ContactPage />} />
-        <Route path="/services" element={<ServicesPage />} />
-        <Route path="/pricing" element={<PricingPage />} />
-        <Route path="/login" element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
-        <Route path="/register" element={<PublicOnlyRoute><RegisterPage /></PublicOnlyRoute>} />
-        <Route path="/verify-otp" element={<OtpRoute><VerifyOtpPage /></OtpRoute>} />
-        <Route path="/register-verify-otp" element={<RegisterOtpRoute><RegisterVerifyOtpPage /></RegisterOtpRoute>} />
-        <Route path="/forgot-password-verify-otp" element={<ForgotPasswordOtpRoute><ForgotPasswordVerifyOtpPage /></ForgotPasswordOtpRoute>} />
+      <Layout>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/services" element={<ServicesPage />} />
+          <Route path="/pricing" element={<PricingPage />} />
+          <Route path="/login" element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
+          <Route path="/register" element={<PublicOnlyRoute><RegisterPage /></PublicOnlyRoute>} />
+          <Route path="/verify-otp" element={<OtpRoute><VerifyOtpPage /></OtpRoute>} />
+          <Route path="/register-verify-otp" element={<RegisterOtpRoute><RegisterVerifyOtpPage /></RegisterOtpRoute>} />
+          <Route path="/forgot-password-verify-otp" element={<ForgotPasswordOtpRoute><ForgotPasswordVerifyOtpPage /></ForgotPasswordOtpRoute>} />
 
-        {/* Error Pages */}
-        <Route path="/no-permission" element={<NoPermissionPage />} />
-        <Route path="/404" element={<NotFoundPage />} />
+          {/* Error Pages */}
+          <Route path="/no-permission" element={<NoPermissionPage />} />
+          <Route path="/404" element={<NotFoundPage />} />
 
-        {/* Protected Routes */}
-        <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
-        <Route path="/profile" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
-        <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
-        <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-        <Route path="/documents" element={<ProtectedRoute><DocumentsPage /></ProtectedRoute>} />
+          {/* Protected Routes */}
+          <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+          <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+          <Route path="/documents" element={<ProtectedRoute><DocumentsPage /></ProtectedRoute>} />
 
-        {/* Example of permission-based route */}
-        <Route
-          path="/premium"
-          element={
-            <PermissionRoute requiredPermission="premium">
-              <PremiumPage />
-            </PermissionRoute>
-          }
-        />
+          {/* Example of permission-based route */}
+          <Route
+            path="/premium"
+            element={
+              <PermissionRoute requiredPermission="premium">
+                <PremiumPage />
+              </PermissionRoute>
+            }
+          />
 
-        {/* Catch-all 404 */}
-        <Route path="*" element={<NotFoundPage />} />
-      </Routes>
+          {/* Catch-all 404 */}
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </Layout>
     </Router>
   );
 };

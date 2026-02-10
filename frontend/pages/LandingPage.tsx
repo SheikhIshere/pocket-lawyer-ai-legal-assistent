@@ -9,7 +9,7 @@ import {
   FileCheck, Search, Users2, Briefcase,
   UserPlus, MessageCircle, User
 } from 'lucide-react';
-import { Header, Footer } from '../components/Layout';
+// Header and Footer are now globally handled by Layout in App.tsx
 
 const LandingPage: React.FC = () => {
   const { isAuthenticated } = useAuth();
@@ -104,8 +104,7 @@ const LandingPage: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950 flex flex-col transition-colors duration-500 pb-16 lg:pb-0">
-      <Header />
+    <div className="min-h-screen bg-white dark:bg-slate-950 flex flex-col transition-colors duration-500 lg:pb-0 overflow-x-hidden">
 
       <main className="flex-grow">
         {/* Hero Section */}
@@ -558,8 +557,8 @@ const LandingPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Process Flow */}
-                  <div className="mt-12 pt-8 border-t border-gray-200/50 dark:border-slate-800">
+                  {/* Process Flow - Removed to solve duplication problem */}
+                  {/* <div className="mt-12 pt-8 border-t border-gray-200/50 dark:border-slate-800">
                     <div className="flex items-center justify-center gap-4 text-slate-600 dark:text-gray-400">
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-0.5 bg-teal-500 rounded-full"></div>
@@ -580,7 +579,7 @@ const LandingPage: React.FC = () => {
                         <span className="text-sm">Start Chat</span>
                       </div>
                     </div>
-                  </div>
+                  </div> */}
                 </div>
               </div>
             </div>
@@ -600,20 +599,6 @@ const LandingPage: React.FC = () => {
         </section>
       </main>
 
-      {/* floating Action Button (Android-Style) */}
-      <div
-        className={`lg:hidden fixed bottom-24 right-6 z-[70] transition-all duration-500 ${showFAB ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-10 opacity-0 scale-0'
-          }`}
-      >
-        <Link
-          to="/chat"
-          className="flex items-center justify-center w-14 h-14 bg-gradient-to-br from-teal-600 to-emerald-700 text-white rounded-2xl shadow-2xl shadow-teal-500/40 active:scale-90 transition-transform"
-        >
-          <MessageCircle className="w-6 h-6" />
-        </Link>
-      </div>
-
-      <Footer />
     </div>
   );
 };

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Header, Footer } from '../components/Layout';
-import { 
-  Search, FileText, Briefcase, Car, Home, Users, 
-  AlertTriangle, ShieldCheck, Scale, Compass, 
+// Header and Footer are now globally handled by Layout in App.tsx
+import {
+  Search, FileText, Briefcase, Car, Home, Users,
+  AlertTriangle, ShieldCheck, Scale, Compass,
   ArrowRight, Sparkles, Filter
 } from 'lucide-react';
 
@@ -27,7 +27,6 @@ const ServicesPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 flex flex-col transition-colors duration-500 pb-20 lg:pb-0">
-      <Header />
       <main className="flex-grow relative">
         {/* Animated Background Elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -42,14 +41,14 @@ const ServicesPage: React.FC = () => {
               <Sparkles className="w-4 h-4 text-teal-600 dark:text-teal-400" />
               <span className="text-xs font-black text-teal-700 dark:text-teal-400 uppercase tracking-widest">Premium Legal Intelligence</span>
             </div>
-            
+
             <h1 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white tracking-tighter leading-[0.9] mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
               Explore Our <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-emerald-600">Legal Ecosystem</span>
             </h1>
-            
+
             <p className="text-lg md:text-xl text-slate-500 dark:text-gray-400 font-medium mb-12 max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
-              Instantly access professional AI guidance for complex legacy matters, 
+              Instantly access professional AI guidance for complex legacy matters,
               contracts, and daily legal inquiries.
             </p>
 
@@ -78,14 +77,13 @@ const ServicesPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 mb-12 overflow-x-auto no-scrollbar">
           <div className="flex items-center gap-3 pb-2">
             {['All Services', 'Real Estate', 'Business', 'Family', 'Civil', 'IP', 'Labor'].map((cat) => (
-              <button 
+              <button
                 key={cat}
                 onClick={() => setSearchTerm(cat === 'All Services' ? '' : cat)}
-                className={`px-6 py-3 rounded-full text-sm font-bold whitespace-nowrap transition-all border ${
-                  (searchTerm === cat || (cat === 'All Services' && searchTerm === ''))
+                className={`px-6 py-3 rounded-full text-sm font-bold whitespace-nowrap transition-all border ${(searchTerm === cat || (cat === 'All Services' && searchTerm === ''))
                     ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white shadow-lg'
                     : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-gray-400 border-slate-100 dark:border-slate-800 hover:border-teal-500'
-                }`}
+                  }`}
               >
                 {cat}
               </button>
@@ -97,8 +95,8 @@ const ServicesPage: React.FC = () => {
           {filteredServices.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
               {filteredServices.map(service => (
-                <div 
-                  key={service.id} 
+                <div
+                  key={service.id}
                   className="group relative bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-[0_20px_50px_rgba(0,0,0,0.05)] dark:hover:shadow-teal-500/5 transition-all duration-500 hover:-translate-y-2 cursor-pointer flex flex-col active:scale-[0.98]"
                 >
                   <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-10 transition-transform group-hover:scale-110 duration-500 shadow-sm
@@ -113,7 +111,7 @@ const ServicesPage: React.FC = () => {
                   `}>
                     <service.icon className="w-8 h-8" />
                   </div>
-                  
+
                   <div className="flex-grow">
                     <div className="text-[10px] font-black uppercase tracking-[0.2em] mb-3 text-slate-400 group-hover:text-teal-500 transition-colors">
                       {service.category}
@@ -135,7 +133,7 @@ const ServicesPage: React.FC = () => {
                       <Compass className="w-5 h-5" />
                     </div>
                   </div>
-                  
+
                   {/* Premium Hover Ornament */}
                   <div className="absolute top-8 right-8 w-1.5 h-1.5 bg-teal-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
                 </div>
@@ -150,7 +148,7 @@ const ServicesPage: React.FC = () => {
               <p className="text-slate-500 dark:text-gray-400 font-medium max-w-sm mx-auto">
                 We couldn't find any services matching "{searchTerm}". Try a different keyword or category.
               </p>
-              <button 
+              <button
                 onClick={() => setSearchTerm('')}
                 className="mt-10 px-8 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold rounded-2xl active:scale-95 transition-all"
               >
@@ -160,7 +158,6 @@ const ServicesPage: React.FC = () => {
           )}
         </div>
       </main>
-      <Footer />
     </div>
   );
 };

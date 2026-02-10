@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Header, Footer } from '../components/Layout';
+// Header and Footer are now globally handled by Layout in App.tsx
 import {
   Mail, Phone, MapPin, Send, MessageSquare, Clock,
   Shield, Users, ArrowRight, HelpCircle, CheckCircle2,
@@ -95,7 +95,6 @@ const ContactPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 flex flex-col transition-colors duration-500 pb-20 lg:pb-0">
-      <Header />
 
       <main className="flex-grow">
         {/* Modern Hero Section */}
@@ -346,7 +345,6 @@ const ContactPage: React.FC = () => {
         </section>
       </main>
 
-      <Footer />
     </div>
   );
 };

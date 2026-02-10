@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Header, Footer } from '../components/Layout';
+// Header and Footer are now globally handled by Layout in App.tsx
 import { 
   Shield, Users, Award, Globe, MessageSquare, CheckCircle, 
   ArrowRight, Mail, Phone, MapPin, Linkedin, Facebook, 
@@ -114,7 +114,6 @@ const AboutPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 flex flex-col transition-colors duration-500">
-      <Header />
 
       <main className="flex-grow dark:bg-slate-950">
         {/* Hero Section - MD3 Style */}
@@ -496,7 +495,6 @@ const AboutPage: React.FC = () => {
         </section>
       </main>
 
-      <Footer />
     </div>
   );
 };
