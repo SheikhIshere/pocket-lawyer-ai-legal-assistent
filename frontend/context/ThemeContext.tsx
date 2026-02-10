@@ -12,19 +12,16 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-const THEME_STORAGE_KEY = 'global-theme';
+const THEME_STORAGE_KEY = 'theme-preference-v4';
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [theme, setThemeState] = useState<Theme>(() => {
         if (typeof window !== 'undefined') {
             const stored = localStorage.getItem(THEME_STORAGE_KEY);
-            if (stored === 'light' || stored === 'dark') return stored;
-
-            // Check system preference
-            if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                return 'dark';
-            }
+            console.log('ThemeContext: Loaded from storage:', stored);
+            if (stored === 'dark') return 'dark';
         }
+        console.log('ThemeContext: Defaulting to light');
         return 'light';
     });
 

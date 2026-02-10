@@ -70,3 +70,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+
+# self help file
+xyz/

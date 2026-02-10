@@ -14,6 +14,7 @@ interface SidebarProps {
   isOpen: boolean;
   onCloseMobile: () => void;
   user: any;
+  isSending?: boolean;
 }
 
 export const ChatSidebar: React.FC<SidebarProps> = ({
@@ -25,7 +26,8 @@ export const ChatSidebar: React.FC<SidebarProps> = ({
   onRenameSession,
   isOpen,
   onCloseMobile,
-  user
+  user,
+  isSending = false
 }) => {
   const { theme, isLight } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
@@ -200,6 +202,7 @@ export const ChatSidebar: React.FC<SidebarProps> = ({
                     ) : (
                       <div
                         onClick={() => {
+                          if (isSending) return; // Prevent session switching during message sending
                           onSelectSession(session.id);
                           onCloseMobile();
                         }}
@@ -207,9 +210,10 @@ export const ChatSidebar: React.FC<SidebarProps> = ({
                             ? isLight
                               ? 'bg-teal-50 border-teal-100 text-teal-900'
                               : 'bg-indigo-500/5 border-indigo-500/20 text-indigo-100'
-                            : 'border-transparent hover:bg-slate-50 dark:hover:bg-white/5 text-slate-600 dark:text-slate-400'
-                          }`}
-                      >
+                            : isSending
+                              ? 'opacity-50 cursor-not-allowed border-transparent text-slate-400 dark:text-slate-600'
+                              : 'border-transparent hover:bg-slate-50 dark:hover:bg-white/5 text-slate-600 dark:text-slate-400'
+                          }`}>
                         <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${currentSessionId === session.id
                           ? isLight ? 'bg-teal-600 text-white' : 'bg-indigo-600 text-white'
                           : isLight ? 'bg-slate-100 text-slate-400 group-hover:bg-white' : 'bg-slate-800 text-slate-500 group-hover:bg-slate-700'

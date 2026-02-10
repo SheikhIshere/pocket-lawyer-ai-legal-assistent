@@ -202,7 +202,7 @@ const LandingPage: React.FC = () => {
                           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#0E8E82] to-[#0a6d62] flex items-center justify-center shadow-lg">
                             <Scale className="w-6 h-6 text-white" />
                           </div>
-                          <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-[#0E8E82] rounded-full border-2 border-white"></div>
+                          {/* <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-[#0E8E82] rounded-full border-2 border-white"></div> */}
                         </div>
                         <div>
                           <div className="font-semibold text-white">PocketLawyer AI</div>
@@ -465,11 +465,11 @@ const LandingPage: React.FC = () => {
 
               <h2 className="text-5xl lg:text-6xl font-bold text-slate-800 dark:text-white mb-6">
                 Get Legal Help in 3 Simple Steps
-                <span className="block text-teal-600 dark:text-teal-400 mt-2">Authenticate • Verify • Chat</span>
+                <span className="block text-teal-600 dark:text-teal-400 mt-2">Sign Up • Configure API Key • Chat</span>
               </h2>
 
               <p className="text-xl text-slate-600 dark:text-gray-400 mb-12 max-w-3xl mx-auto leading-relaxed">
-                Experience seamless legal consultation. Sign up, verify your identity, and start chatting with our AI-powered legal assistant instantly.
+                Experience seamless legal consultation. Sign up, configure your Gemini API key, and start chatting with our AI-powered legal assistant instantly.
               </p>
             </div>
 
@@ -507,26 +507,29 @@ const LandingPage: React.FC = () => {
                       </Link>
                     </div>
 
-                    {/* Step 2 - Verify */}
+                    {/* Step 2 - Add API Key */}
                     <div className="text-center space-y-6">
                       <div className="relative">
                         <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/50">
                           <span className="text-2xl font-bold text-white">2</span>
                         </div>
                         <div className="absolute -top-2 -right-2 w-6 h-6 bg-blue-400 rounded-full flex items-center justify-center">
-                          <Shield className="w-3 h-3 text-white" />
+                          <Lock className="w-3 h-3 text-white" />
                         </div>
                       </div>
 
-                      <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-3">Verify Identity</h3>
+                      <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-3">Add API Key</h3>
                       <p className="text-slate-600 dark:text-gray-400 leading-relaxed">
-                        Receive OTP verification code to secure your account and protect your legal consultations.
+                        Configure your Gemini API key to enable AI-powered legal consultations and document analysis.
                       </p>
 
-                      <div className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-semibold opacity-75 cursor-not-allowed">
-                        <Shield className="w-4 h-4" />
-                        OTP Verification
-                      </div>
+                      <Link
+                        to="/settings"
+                        className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-semibold hover:from-blue-500 hover:to-indigo-500 transition-all shadow-lg hover:shadow-xl hover:shadow-blue-500/20"
+                      >
+                        <Lock className="w-4 h-4" />
+                        Configure API Key
+                      </Link>
                     </div>
 
                     {/* Step 3 - Start Chat */}
@@ -567,7 +570,7 @@ const LandingPage: React.FC = () => {
 
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-0.5 bg-blue-500 rounded-full"></div>
-                        <span className="text-sm">Verify OTP</span>
+                        <span className="text-sm">Configure API Key</span>
                       </div>
 
                       <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-600" />

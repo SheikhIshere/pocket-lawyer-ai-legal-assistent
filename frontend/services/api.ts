@@ -9,9 +9,10 @@ const apiCall = async (endpoint: string, options: RequestInit = {}) => {
   const isAuthEndpoint = endpoint.startsWith('/users/');
   const isOtpEndpoint = endpoint.includes('/otp/') || endpoint.includes('/activate/via-otp') || endpoint.includes('/forget-password/confirm');
 
-  const token = localStorage.getItem('pl_token');
-  const headers: HeadersInit = {
+  const token = localStorage.getItem('pl_access_token') || localStorage.getItem('pl_token');
+  const headers: any = {
     'Content-Type': 'application/json',
+    ...options.headers,
   };
 
   if (token && !isOtpEndpoint) {
@@ -19,8 +20,8 @@ const apiCall = async (endpoint: string, options: RequestInit = {}) => {
   }
 
   const config: RequestInit = {
-    headers: { ...headers, ...options.headers },
     ...options,
+    headers,
   };
 
 
@@ -63,7 +64,7 @@ const apiCall = async (endpoint: string, options: RequestInit = {}) => {
   }
 };
 
-const authService = {
+export const authService = {
   login: async (email: string, password: string) => {
     return apiCall('/users/login/', {
       method: 'POST',
@@ -120,10 +121,15 @@ const authService = {
     });
   },
 
-  resetPassword: async (email: string, newPassword: string) => {
+  resetPassword: async (email: string, newPassword: string, token?: string) => {
     return apiCall('/users/forget-password/confirm/', {
       method: 'POST',
-      body: JSON.stringify({ email, new_password: newPassword }),
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      body: JSON.stringify({
+        email,
+        new_password: newPassword,
+        confirm_password: newPassword
+      }),
     });
   },
 
@@ -146,8 +152,15 @@ const authService = {
   },
 
   refreshToken: async () => {
+    const refresh = localStorage.getItem('pl_refresh_token');
+    if (!refresh) {
+      console.warn('No refresh token found in localStorage');
+      throw new Error('No refresh token available');
+    }
+
     return apiCall('/users/token/refresh/', {
       method: 'POST',
+      body: JSON.stringify({ refresh }),
     });
   },
 
@@ -159,7 +172,7 @@ const authService = {
   }
 };
 
-const accountService = {
+export const accountService = {
   getProfile: async () => {
     return apiCall('/accounts/me/');
   },
@@ -217,7 +230,7 @@ const accountService = {
   },
 };
 
-const assistantService = {
+export const assistantService = {
   getSessions: async (): Promise<ChatSession[]> => {
     return apiCall('/assistant/sessions/');
   },
@@ -357,18 +370,20 @@ const assistantService = {
   }
 };
 
+export const newsletterService = {
+  subscribe: async (email: string) => {
+    return apiCall('/newsletter/subscribe/', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  }
+};
+
 export default {
   authService,
   accountService,
   assistantService,
-  newsletterService: {
-    subscribe: async (email: string) => {
-      return apiCall('/newsletter/subscribe/', {
-        method: 'POST',
-        body: JSON.stringify({ email }),
-      });
-    }
-  }
+  newsletterService
 };
 
 

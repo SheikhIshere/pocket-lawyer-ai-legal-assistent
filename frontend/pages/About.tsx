@@ -148,12 +148,19 @@ const AboutPage: React.FC = () => {
                 >
                   Start Your Journey
                 </Link>
-                <Link
-                  to="/contact"
+                <a
+                  href="#team"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    document.getElementById('team')?.scrollIntoView({ 
+                      behavior: 'smooth',
+                      block: 'start'
+                    });
+                  }}
                   className="px-10 py-5 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border-2 border-slate-100 dark:border-slate-800 rounded-[2rem] text-lg font-black hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
                 >
                   Meet Our Team
-                </Link>
+                </a>
               </div>
             </div>
           </div>
@@ -218,7 +225,7 @@ const AboutPage: React.FC = () => {
                 <img
                   src="/asset/img/hero_section.png"
                   alt="Our Mission"
-                  className="relative rounded-[3rem] w-full h-auto object-cover shadow-2xl z-10"
+                  className="relative rounded-[3rem] w-full h-auto object-cover z-10"
                 />
               </div>
             </div>
@@ -247,7 +254,7 @@ const AboutPage: React.FC = () => {
         </section>
 
         {/* Team Section */}
-        <section className="py-32 bg-gradient-to-br from-slate-50 via-white to-teal-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-teal-950/20 relative overflow-hidden transition-colors">
+        <section id="team" className="py-32 bg-gradient-to-br from-slate-50 via-white to-teal-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-teal-950/20 relative overflow-hidden transition-colors">
           {/* Animated Background Elements */}
           <div className="absolute inset-0">
             <div className="absolute top-20 left-10 w-72 h-72 bg-teal-400/20 rounded-full mix-blend-multiply filter blur-3xl animate-pulse" />
