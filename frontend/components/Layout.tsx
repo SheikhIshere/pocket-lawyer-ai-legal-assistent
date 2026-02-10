@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -11,11 +12,193 @@ import {
   MessageSquare, Star
 } from 'lucide-react';
 
-export const Header: React.FC = () => {
+
+// Logo Component
+const LogoIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <div className={`bg-gradient-to-br from-teal-600 to-emerald-700 p-2.5 rounded-lg flex items-center justify-center shadow-lg ${className || ''}`}>
+    <Scale className="w-6 h-6 text-white" />
+  </div>
+);
+
+export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
+  const { theme, toggleTheme, isDark } = useTheme();
+  const [bottomMenuOpen, setBottomMenuOpen] = useState(false);
+  const bottomMenuRef = useRef<HTMLDivElement>(null);
+  const [bottomMenuStartY, setBottomMenuStartY] = useState(0);
+  const [bottomMenuCurrentY, setBottomMenuCurrentY] = useState(0);
+  const [bottomMenuIsDragging, setBottomMenuIsDragging] = useState(false);
+  const [bottomMenuDragDelta, setBottomMenuDragDelta] = useState(0);
+
+  // Scroll lock for bottom menu
+  useEffect(() => {
+    if (bottomMenuOpen) {
+      document.body.classList.add('overflow-hidden');
+    } else {
+      document.body.classList.remove('overflow-hidden');
+    }
+    return () => {
+      document.body.classList.remove('overflow-hidden');
+    };
+  }, [bottomMenuOpen]);
+
+  const handleBottomMenuDragStart = (e: React.MouseEvent | React.TouchEvent) => {
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    setBottomMenuStartY(clientY);
+    setBottomMenuIsDragging(true);
+    setBottomMenuDragDelta(0);
+  };
+
+  const handleBottomMenuDragMove = (e: React.MouseEvent | React.TouchEvent) => {
+    if (!bottomMenuIsDragging) return;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    setBottomMenuCurrentY(clientY);
+    const delta = clientY - bottomMenuStartY;
+    if (delta > 0) { // Only allow dragging downwards
+      setBottomMenuDragDelta(delta);
+    }
+  };
+
+  const handleBottomMenuDragEnd = () => {
+    setBottomMenuIsDragging(false);
+    if (bottomMenuDragDelta > 80) { // If dragged more than 80px downwards, close the menu
+      setBottomMenuOpen(false);
+    }
+    setBottomMenuDragDelta(0); // Reset drag transformation
+  };
+
+  return (
+    <div className="min-h-screen bg-white dark:bg-slate-950 flex flex-col transition-colors duration-500 pb-16 lg:pb-0">
+      <Header setBottomMenuOpen={setBottomMenuOpen} />
+      <main className="flex-1">{children}</main>
+      <Footer />
+      <AnimatePresence>
+        {bottomMenuOpen && (
+          <motion.div
+            ref={bottomMenuRef}
+            initial={{ y: '100%', opacity: 0 }}
+            animate={{ y: bottomMenuDragDelta, opacity: 1 }}
+            exit={{ y: '100%', opacity: 0 }}
+            transition={{ type: bottomMenuIsDragging ? 'tween' : 'spring', stiffness: 300, damping: 30, duration: bottomMenuIsDragging ? 0 : 0.3 }}
+            className="fixed bottom-0 left-0 right-0 w-full bg-white dark:bg-slate-900 rounded-t-[3rem] shadow-[0_-8px_40px_rgba(0,0,0,0.12)] z-[80] p-6 pt-2 flex flex-col max-h-[90vh]"
+            onTouchStart={handleBottomMenuDragStart}
+            onTouchMove={handleBottomMenuDragMove}
+            onTouchEnd={handleBottomMenuDragEnd}
+            onMouseDown={handleBottomMenuDragStart}
+            onMouseMove={handleBottomMenuDragMove}
+            onMouseUp={handleBottomMenuDragEnd}
+            onMouseLeave={handleBottomMenuDragEnd}
+          >
+            {/* Handle Bar */}
+            <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full mx-auto mb-6" />
+
+            <div className="flex items-center gap-4 mb-8 pb-6 border-b border-slate-100 dark:border-slate-800">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-teal-600 to-emerald-700 flex items-center justify-center text-white text-2xl font-black shadow-xl">
+                {(user?.full_name || user?.name || 'U').charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <div className="text-xl font-black text-slate-900 dark:text-white capitalize">{user?.name || 'User'}</div>
+                <div className="text-sm font-medium text-slate-500 dark:text-gray-400">{user?.email}</div>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto -mx-6 px-6 scrollbar-hide">
+              <div className="grid grid-cols-1 gap-2 pb-24">
+                <Link
+                  to="/dashboard"
+                  onClick={() => setBottomMenuOpen(false)}
+                  className="flex items-center gap-4 p-4 rounded-3xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400">
+                    <LayoutDashboard className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-slate-900 dark:text-white">Dashboard Overview</p>
+                    <p className="text-xs text-slate-500 dark:text-gray-500">Monitor your activity</p>
+                  </div>
+                </Link>
+
+                <Link
+                  to="/settings"
+                  onClick={() => setBottomMenuOpen(false)}
+                  className="flex items-center gap-4 p-4 rounded-3xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400">
+                    <Settings className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-slate-900 dark:text-white">Account Settings</p>
+                    <p className="text-xs text-slate-500 dark:text-gray-500">Profile & preferences</p>
+                  </div>
+                </Link>
+
+                <button
+                  onClick={() => {
+                    toggleTheme();
+                    setBottomMenuOpen(false);
+                  }}
+                  className="w-full flex items-center gap-4 p-4 rounded-3xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-left"
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400">
+                    {isDark ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-bold text-slate-900 dark:text-white">{isDark ? 'Light Mode' : 'Dark Mode'}</p>
+                    <p className="text-xs text-slate-500 dark:text-gray-500">Toggle visual theme</p>
+                  </div>
+                </button>
+
+                <div className="my-4 h-px bg-slate-100 dark:bg-slate-800 mx-4" />
+
+                <Link
+                  to="/about"
+                  onClick={() => setBottomMenuOpen(false)}
+                  className="flex items-center gap-4 p-4 rounded-3xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400">
+                    <Scale className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-slate-900 dark:text-white">About Us</p>
+                    <p className="text-xs text-slate-500 dark:text-gray-500">Our mission & team</p>
+                  </div>
+                </Link>
+
+                <Link
+                  to="/contact"
+                  onClick={() => setBottomMenuOpen(false)}
+                  className="flex items-center gap-4 p-4 rounded-3xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400">
+                    <Phone className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-slate-900 dark:text-white">Contact Support</p>
+                    <p className="text-xs text-slate-500 dark:text-gray-500">Get in touch with us</p>
+                  </div>
+                </Link>
+
+                <button
+                  className="w-full mt-6 p-5 bg-red-50 dark:bg-red-900/10 text-red-600 font-bold rounded-3xl hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors flex items-center justify-center gap-3"
+                  onClick={() => {
+                    setBottomMenuOpen(false);
+                  }}
+                >
+                  Log Out Account
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+export const Header: React.FC<{ setBottomMenuOpen?: (isOpen: boolean) => void }> = ({ setBottomMenuOpen = () => { } }) => {
   const { isAuthenticated, user } = useAuth();
   const { theme, toggleTheme, isDark } = useTheme();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false); // For desktop profile menu
   const [scrolled, setScrolled] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -32,23 +215,22 @@ export const Header: React.FC = () => {
 
   return (
     <>
-      <header className={`sticky top-0 z-50 transition-all duration-300 ${scrolled
+      <header className={`lg:sticky lg:top-0 z-50 transition-all duration-300 ${scrolled
         ? 'bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-gray-200 dark:border-slate-800 shadow-lg shadow-gray-100/50 dark:shadow-none'
         : 'bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-slate-800'
         }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16 lg:h-20">
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-3">
+            <Link to="/" className="flex items-center gap-2 sm:gap-3 shrink-0">
               <div className="relative">
-                <div className="bg-gradient-to-br from-teal-600 to-emerald-700 p-2 rounded-lg lg:p-2.5 lg:rounded-xl shadow-lg">
-                  <Scale className="w-5 h-5 lg:w-7 lg:h-7 text-white" />
+                <div className="bg-gradient-to-br from-teal-600 to-emerald-700 p-1.5 sm:p-2 rounded-lg lg:p-2.5 lg:rounded-xl shadow-lg">
+                  <Scale className="w-5 h-5 sm:w-6 lg:w-7 lg:h-7 text-white" />
                 </div>
-                <div className="absolute -top-1 -right-1 w-3 h-3 lg:w-4 lg:h-4 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-900"></div>
               </div>
               <div>
-                <span className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white tracking-tight">PocketLawyer</span>
-                <span className="hidden lg:block text-[10px] font-medium text-teal-600 dark:text-teal-400 tracking-wider uppercase mt-0.5">
+                <span className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white tracking-tight leading-none block">PocketLawyer</span>
+                <span className="hidden sm:block text-[9px] lg:text-[10px] font-medium text-teal-600 dark:text-teal-400 tracking-wider uppercase mt-0.5">
                   AI Legal Assistant
                 </span>
               </div>
@@ -81,8 +263,8 @@ export const Header: React.FC = () => {
             <div className="hidden lg:flex items-center gap-3">
               {isAuthenticated ? (
                 <div className="flex items-center gap-4">
-                  <Link
-                    to="/chat"
+                  <button
+                    onClick={() => navigate('/chat', { state: { newSession: true } })}
                     className="relative group overflow-hidden bg-gradient-to-r from-teal-600 to-emerald-700 text-white px-6 py-2.5 rounded-lg text-sm font-semibold hover:shadow-xl hover:shadow-teal-600/20 transition-all duration-300 hover:-translate-y-0.5"
                   >
                     <span className="relative z-10 flex items-center gap-2">
@@ -90,7 +272,7 @@ export const Header: React.FC = () => {
                       <ExternalLink className="w-3.5 h-3.5" />
                     </span>
                     <div className="absolute inset-0 bg-gradient-to-r from-emerald-600 to-teal-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  </Link>
+                  </button>
 
                   <div className="relative">
                     <button
@@ -187,154 +369,35 @@ export const Header: React.FC = () => {
               )}
             </div>
 
-            {/* Mobile Profile Toggle */}
-            <div className="lg:hidden flex items-center gap-2">
-              <button
-                onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-                className="relative p-1.5 rounded-xl transition-all"
-              >
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-600 to-emerald-700 flex items-center justify-center text-white text-xs font-bold shadow-md">
-                  {(user?.full_name || user?.name || 'U').charAt(0).toUpperCase()}
-                </div>
-                <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-900"></div>
-              </button>
-
-              {profileMenuOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-[70] bg-slate-950/40 backdrop-blur-sm animate-in fade-in duration-300"
-                    onClick={() => setProfileMenuOpen(false)}
-                  />
-                  <div className="fixed bottom-0 left-0 right-0 w-full bg-white dark:bg-slate-900 rounded-t-[3rem] shadow-[0_-8px_40px_rgba(0,0,0,0.12)] z-[80] p-6 pt-2 animate-in slide-in-from-bottom-full duration-500 ease-out transition-transform">
-                    {/* Handle Bar */}
-                    <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full mx-auto mb-6" />
-
-                    <div className="flex items-center gap-4 mb-8 pb-6 border-b border-slate-100 dark:border-slate-800">
-                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-teal-600 to-emerald-700 flex items-center justify-center text-white text-2xl font-black shadow-xl">
-                        {(user?.full_name || user?.name || 'U').charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <div className="text-xl font-black text-slate-900 dark:text-white capitalize">{user?.name || 'User'}</div>
-                        <div className="text-sm font-medium text-slate-500 dark:text-gray-400">{user?.email}</div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-2 pb-24">
-                      <Link
-                        to="/dashboard"
-                        onClick={() => setProfileMenuOpen(false)}
-                        className="flex items-center gap-4 p-4 rounded-3xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-                      >
-                        <div className="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400">
-                          <LayoutDashboard className="w-6 h-6" />
-                        </div>
-                        <div>
-                          <p className="font-bold text-slate-900 dark:text-white">Dashboard Overview</p>
-                          <p className="text-xs text-slate-500 dark:text-gray-500">Monitor your activity</p>
-                        </div>
-                      </Link>
-
-                      <Link
-                        to="/settings"
-                        onClick={() => setProfileMenuOpen(false)}
-                        className="flex items-center gap-4 p-4 rounded-3xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-                      >
-                        <div className="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400">
-                          <Settings className="w-6 h-6" />
-                        </div>
-                        <div>
-                          <p className="font-bold text-slate-900 dark:text-white">Account Settings</p>
-                          <p className="text-xs text-slate-500 dark:text-gray-500">Profile & preferences</p>
-                        </div>
-                      </Link>
-
-                      <button
-                        onClick={() => {
-                          toggleTheme();
-                          setProfileMenuOpen(false);
-                        }}
-                        className="w-full flex items-center gap-4 p-4 rounded-3xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-left"
-                      >
-                        <div className="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400">
-                          {isDark ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-bold text-slate-900 dark:text-white">{isDark ? 'Light Mode' : 'Dark Mode'}</p>
-                          <p className="text-xs text-slate-500 dark:text-gray-500">Toggle visual theme</p>
-                        </div>
-                      </button>
-
-                      <div className="my-4 h-px bg-slate-100 dark:bg-slate-800 mx-4" />
-
-                      <Link
-                        to="/about"
-                        onClick={() => setProfileMenuOpen(false)}
-                        className="flex items-center gap-4 p-4 rounded-3xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-                      >
-                        <div className="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400">
-                          <Scale className="w-6 h-6" />
-                        </div>
-                        <div>
-                          <p className="font-bold text-slate-900 dark:text-white">About Us</p>
-                          <p className="text-xs text-slate-500 dark:text-gray-500">Our mission & team</p>
-                        </div>
-                      </Link>
-
-                      <Link
-                        to="/contact"
-                        onClick={() => setProfileMenuOpen(false)}
-                        className="flex items-center gap-4 p-4 rounded-3xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-                      >
-                        <div className="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400">
-                          <Phone className="w-6 h-6" />
-                        </div>
-                        <div>
-                          <p className="font-bold text-slate-900 dark:text-white">Contact Support</p>
-                          <p className="text-xs text-slate-500 dark:text-gray-500">Get in touch with us</p>
-                        </div>
-                      </Link>
-
-                      <button
-                        className="w-full mt-6 p-5 bg-red-50 dark:bg-red-900/10 text-red-600 font-bold rounded-3xl hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors flex items-center justify-center gap-3"
-                        onClick={() => {
-                          setProfileMenuOpen(false);
-                        }}
-                      >
-                        Log Out Account
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
           </div>
         </div>
       </header>
 
       {/* Android-Style Bottom Navigation */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-[60] bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-gray-100 dark:border-slate-800 px-2 pb-safe">
-        <div className="flex justify-around items-center h-16 max-w-md mx-auto">
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-[60] bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-gray-100 dark:border-slate-800 px-4 pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+        <div className="flex justify-between items-center h-16 max-w-lg mx-auto">
           {[
             { path: '/', label: 'Home', icon: Home },
             { path: '/services', label: 'Explore', icon: Briefcase },
-            { path: '/chat', label: 'Ask AI', icon: MessageSquare, primary: true },
-            { path: '/dashboard', label: 'Monitor', icon: LayoutDashboard },
+            { path: '/chat', label: 'Ask AI', icon: Scale, primary: true },
+            { path: '/dashboard', label: 'Dash', icon: LayoutDashboard },
             { path: '/pricing', label: 'Plans', icon: Star },
           ].map((item) => (
             <Link
               key={item.path}
               to={item.path}
+              onClick={() => setBottomMenuOpen(false)}
               className={`flex flex-col items-center justify-center min-w-[60px] h-full relative transition-all active:scale-90 ${item.primary
-                ? 'bg-teal-600 dark:bg-teal-500 text-white rounded-2xl w-14 h-14 -translate-y-4 shadow-lg shadow-teal-500/40'
+                ? 'bg-gradient-to-br from-teal-600 to-emerald-700 text-white rounded-2xl w-12 h-12 -translate-y-5 shadow-[0_8px_25px_-5px_rgba(13,148,136,0.4)] border-4 border-white dark:border-slate-900'
                 : isActive(item.path)
                   ? 'text-teal-600 dark:text-teal-400'
-                  : 'text-gray-400 dark:text-gray-500'
+                  : 'text-gray-400 dark:text-gray-500 hover:text-gray-600'
                 }`}
             >
-              <item.icon className={`${item.primary ? 'w-6 h-6' : 'w-5 h-5'} mb-1`} />
-              {!item.primary && <span className="text-[10px] font-medium tracking-tight whitespace-nowrap">{item.label}</span>}
+              <item.icon className={`${item.primary ? 'w-5 h-5' : 'w-5 h-5'} ${!item.primary && 'mb-1'}`} />
+              {!item.primary && <span className="text-[9px] font-bold tracking-tight whitespace-nowrap">{item.label}</span>}
               {isActive(item.path) && !item.primary && (
-                <div className="absolute top-0 w-8 h-1 bg-teal-600 dark:bg-teal-400 rounded-full" />
+                <div className="absolute -bottom-1 w-1 h-1 bg-teal-600 dark:bg-teal-400 rounded-full" />
               )}
             </Link>
           ))}

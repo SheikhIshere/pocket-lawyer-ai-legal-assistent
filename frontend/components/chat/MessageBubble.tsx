@@ -1,5 +1,7 @@
 import { useCallback, memo } from 'react';
 import { User, Bot, Loader2, AlertCircle, Copy } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Message } from '../../types';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -73,11 +75,15 @@ export const MessageBubble: React.FC<MessageBubbleProps> = memo(({ message, isSt
               ? 'bg-slate-100/50 text-slate-800 border-slate-200/80 rounded-tl-none'
               : 'bg-slate-900/40 backdrop-blur-sm text-slate-300 border border-slate-800/60 rounded-tl-none'
             }`}>
-            <div className={`prose prose-base max-w-none leading-relaxed tracking-normal ${isLight ? 'text-slate-900' : 'text-slate-100'
+            <div className={`prose prose-base max-w-none leading-relaxed tracking-normal transition-colors duration-300 ${isLight ? 'prose-slate' : 'prose-invert'
               }`}>
-              <p className={`whitespace-pre-wrap font-sans break-words text-[16px] font-medium text-left`} style={{ wordBreak: 'break-word' }}>
-                {message.content}
-              </p>
+              <div className="font-sans break-words text-[16px]">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                >
+                  {message.content}
+                </ReactMarkdown>
+              </div>
             </div>
           </div>
 
