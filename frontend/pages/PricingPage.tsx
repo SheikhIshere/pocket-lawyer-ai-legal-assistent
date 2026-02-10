@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Header, Footer } from '../components/Layout';
-import { 
-  Check, X, Star, Users, Briefcase, Scale, Shield, 
+// Header and Footer are now globally handled by Layout in App.tsx
+import {
+  Check, X, Star, Users, Briefcase, Scale, Shield,
   Sparkles, Zap, ShieldCheck, ArrowRight, ZapOff
 } from 'lucide-react';
 
@@ -85,7 +85,6 @@ const PricingPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 flex flex-col transition-colors duration-500 pb-20 lg:pb-0">
-      <Header />
       <main className="flex-grow">
         {/* Hero Section - MD3 Style */}
         <div className="relative pt-24 pb-16 px-4 overflow-hidden">
@@ -98,36 +97,34 @@ const PricingPage: React.FC = () => {
               <Sparkles className="w-4 h-4 text-teal-600 dark:text-teal-400" />
               <span className="text-xs font-black text-teal-700 dark:text-teal-400 uppercase tracking-widest">Transparent Intelligence</span>
             </div>
-            
+
             <h1 className="text-5xl md:text-8xl font-black text-slate-900 dark:text-white tracking-tighter leading-[0.85] mb-10 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
               Plans That <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-indigo-600">Empower Justice</span>
             </h1>
-            
+
             <p className="text-lg md:text-2xl text-slate-500 dark:text-gray-400 font-medium max-w-2xl mx-auto mb-16 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
-              No hidden fees. No complicated contracts. Just professional AI 
+              No hidden fees. No complicated contracts. Just professional AI
               legal assistance whenever you need it.
             </p>
 
             {/* Premium Billing Toggle */}
             <div className="inline-flex items-center gap-1 p-1.5 bg-slate-100 dark:bg-slate-900 rounded-[2rem] border border-slate-200/50 dark:border-slate-800 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
-              <button 
+              <button
                 onClick={() => setBillingCycle('monthly')}
-                className={`px-8 py-3 rounded-full text-sm font-black transition-all ${
-                  billingCycle === 'monthly' 
-                    ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xl' 
+                className={`px-8 py-3 rounded-full text-sm font-black transition-all ${billingCycle === 'monthly'
+                    ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xl'
                     : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-                }`}
+                  }`}
               >
                 Monthly
               </button>
-              <button 
+              <button
                 onClick={() => setBillingCycle('annual')}
-                className={`px-8 py-3 rounded-full text-sm font-black transition-all flex items-center gap-2 ${
-                  billingCycle === 'annual' 
-                    ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xl' 
+                className={`px-8 py-3 rounded-full text-sm font-black transition-all flex items-center gap-2 ${billingCycle === 'annual'
+                    ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xl'
                     : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-                }`}
+                  }`}
               >
                 Annual
                 <span className="bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-400 px-2 py-0.5 rounded-full text-[10px] uppercase">Save 20%</span>
@@ -142,15 +139,14 @@ const PricingPage: React.FC = () => {
             {PRICING_PLANS.map((plan) => {
               const displayPrice = billingCycle === 'annual' ? getAnnualPrice(plan.price) : plan.price;
               const displayPeriod = billingCycle === 'annual' ? 'year' : 'month';
-              
+
               return (
                 <div
                   key={plan.id}
-                  className={`group relative flex flex-col p-10 rounded-[3rem] transition-all duration-500 border-2 ${
-                    plan.popular
+                  className={`group relative flex flex-col p-10 rounded-[3rem] transition-all duration-500 border-2 ${plan.popular
                       ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white shadow-2xl scale-105 z-10'
                       : 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white border-slate-100 dark:border-slate-800 hover:border-teal-500/30'
-                  }`}
+                    }`}
                 >
                   {plan.popular && (
                     <div className="absolute top-8 right-8">
@@ -159,11 +155,10 @@ const PricingPage: React.FC = () => {
                   )}
 
                   <div className="mb-10">
-                    <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-6 shadow-sm ${
-                      plan.popular 
-                        ? 'bg-teal-500/20 text-white dark:bg-teal-100 dark:text-teal-600' 
+                    <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-6 shadow-sm ${plan.popular
+                        ? 'bg-teal-500/20 text-white dark:bg-teal-100 dark:text-teal-600'
                         : 'bg-slate-50 dark:bg-slate-800 text-teal-600 dark:text-teal-400'
-                    }`}>
+                      }`}>
                       <plan.icon className="w-8 h-8" />
                     </div>
                     <h3 className="text-3xl font-black tracking-tighter mb-2">{plan.name}</h3>
@@ -178,9 +173,9 @@ const PricingPage: React.FC = () => {
                       <span className={`text-lg font-medium ${plan.popular ? 'text-slate-400 dark:text-slate-500' : 'text-slate-500'}`}>/{displayPeriod}</span>
                     </div>
                     {billingCycle === 'annual' && (
-                       <p className={`text-sm font-black mt-2 ${plan.popular ? 'text-teal-400' : 'text-teal-600'}`}>
+                      <p className={`text-sm font-black mt-2 ${plan.popular ? 'text-teal-400' : 'text-teal-600'}`}>
                         Save ${plan.price * 12 - displayPrice} / year
-                       </p>
+                      </p>
                     )}
                   </div>
 
@@ -205,15 +200,14 @@ const PricingPage: React.FC = () => {
 
                   <button
                     onClick={() => setSelectedPlan(plan.id)}
-                    className={`w-full py-5 rounded-[1.75rem] font-black text-lg transition-all active:scale-95 ${
-                      plan.popular
+                    className={`w-full py-5 rounded-[1.75rem] font-black text-lg transition-all active:scale-95 ${plan.popular
                         ? 'bg-teal-500 text-white dark:bg-teal-600 hover:shadow-xl hover:shadow-teal-500/30'
                         : 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 hover:bg-teal-600 hover:text-white dark:hover:bg-teal-500'
-                    }`}
+                      }`}
                   >
                     {selectedPlan === plan.id ? 'Selected Plan' : 'Get Started Now'}
                   </button>
-                  
+
                   {plan.popular && (
                     <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap bg-teal-500 text-white text-[10px] font-black uppercase tracking-widest px-6 py-2 rounded-full shadow-lg">
                       Recommended by Experts
@@ -230,7 +224,7 @@ const PricingPage: React.FC = () => {
               <h2 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter mb-4">Deep Comparison</h2>
               <p className="text-lg text-slate-500 dark:text-gray-500 font-medium">Verify every feature and capability</p>
             </div>
-            
+
             <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 overflow-hidden shadow-2xl">
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
@@ -270,7 +264,7 @@ const PricingPage: React.FC = () => {
               <h2 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter mb-4">FAQ</h2>
               <p className="text-lg text-slate-500 dark:text-gray-500 font-medium">Clear answers to common questions</p>
             </div>
-            
+
             <div className="grid md:grid-cols-2 gap-6">
               {[
                 {
@@ -312,7 +306,7 @@ const PricingPage: React.FC = () => {
                 <span className="text-teal-400 dark:text-teal-600">The Legal Revolution?</span>
               </h2>
               <p className="text-xl text-slate-400 dark:text-slate-500 font-medium mb-12">
-                Join over 50,000 users who have modernized their legal 
+                Join over 50,000 users who have modernized their legal
                 workflows with PocketLawyer.
               </p>
               <div className="flex flex-col sm:flex-row gap-6 justify-center">
@@ -324,14 +318,13 @@ const PricingPage: React.FC = () => {
                 </button>
               </div>
             </div>
-            
+
             {/* Animated Ornament */}
             <div className="absolute -top-24 -right-24 w-64 h-64 bg-teal-500/20 rounded-full blur-[80px]" />
             <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-indigo-500/20 rounded-full blur-[80px]" />
           </div>
         </div>
       </main>
-      <Footer />
     </div>
   );
 };

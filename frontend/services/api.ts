@@ -2,7 +2,19 @@ import { User, ChatSession, Message, RequestStatus } from '../types';
 
 const API_BASE_URL = '/v1/api';
 
-const apiCall = async (endpoint: string, options: RequestInit = {}) => {
+let isRefreshing = false;
+let refreshSubscribers: ((token: string) => void)[] = [];
+
+const subscribeTokenRefresh = (cb: (token: string) => void) => {
+  refreshSubscribers.push(cb);
+};
+
+const onTokenRefreshed = (token: string) => {
+  refreshSubscribers.map(cb => cb(token));
+  refreshSubscribers = [];
+};
+
+const apiCall = async (endpoint: string, options: RequestInit = {}): Promise<any> => {
   console.log(`API Call: ${options.method || 'GET'} ${API_BASE_URL}${endpoint}`);
   console.log('Request options:', options);
 
@@ -29,14 +41,39 @@ const apiCall = async (endpoint: string, options: RequestInit = {}) => {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
     console.log(`Response status: ${response.status} for ${endpoint}`);
 
-    if (response.status === 401) {
-      console.warn('401 Unauthorized - Token may be expired');
-      localStorage.removeItem('pl_token');
-      localStorage.removeItem('pl_user');
-      localStorage.removeItem('temp_email');
-      const error = new Error('Token expired');
-      (error as any).status = 401;
-      throw error;
+    if (response.status === 401 && !endpoint.includes('/users/login/') && !endpoint.includes('/users/token/refresh/')) {
+      if (!isRefreshing) {
+        isRefreshing = true;
+        try {
+          console.log('Attempting to refresh token...');
+          const refreshResult = await authService.refreshToken();
+          const newToken = refreshResult.access;
+          
+          localStorage.setItem('pl_access_token', newToken);
+          isRefreshing = false;
+          onTokenRefreshed(newToken);
+        } catch (refreshError) {
+          isRefreshing = false;
+          console.error('Refresh token failed, logging out...');
+          localStorage.removeItem('pl_access_token');
+          localStorage.removeItem('pl_refresh_token');
+          localStorage.removeItem('pl_user');
+          // Optional: trigger a custom event for AuthContext to catch
+          window.dispatchEvent(new Event('auth_session_expired'));
+          throw refreshError;
+        }
+      }
+
+      // Buffer requests while refreshing
+      return new Promise((resolve) => {
+        subscribeTokenRefresh((token: string) => {
+          const freshHeaders = {
+            ...config.headers,
+            'Authorization': `Bearer ${token}`
+          };
+          resolve(apiCall(endpoint, { ...config, headers: freshHeaders } as any));
+        });
+      });
     }
 
     if (!response.ok) {
