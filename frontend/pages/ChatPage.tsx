@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Send, Menu, Bot, AlertCircle, Loader2, Settings, MoreVertical, LayoutDashboard, Home, LogOut, Sun, Moon, Plus, Search, Trash2, MessageSquare, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ReactLenis, useLenis } from 'lenis/react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { ChatSession, Message } from '../types';
@@ -12,10 +11,10 @@ import { useTheme } from '../context/ThemeContext';
 
 
 
-// Main ChatPage Component
 const ChatPage = () => {
   const { user } = useAuth();
   const { theme, toggleTheme, isLight } = useTheme();
+  const location = useLocation();
 
   // State
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -64,6 +63,16 @@ const ChatPage = () => {
     fetchSessions();
   }, []);
 
+  // Handle new session trigger from navigation state (e.g., "Start Consultation" button)
+  useEffect(() => {
+    const state = location.state as { newSession?: boolean } | null;
+    if (state?.newSession) {
+      createNewSession();
+      // Clear the state to prevent re-triggering on re-render
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
+
   // Enhanced polling with better error handling
   const pollForResponse = useCallback(async (requestId: string) => {
     try {
@@ -104,14 +113,21 @@ const ChatPage = () => {
     }
   }, [pendingRequestId, pollForResponse]);
 
-  const fetchSessions = async () => {
+  const fetchSessions = async (maintainCurrentSession = true) => {
     try {
       setIsLoading(true);
       const data = await api.assistantService.getSessions();
       setSessions(data);
 
-      if (!currentSessionId && sessions.length > 0) {
-        selectSession(sessions[0].id);
+      if (!currentSessionId && data.length > 0) {
+        selectSession(data[0].id);
+      } else if (maintainCurrentSession && currentSessionId) {
+        // Ensure current session still exists in the list
+        const currentSessionExists = data.some(session => session.id === currentSessionId);
+        if (!currentSessionExists && data.length > 0) {
+          // Current session was deleted, select the first available
+          selectSession(data[0].id);
+        }
       }
       setIsLoading(false);
     } catch (err) {
@@ -245,12 +261,6 @@ const ChatPage = () => {
         throw new Error('Invalid response from server');
       }
 
-      // If new session was created, update current session
-      if (!currentSessionId && responseData.session) {
-        console.log('Updating current session to:', responseData.session);
-        setCurrentSessionId(responseData.session);
-      }
-
       // Get the request ID for polling
       const requestId = responseData.id || responseData.request_id;
       console.log('Extracted request ID:', requestId);
@@ -264,10 +274,12 @@ const ChatPage = () => {
       await api.assistantService.pollForCompletion(requestId);
       console.log('Polling completed successfully');
 
+      // Get the session ID for the completed request
+      const newSessionId = responseData.session || currentSessionId;
+      console.log('Using session ID:', newSessionId);
+
       // Fetch updated session to get the full response
-      const updatedSession = await api.assistantService.getSession(
-        responseData.session || currentSessionId
-      );
+      const updatedSession = await api.assistantService.getSession(newSessionId);
       console.log('Updated session:', updatedSession);
 
       // Update messages with the complete response
@@ -275,8 +287,14 @@ const ChatPage = () => {
       console.log('Setting messages:', updatedMessages);
       setMessages(updatedMessages);
 
+      // Only update session ID after everything is complete
+      if (!currentSessionId && responseData.session) {
+        console.log('Updating current session to:', responseData.session);
+        setCurrentSessionId(responseData.session);
+      }
+
       // Update session list order (since it was just updated)
-      await fetchSessions();
+      await fetchSessions(true);
       console.log('Message flow completed successfully');
       console.log('=== MESSAGE SEND COMPLETED ===');
 
@@ -319,19 +337,10 @@ const ChatPage = () => {
     }
   };
 
-  const lenis = useLenis();
-
   // Auto-scroll
   useEffect(() => {
-    if (lenis && messagesEndRef.current) {
-      lenis.scrollTo(messagesEndRef.current, {
-        duration: 1.5,
-        easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)) // Custom easeOutExpo
-      });
-    } else {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [messages, lenis]);
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [messages, isSending]);
 
   return (
     <div className={`flex h-screen overflow-hidden transition-all duration-1000 ease-[cubic-bezier(0.4,0,0.2,1)] ${isLight
@@ -348,6 +357,7 @@ const ChatPage = () => {
         isOpen={sidebarOpen}
         onCloseMobile={() => setSidebarOpen(false)}
         user={user}
+        isSending={isSending}
       />
 
       <main className={`flex-1 flex flex-col min-w-0 relative transition-all duration-1000 ease-[cubic-bezier(0.4,0,0.2,1)] ${isLight ? 'bg-transparent' : 'bg-transparent'
@@ -438,11 +448,11 @@ const ChatPage = () => {
           </div>
         </header>
 
-        <div className={`flex-1 overflow-y-auto transition-all duration-1000 ease-[cubic-bezier(0.4,0,0.2,1)] ${isLight ? 'scrollbar-thin scrollbar-thumb-slate-200' : 'scrollbar-thin scrollbar-thumb-slate-800'
+        <div className={`flex-1 overflow-y-auto scroll-smooth transition-all duration-500 ${isLight ? 'scrollbar-thin scrollbar-thumb-slate-200' : 'scrollbar-thin scrollbar-thumb-slate-800'
           }`}>
-          <ReactLenis root>
+          <div className="flex flex-col min-h-full">
             {messages.length === 0 && !isLoading && (
-              <div className={`h-full flex flex-col items-center justify-center space-y-8 animate-in fade-in duration-1000 transition-all duration-1000 ease-[cubic-bezier(0.4,0,0.2,1)] ${isLight ? 'text-slate-400' : 'text-slate-500'
+              <div className={`flex-1 flex flex-col items-center justify-center space-y-8 py-12 animate-in fade-in duration-1000 ${isLight ? 'text-slate-400' : 'text-slate-500'
                 }`}>
                 <div className="flex flex-col items-center gap-4">
                   <div className={`p-4 rounded-2xl shadow-xl border transition-colors duration-300 ${isLight
@@ -466,10 +476,10 @@ const ChatPage = () => {
                 {/* Suggested Prompts */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-2xl px-4">
                   {[
-                    { icon: '�', label: 'পুলিশের হয়রানি', desc: 'ঘুষ বা হুমকি মোকাবেলা' },
+                    { icon: '🚓', label: 'পুলিশের হয়রানি', desc: 'ঘুষ বা হুমকি মোকাবেলা' },
                     { icon: '💍', label: 'মিথ্যা যৌতুক মামলা', desc: 'মিথ্যা মামলা থেকে বাঁচার উপায়' },
                     { icon: '🔫', label: 'অস্ত্র রাখার আইন', desc: 'বাংলাদেশে লাইসেন্স ও শাস্তি' },
-                    { icon: '�', label: 'জিডি করার নিয়ম', desc: 'থানায় সাধারণ ডায়েরি করার গাইড' },
+                    { icon: '📄', label: 'জিডি করার নিয়ম', desc: 'থানায় সাধারণ ডায়েরি করার গাইড' },
                   ].map((prompt, i) => (
                     <button
                       key={i}
@@ -484,7 +494,7 @@ const ChatPage = () => {
                     >
                       <span className="text-xl group-hover:scale-110 transition-transform">{prompt.icon}</span>
                       <div>
-                        <div className="text-sm font-medium text-gray-300 group-hover:text-white">{prompt.label}</div>
+                        <div className={`text-sm font-medium transition-colors ${isLight ? 'text-slate-700 group-hover:text-teal-600' : 'text-gray-300 group-hover:text-white'}`}>{prompt.label}</div>
                         <div className="text-xs text-gray-500">{prompt.desc}</div>
                       </div>
                     </button>
@@ -493,55 +503,57 @@ const ChatPage = () => {
               </div>
             )}
 
-            <AnimatePresence initial={false}>
-              {messages.map((msg, idx) => (
-                <motion.div
-                  key={msg.id || idx}
-                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{
-                    duration: 0.5,
-                    ease: [0.4, 0, 0.2, 1]
-                  }}
-                >
-                  <MessageBubble
-                    message={msg}
-                  />
-                </motion.div>
-              ))}
-            </AnimatePresence>
+            <div className="py-6 space-y-2">
+              <AnimatePresence initial={false}>
+                {messages.map((msg, idx) => (
+                  <motion.div
+                    key={msg.id || idx}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{
+                      duration: 0.4,
+                      ease: [0.4, 0, 0.2, 1]
+                    }}
+                  >
+                    <MessageBubble
+                      message={msg}
+                    />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
 
-            {isSending && (
-              <div className="w-full mb-10 animate-fade-in transition-all">
-                <div className="max-w-4xl mx-auto flex gap-4 px-4">
-                  <div className={`w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg ${isLight
-                    ? 'bg-teal-600 text-white shadow-teal-500/20'
-                    : 'bg-indigo-600 text-white shadow-indigo-500/20'
-                    }`}>
-                    <Bot size={20} className="animate-pulse" />
-                  </div>
-                  <div className="flex-1 pt-3">
-                    <div className="flex space-x-1.5">
-                      <div className={`w-1.5 h-1.5 rounded-full animate-bounce [animation-delay:-0.3s] ${isLight ? 'bg-teal-500/40' : 'bg-indigo-500/40'}`}></div>
-                      <div className={`w-1.5 h-1.5 rounded-full animate-bounce [animation-delay:-0.15s] ${isLight ? 'bg-teal-500/40' : 'bg-indigo-500/40'}`}></div>
-                      <div className={`w-1.5 h-1.5 rounded-full animate-bounce ${isLight ? 'bg-teal-500/40' : 'bg-indigo-500/40'}`}></div>
+              {isSending && (
+                <div className="w-full mb-10 animate-fade-in transition-all">
+                  <div className="max-w-4xl mx-auto flex gap-4 px-4">
+                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg ${isLight
+                      ? 'bg-teal-600 text-white shadow-teal-500/20'
+                      : 'bg-indigo-600 text-white shadow-indigo-500/20'
+                      }`}>
+                      <Bot size={20} className="animate-pulse" />
+                    </div>
+                    <div className="flex-1 pt-3">
+                      <div className="flex space-x-1.5">
+                        <div className={`w-1.5 h-1.5 rounded-full animate-bounce [animation-delay:-0.3s] ${isLight ? 'bg-teal-500/40' : 'bg-indigo-500/40'}`}></div>
+                        <div className={`w-1.5 h-1.5 rounded-full animate-bounce [animation-delay:-0.15s] ${isLight ? 'bg-teal-500/40' : 'bg-indigo-500/40'}`}></div>
+                        <div className={`w-1.5 h-1.5 rounded-full animate-bounce ${isLight ? 'bg-teal-500/40' : 'bg-indigo-500/40'}`}></div>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {error && (
-              <div className="py-4 text-center">
-                <span className={`text-sm flex items-center justify-center gap-2 transition-colors duration-300 ${isLight ? 'text-red-600' : 'text-red-400'
-                  }`}>
-                  <AlertCircle size={16} /> {error}
-                </span>
-              </div>
-            )}
+              {error && (
+                <div className="py-4 text-center">
+                  <span className={`text-sm flex items-center justify-center gap-2 transition-colors duration-300 ${isLight ? 'text-red-600' : 'text-red-400'
+                    }`}>
+                    <AlertCircle size={16} /> {error}
+                  </span>
+                </div>
+              )}
+            </div>
 
-            <div ref={messagesEndRef} />
-          </ReactLenis>
+            <div ref={messagesEndRef} className="h-4 w-full" />
+          </div>
         </div>
 
         <div className={`p-4 pb-20 lg:p-6 lg:pb-6 border-t transition-all duration-500 ${isLight
