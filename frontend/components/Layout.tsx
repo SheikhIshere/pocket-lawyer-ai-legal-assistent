@@ -268,7 +268,7 @@ export const Header: React.FC<{ setBottomMenuOpen?: (isOpen: boolean) => void }>
     { path: '/', label: 'Home' },
     { path: '/services', label: 'Services', icon: <Briefcase className="w-4 h-4" /> },
     { path: '/pricing', label: 'Pricing' },
-    { path: '/about', label: 'About Us' },
+    { path: '/about', label: 'About' },
     { path: '/contact', label: 'Contact', icon: <Phone className="w-4 h-4" /> },
   ];
 
