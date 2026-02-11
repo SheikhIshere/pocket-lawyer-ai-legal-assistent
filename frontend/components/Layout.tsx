@@ -348,7 +348,6 @@ export const Header: React.FC<{ setBottomMenuOpen?: (isOpen: boolean) => void }>
                           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#0E8E82] to-[#0a6d62] flex items-center justify-center text-white text-sm font-bold shadow-md">
                             {(user?.full_name || user?.name || 'U').charAt(0).toUpperCase()}
                           </div>
-                          <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-[#0a6d62] rounded-full border-2 border-white dark:border-slate-900"></div>
                         </div>
                         <div className="hidden lg:block text-left mr-2">
                           <div className="text-sm font-semibold text-gray-900 dark:text-white">{user?.name}</div>
