@@ -366,7 +366,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Support
 
 For support and inquiries:
-- Email: support@pocketlawyer.ai
+- Email: thesheikh255@gmail.com
 - Documentation: Check the `/docs` directory
 - Issues: Create an issue on the repository
 
