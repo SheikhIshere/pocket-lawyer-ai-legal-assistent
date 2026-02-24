@@ -22,6 +22,12 @@ PocketLawyer is a full-stack web application that leverages Google's Gemini AI t
 
 </div>
 
+### Mobile Responsive Design
+
+<div align="center">
+  <img src="asset/screenshot/Screenshot from 2026-02-24 14-53-52.png" alt="Mobile View" width="300"/>
+</div>
+
 **Frontend Features:**
 - **Responsive Design**: Mobile-first approach with progressive enhancement
 - **Theme Switching**: Seamless light/dark mode toggle
@@ -63,8 +69,6 @@ PocketLawyer is a full-stack web application that leverages Google's Gemini AI t
 
 **Infrastructure:**
 - Docker Compose for orchestration
-- Nginx for reverse proxy
-- Redis for caching
 - PostgreSQL for data persistence
 
 ## Features
