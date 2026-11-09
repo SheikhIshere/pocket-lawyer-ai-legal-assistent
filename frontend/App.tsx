@@ -110,28 +110,6 @@ const PublicOnlyRoute = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const currentPath = location.pathname;
 
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/3b5466ef-e4ad-485a-98f1-d363bc9e423a', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      sessionId: 'debug-session',
-      runId: 'post-fix',
-      hypothesisId: 'H7',
-      location: 'App.tsx:PublicOnlyRoute',
-      message: 'Evaluating PublicOnlyRoute redirect',
-      data: {
-        path: currentPath,
-        isAuthenticated,
-        requiresOtp,
-        hasTempEmail: !!tempEmail,
-        isRegistrationFlag: localStorage.getItem('is_registration') === 'true',
-        isForgotPasswordFlag: localStorage.getItem('is_forgot_password') === 'true'
-      },
-      timestamp: Date.now()
-    })
-  }).catch(() => { });
-  // #endregion agent log
 
   // Redirect authenticated users to dashboard
   if (isAuthenticated && !requiresOtp) {
