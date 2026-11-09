@@ -31,10 +31,12 @@ from drf_spectacular.utils import extend_schema
 getting own profile and updating own profile
 """
 @extend_schema(tags=['Account'])
-class AccountViewSet(generics.RetrieveUpdateDestroyAPIView):
+class AccountViewSet(generics.RetrieveUpdateAPIView):
     queryset = Account.objects.all()
     serializer_class = AccountSerializer
     permission_classes = (IsAuthenticated,IsVerifiedUser, IsOwnerOrReadOnly)
+    # account deletion is disabled until it requires re-authentication
+    http_method_names = ['get', 'put', 'patch', 'head', 'options']
 
     def get_object(self):
         account, _ = Account.objects.select_related('user').get_or_create(user=self.request.user)
@@ -46,17 +48,6 @@ class AccountViewSet(generics.RetrieveUpdateDestroyAPIView):
     
     def perform_update(self, serializer):
         serializer.save(user=self.request.user)
-
-
-    def destroy(self, request, *args, **kwargs):
-        account = self.get_object()
-        user = account.user
-        
-        self.perform_destroy(account)
-        user.delete()
-        return Response({
-            'deleted': 'account deleted successfully'
-        }, status=status.HTTP_204_NO_CONTENT)
 
 
 """
