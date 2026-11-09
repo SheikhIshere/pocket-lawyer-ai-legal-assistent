@@ -23,3 +23,4 @@ do marketing
 class NewsLetterView(generics.CreateAPIView):
     serializer_class = NewsLetterSerializers
     permission_classes = (permissions.AllowAny,)
+    throttle_scope = 'public-form'
