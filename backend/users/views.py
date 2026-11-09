@@ -314,6 +314,7 @@ Forgot password request handling
 @permission_classes([permissions.AllowAny])  # Explicitly allow any user
 class ForgetPasswordRequestView(APIView):
     serializer_class = ForgetPasswordRequestSerializer
+    throttle_scope = 'forgot-password'
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)

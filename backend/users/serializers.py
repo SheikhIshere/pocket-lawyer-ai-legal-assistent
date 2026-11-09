@@ -286,12 +286,11 @@ class ForgetPasswordRequestSerializer(serializers.Serializer):
 
             # for debug only
             print('='*50)
-            print(f"\nreset otp is: {reset_otp}\n")
             print('='*50)
 
             # sending otp throw mail asynchronously
             subject = 'Forget Password OTP'
-            message = f"Your OTP for password reset is: {reset_otp}.\nPlease use this OTP to reset your password. This OTP will expire in 10 minutes.\nIf you didn't request this, please ignore this email."
+            message = f"Your OTP for password reset is: {reset_otp}.\nPlease use this OTP to reset your password. This OTP will expire in 5 minutes.\nIf you didn't request this, please ignore this email."
             send_otp_email.delay(email, subject, message)   
         
         except User.DoesNotExist:
