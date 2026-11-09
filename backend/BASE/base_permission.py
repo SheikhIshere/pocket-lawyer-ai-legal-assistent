@@ -1,5 +1,5 @@
 # checking is user is verified or not
-from rest_framework.permissions import BasePermission
+from rest_framework.permissions import BasePermission, SAFE_METHODS
 
 """ 
 User who is verified only can access the resource.

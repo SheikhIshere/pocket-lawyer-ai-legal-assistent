@@ -72,14 +72,7 @@ def get_rag_prompt(style, user_query, context, plan=None):
         "Please try to connect with a real lawyer licensed in Bangladesh. "
         "If you can tell me the Act or section, I can look it up."
     )
-    follow_up = ""
-    if plan and plan.get("clarifying_question"):
-        follow_up = (
-            "- After answering, ask exactly this one question: "
-            f"{plan['clarifying_question']}\n"
-        )
-    else:
-        follow_up = "- Do not ask a question. Answer the question directly.\n"
+    follow_up = "- Do not ask a question. Answer the question directly.\n"
 
     return (
         f"{base}\n\n"
