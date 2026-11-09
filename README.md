@@ -259,7 +259,7 @@ clear && docker compose down && docker compose up --build
 4. **Access the application**
 - Frontend: http://localhost:3000
 - Backend API: http://localhost:8001
-- API Documentation: http://localhost:8001/api/schema/swagger-ui/
+- API Documentation (set DOCS_ENABLED=True): http://localhost:8001/api/schema/swagger-ui/
 - Admin Panel: http://localhost:8001/admin/
 
 ### Development Commands
