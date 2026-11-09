@@ -23,7 +23,7 @@ const ForgotPasswordVerifyOtpPage: React.FC = () => {
     if (!storedEmail) {
       // No temp email, redirect to forgot password
       console.log('No temp email found, redirecting to forgot password');
-      navigate('/forgot-password');
+      navigate('/login');
       return;
     }
   }, [navigate]);
@@ -169,11 +169,11 @@ const ForgotPasswordVerifyOtpPage: React.FC = () => {
       <div className="max-w-md w-full">
         {/* Back Button */}
         <button
-          onClick={() => navigate('/forgot-password')}
+          onClick={() => navigate('/login')}
           className="mb-8 flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors group"
         >
           <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-          <span>Back to Forgot Password</span>
+          <span>Back to Login</span>
         </button>
 
         {/* Main Card */}

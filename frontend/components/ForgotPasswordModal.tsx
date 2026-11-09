@@ -225,7 +225,7 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ isOpen, onClo
                                     </div>
 
                                     {error && (
-                                        <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg flex items-center gap-2">
+                                        <div className={`p-3 text-sm rounded-lg flex items-center gap-2 ${error.includes('successfully') ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
                                             <AlertCircle className="w-4 h-4" />
                                             {error}
                                         </div>
