@@ -3,17 +3,14 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
 
-console.log('index.tsx: Starting React app...');
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
   throw new Error("Could not find root element to mount to");
 }
 
-console.log('index.tsx: Root element found:', rootElement);
 
 const root = ReactDOM.createRoot(rootElement);
-console.log('index.tsx: React root created');
 
 root.render(
   <React.StrictMode>
@@ -21,4 +18,3 @@ root.render(
   </React.StrictMode>
 );
 
-console.log('index.tsx: App rendered');

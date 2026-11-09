@@ -22,7 +22,6 @@ import NotFoundPage from './pages/NotFoundPage';
 import NoPermissionPage from './pages/NoPermissionPage';
 import PremiumPage from './pages/PremiumPage';
 
-console.log('App.tsx: Starting App component...');
 
 // Protected Route Wrapper
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -184,7 +183,6 @@ const PermissionRoute = ({ children, requiredPermission }: {
 };
 
 const App: React.FC = () => {
-  console.log('App.tsx: Rendering App component...');
 
   return (
     <AuthProvider>
