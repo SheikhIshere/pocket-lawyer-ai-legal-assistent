@@ -4,10 +4,10 @@ import { Shield, Lock, Home, User, AlertTriangle, Mail } from 'lucide-react';
 
 const NoPermissionPage: React.FC = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 flex items-center justify-center">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 dark:from-slate-950 dark:to-slate-900 flex items-center justify-center">
       <div className="text-center max-w-lg mx-auto px-6">
         {/* Error Icon */}
-        <div className="relative mb-8">
+        <div className="relative w-24 h-24 mx-auto mb-8">
           <div className="w-24 h-24 bg-gradient-to-br from-red-50 to-orange-50 rounded-full flex items-center justify-center shadow-lg border-2 border-red-200">
             <Lock className="w-12 h-12 text-red-500" />
           </div>
@@ -17,18 +17,18 @@ const NoPermissionPage: React.FC = () => {
         </div>
 
         {/* Error Message */}
-        <h1 className="text-4xl font-bold text-gray-900 mb-4">Access Denied</h1>
-        <p className="text-lg text-gray-600 mb-8 leading-relaxed">
+        <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">Access Denied</h1>
+        <p className="text-lg text-gray-600 dark:text-slate-300 mb-8 leading-relaxed">
           You don't have permission to access this page or resource.
         </p>
 
         {/* Possible Reasons */}
-        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6 mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <div className="bg-white dark:bg-slate-900 rounded-xl shadow-md border border-gray-200 dark:border-slate-800 p-6 mb-8">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-orange-500" />
             Why this happened?
           </h2>
-          <ul className="text-left space-y-3 text-gray-600">
+          <ul className="text-left space-y-3 text-gray-600 dark:text-slate-300">
             <li className="flex items-start gap-3">
               <div className="w-1.5 h-1.5 bg-red-500 rounded-full mt-2 flex-shrink-0"></div>
               <span>Your account doesn't have the required permissions</span>
@@ -68,23 +68,23 @@ const NoPermissionPage: React.FC = () => {
         </div>
 
         {/* Help Section */}
-        <div className="bg-blue-50 rounded-xl border border-blue-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-900/30 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
             <Shield className="w-5 h-5 text-blue-600" />
             Need Help?
           </h3>
-          <p className="text-gray-600 mb-4">
+          <p className="text-gray-600 dark:text-slate-300 mb-4">
             If you believe this is an error or need assistance with permissions, 
             please contact our support team.
           </p>
           <div className="flex items-center justify-center gap-4">
-            <a
-              href="/contact"
+            <Link
+              to="/contact"
               className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
             >
               <Mail className="w-4 h-4" />
               Contact Support
-            </a>
+            </Link>
           </div>
         </div>
       </div>

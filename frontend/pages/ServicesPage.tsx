@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 // Header and Footer are now globally handled by Layout in App.tsx
 import {
   Search, FileText, Briefcase, Car, Home, Users,
@@ -63,11 +64,7 @@ const ServicesPage: React.FC = () => {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
-                <div className="absolute right-4">
-                  <button className="p-3 bg-teal-600 text-white rounded-[1.5rem] shadow-lg shadow-teal-500/30 active:scale-90 transition-all">
-                    <Filter className="w-5 h-5" />
-                  </button>
-                </div>
+
               </div>
             </div>
           </div>
@@ -95,8 +92,10 @@ const ServicesPage: React.FC = () => {
           {filteredServices.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
               {filteredServices.map(service => (
-                <div
+                <Link
                   key={service.id}
+                  to="/chat"
+                  state={{ newSession: true }}
                   className="group relative bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-[0_20px_50px_rgba(0,0,0,0.05)] dark:hover:shadow-teal-500/5 transition-all duration-500 hover:-translate-y-2 cursor-pointer flex flex-col active:scale-[0.98]"
                 >
                   <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-10 transition-transform group-hover:scale-110 duration-500 shadow-sm
@@ -126,7 +125,7 @@ const ServicesPage: React.FC = () => {
 
                   <div className="flex items-center justify-between mt-auto">
                     <div className="flex items-center gap-2 group/btn">
-                      <span className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-teal-600 transition-colors">Learn More</span>
+                      <span className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-teal-600 transition-colors">Ask AI</span>
                       <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-teal-600 group-hover:translate-x-1 transition-all" />
                     </div>
                     <div className="w-10 h-10 rounded-full border border-slate-100 dark:border-slate-800 flex items-center justify-center text-slate-300 dark:text-slate-600 group-hover:border-teal-500/30 group-hover:text-teal-500 transition-all">
@@ -136,7 +135,7 @@ const ServicesPage: React.FC = () => {
 
                   {/* Premium Hover Ornament */}
                   <div className="absolute top-8 right-8 w-1.5 h-1.5 bg-teal-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                </div>
+                </Link>
               ))}
             </div>
           ) : (

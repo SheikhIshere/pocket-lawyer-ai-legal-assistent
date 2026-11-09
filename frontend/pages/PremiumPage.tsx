@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Crown, Star, Lock, Check } from 'lucide-react';
 
@@ -15,7 +16,7 @@ const PremiumPage: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 dark:from-slate-950 dark:to-slate-900">
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-12">
@@ -23,10 +24,10 @@ const PremiumPage: React.FC = () => {
             <Crown className="w-5 h-5" />
             Premium Features
           </div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
             Welcome to Premium, {user?.full_name || user?.name}!
           </h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="text-lg text-gray-600 dark:text-slate-400 max-w-2xl mx-auto">
             You now have access to exclusive legal tools and priority support designed for professionals.
           </p>
         </div>
@@ -36,10 +37,10 @@ const PremiumPage: React.FC = () => {
           {features.map((feature, index) => (
             <div 
               key={index}
-              className={`bg-white rounded-xl shadow-md border p-6 transition-all duration-200 ${
+              className={`bg-white dark:bg-slate-900 rounded-xl shadow-md border border-slate-100 dark:border-slate-800 p-6 transition-all duration-200 ${
                 feature.available 
-                  ? 'border-gray-200 hover:shadow-lg hover:border-teal-300' 
-                  : 'border-gray-200 opacity-60'
+                  ? 'border-gray-200 dark:border-slate-800 hover:shadow-lg hover:border-teal-300' 
+                  : 'border-gray-200 dark:border-slate-800 opacity-60'
               }`}
             >
               <div className="flex items-center gap-3 mb-4">
@@ -52,14 +53,14 @@ const PremiumPage: React.FC = () => {
                     <Lock className="w-5 h-5 text-gray-400" />
                   </div>
                 )}
-                <h3 className="text-lg font-semibold text-gray-900">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                   {feature.name}
                 </h3>
               </div>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 dark:text-slate-400">
                 {feature.available 
                   ? 'This feature is available with your current plan.'
-                  : 'Upgrade to Professional or Enterprise to unlock this feature.'
+                  : 'Upgrade to Professional to unlock this feature.'
                 }
               </p>
             </div>
@@ -71,16 +72,16 @@ const PremiumPage: React.FC = () => {
           <Star className="w-12 h-12 mx-auto mb-4" />
           <h2 className="text-2xl font-bold mb-4">Need More Power?</h2>
           <p className="text-teal-100 mb-6 max-w-lg mx-auto">
-            Upgrade to Professional or Enterprise plans to unlock advanced features, 
+            Upgrade to Professional to unlock advanced features,
             priority support, and unlimited access to all legal tools.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button className="px-8 py-3 bg-white text-teal-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors">
+            <Link to="/pricing" className="px-8 py-3 bg-white text-teal-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors text-center">
               View All Plans
-            </button>
-            <button className="px-8 py-3 bg-teal-800 text-white rounded-lg font-semibold hover:bg-teal-900 transition-colors border border-teal-600">
+            </Link>
+            <Link to="/contact" className="px-8 py-3 bg-teal-800 text-white rounded-lg font-semibold hover:bg-teal-900 transition-colors border border-teal-600 text-center">
               Contact Sales
-            </button>
+            </Link>
           </div>
         </div>
       </div>

@@ -20,80 +20,13 @@ const AboutPage: React.FC = () => {
         { platform: "Facebook", url: "https://www.facebook.com/3imran3rafi3", icon: <Facebook className="w-5 h-5" /> }
       ]
     },
-    {
-      id: 2,
-      name: "Gemini",
-      role: "Co-founder & Main UI/UX Designer",
-      image: "/asset/img/gemini.png",
-      description: "Crafting beautiful and intuitive user experiences for legal assistance.",
-      expertise: ["UI/UX Design", "User Research", "Prototyping"],
-      socialLinks: [
-        { platform: "LinkedIn", url: "#", icon: <Linkedin className="w-5 h-5" /> },
-        { platform: "Facebook", url: "#", icon: <Facebook className="w-5 h-5" /> }
-      ]
-    },
-    {
-      id: 3,
-      name: "Google Studio",
-      role: "Co-founder & Frontend Engineer",
-      image: "/asset/img/googleStudio.png",
-      description: "Building responsive and performant frontend applications.",
-      expertise: ["Frontend Development", "React", "TypeScript"],
-      socialLinks: [
-        { platform: "LinkedIn", url: "#", icon: <Linkedin className="w-5 h-5" /> },
-        { platform: "Facebook", url: "#", icon: <Facebook className="w-5 h-5" /> }
-      ]
-    },
-    {
-      id: 4,
-      name: "Windsurf",
-      role: "Supporting Frontend Engineer",
-      image: "/asset/img/windsurf.png",
-      description: "Enhancing frontend features and optimizing user interactions.",
-      expertise: ["Frontend Optimization", "Performance", "User Experience"],
-      socialLinks: [
-        { platform: "LinkedIn", url: "#", icon: <Linkedin className="w-5 h-5" /> },
-        { platform: "Facebook", url: "#", icon: <Facebook className="w-5 h-5" /> }
-      ]
-    },
-    {
-      id: 5,
-      name: "ChatGPT",
-      role: "Co-Founder | Frontend Systems Planner & Product Support Engineer",
-      image: "/asset/img/chatgpt.png",
-      description: "Planning frontend architecture and providing design assistance across the platform.",
-      expertise: ["System Planning", "Product Support", "Frontend Architecture"],
-      socialLinks: [
-        { platform: "LinkedIn", url: "#", icon: <Linkedin className="w-5 h-5" /> },
-        { platform: "Facebook", url: "#", icon: <Facebook className="w-5 h-5" /> }
-      ]
-    },
-    {
-      id: 6,
-      name: "DeepSeek",
-      role: "Frontend Optimizer & Bug Maker",
-      image: "/asset/img/deepseek.png",
-      description: "Optimizing frontend performance and occasionally creating interesting bugs to fix.",
-      expertise: ["Frontend Optimization", "Debugging", "Performance Tuning"],
-      socialLinks: [
-        { platform: "LinkedIn", url: "#", icon: <Linkedin className="w-5 h-5" /> },
-        { platform: "Facebook", url: "#", icon: <Facebook className="w-5 h-5" /> }
-      ]
-    }
-  ];
-
-  const stats = [
-    { number: "50,000+", label: "Active Users" },
-    { number: "98%", label: "Customer Satisfaction" },
-    { number: "24/7", label: "Availability" },
-    { number: "150+", label: "Legal Topics Covered" }
   ];
 
   const values = [
     {
       icon: <Shield className="w-8 h-8 text-teal-600" />,
       title: "Privacy First",
-      description: "Your conversations are encrypted and never shared with third parties."
+      description: "Your conversations stay tied to your account."
     },
     {
       icon: <Users className="w-8 h-8 text-teal-600" />,
@@ -165,22 +98,8 @@ const AboutPage: React.FC = () => {
           </div>
         </section>
 
-        {/* Stats Section - MD3 Surfaces */}
-        <section className="py-20 px-4">
-          <div className="max-w-7xl mx-auto">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
-              {stats.map((stat, index) => (
-                <div key={index} className="p-8 rounded-[2.5rem] bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 text-center flex flex-col items-center justify-center group hover:bg-white dark:hover:bg-slate-900 transition-all duration-500 hover:shadow-2xl hover:shadow-slate-200/50 dark:hover:shadow-none">
-                  <div className="text-4xl md:text-6xl font-black text-teal-600 dark:text-teal-400 tracking-tighter mb-2 group-hover:scale-110 transition-transform">{stat.number}</div>
-                  <div className="text-slate-500 dark:text-gray-500 font-black uppercase text-[10px] tracking-[0.2em]">{stat.label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
         {/* Mission Section - Vertical Flow Optimization */}
-        <section className="py-24 px-4 bg-slate-50 dark:bg-slate-900/30">
+        <section className="py-24 px-4 bg-slate-50 dark:bg-slate-900/30 overflow-hidden">
           <div className="max-w-7xl mx-auto">
             <div className="grid lg:grid-cols-2 gap-16 items-center">
               <div className="animate-in fade-in slide-in-from-left-4 duration-1000">
@@ -284,7 +203,7 @@ const AboutPage: React.FC = () => {
             </div>
 
             {/* Team Grid */}
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-12 lg:gap-10">
+            <div className="grid grid-cols-1 max-w-md mx-auto gap-12 lg:gap-10">
               {teamMembers.map((member, index) => (
                 <div
                   key={member.id || index}
@@ -320,12 +239,16 @@ const AboutPage: React.FC = () => {
                       {/* Floating Social Links */}
                       <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-4 opacity-0 group-hover:opacity-100 translate-y-6 group-hover:translate-y-0 transition-all duration-700 delay-200">
                         {member.socialLinks?.map((link, idx) => (
-                          <div
+                          <a
                             key={idx}
-                            className="w-12 h-12 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-full flex items-center justify-center text-slate-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-teal-600 hover:to-blue-600 hover:text-white transition-all duration-500 shadow-xl hover:shadow-2xl hover:scale-110 cursor-pointer"
+                            href={link.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label={link.platform}
+                            className="w-12 h-12 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-full flex items-center justify-center text-slate-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-teal-600 hover:to-blue-600 hover:text-white transition-all duration-500 shadow-xl hover:shadow-2xl hover:scale-110"
                           >
                             {link.icon}
-                          </div>
+                          </a>
                         ))}
                       </div>
 
@@ -382,27 +305,27 @@ const AboutPage: React.FC = () => {
                   Want to Join Our <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-blue-600">Mission</span>?
                 </h3>
                 <p className="text-lg text-slate-600 dark:text-gray-400 mb-10 max-w-2xl mx-auto">
-                  We're always looking for talented individuals who share our vision of making legal help accessible to everyone.
+                  We're building a more accessible legal system. Reach out if you want to help.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-6 justify-center">
-                  <a
-                    href="/careers"
+                  <Link
+                    to="/contact"
                     className="group inline-flex items-center justify-center px-10 py-5 text-base font-bold text-white bg-gradient-to-r from-teal-600 to-blue-600 rounded-2xl hover:shadow-2xl transition-all duration-500 hover:scale-105 shadow-lg hover:shadow-teal-500/30"
                   >
-                    View Open Positions
+                    Contact Us
                     <svg className="w-5 h-5 ml-3 group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                     </svg>
-                  </a>
-                  <a
-                    href="/about"
+                  </Link>
+                  <Link
+                    to="/services"
                     className="group inline-flex items-center justify-center px-10 py-5 text-base font-bold text-slate-700 dark:text-gray-200 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-2xl hover:border-teal-500 dark:hover:border-teal-400 hover:text-teal-700 dark:hover:text-teal-400 transition-all duration-500 hover:scale-105 hover:shadow-xl"
                   >
-                    Learn About Our Mission
+                    Explore Services
                     <svg className="w-5 h-5 ml-3 group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                  </a>
+                  </Link>
                 </div>
               </div>
             </div>
@@ -443,8 +366,7 @@ const AboutPage: React.FC = () => {
               Ready to Experience Legal Help, Reimagined?
             </h2>
             <p className="text-xl text-teal-100/90 mb-8 max-w-2xl mx-auto">
-              Join thousands who have already discovered the smarter way to handle legal matters.
-              Start your free consultation today.
+              Start with a free account and keep your legal questions in one place.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
@@ -471,22 +393,16 @@ const AboutPage: React.FC = () => {
               <h2 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white tracking-tighter mb-4">Connect With Us</h2>
               <p className="text-lg text-slate-500 dark:text-gray-500 font-medium">We're here to support your legal journey</p>
             </div>
-            <div className="grid md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 max-w-md mx-auto gap-6">
               {[
-                { icon: Mail, title: 'Email Intelligence', value: 'support@pocketlawyer.ai', desc: 'Average response: 4 hours', color: 'teal' },
-                { icon: Phone, title: 'Legal Hotline', value: '1-800-LAWYER', desc: 'Mon-Fri 9AM-6PM EST', color: 'blue' },
-                { icon: MapPin, title: 'Global HQ', value: '123 Innovation Drive', desc: 'New York, NY 10001', color: 'purple' }
+                { icon: Mail, title: 'Email Us', value: 'support@pocketlawyer.ai', desc: 'We reply by email', color: 'teal' }
               ].map((item, i) => (
                 <div key={i} className="p-10 rounded-[3rem] bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-center flex flex-col items-center group hover:bg-white dark:hover:bg-slate-800 transition-all duration-500 hover:shadow-2xl">
-                  <div className={`w-20 h-20 rounded-[2rem] flex items-center justify-center mb-8 shadow-inner
-                    ${item.color === 'teal' ? 'bg-teal-50 dark:bg-teal-900/30 text-teal-600' : ''}
-                    ${item.color === 'blue' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600' : ''}
-                    ${item.color === 'purple' ? 'bg-purple-50 dark:bg-purple-900/30 text-purple-600' : ''}
-                  `}>
+                  <div className="w-20 h-20 rounded-[2rem] flex items-center justify-center mb-8 shadow-inner bg-teal-50 dark:bg-teal-900/30 text-teal-600">
                     <item.icon className="w-10 h-10" />
                   </div>
                   <h3 className="text-xl font-black text-slate-900 dark:text-white mb-2">{item.title}</h3>
-                  <div className="text-lg font-black text-teal-600 dark:text-teal-400 mb-2">{item.value}</div>
+                  <a href={`mailto:${item.value}`} className="text-lg font-black text-teal-600 dark:text-teal-400 mb-2 hover:underline">{item.value}</a>
                   <p className="text-sm text-slate-400 font-medium">{item.desc}</p>
                 </div>
               ))}

@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 // Header and Footer are now globally handled by Layout in App.tsx
 import {
   Check, X, Star, Users, Briefcase, Scale, Shield,
@@ -52,34 +54,13 @@ const PRICING_PLANS = [
     popular: true,
     icon: Briefcase,
     color: 'emerald'
-  },
-  {
-    id: 3,
-    name: 'Enterprise',
-    price: 199,
-    period: 'month',
-    description: 'Comprehensive solution for large organizations & firms',
-    features: [
-      'Everything in Professional',
-      'Unlimited session history',
-      'Phone support',
-      'Dedicated legal advisor',
-      'Custom workflow automation',
-      'API access',
-      'White-label options',
-      'Priority processing',
-      'Custom integrations'
-    ],
-    notIncluded: [],
-    popular: false,
-    icon: Scale,
-    color: 'indigo'
   }
 ];
 
 const PricingPage: React.FC = () => {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
-  const [selectedPlan, setSelectedPlan] = useState<number | null>(null);
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
 
   const getAnnualPrice = (monthlyPrice: number) => Math.floor(monthlyPrice * 12 * 0.8); // 20% discount
 
@@ -135,7 +116,7 @@ const PricingPage: React.FC = () => {
 
         {/* Pricing Cards - MD3 Surface Overhaul */}
         <div className="max-w-7xl mx-auto px-4 pb-24">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 max-w-5xl mx-auto gap-8">
             {PRICING_PLANS.map((plan) => {
               const displayPrice = billingCycle === 'annual' ? getAnnualPrice(plan.price) : plan.price;
               const displayPeriod = billingCycle === 'annual' ? 'year' : 'month';
@@ -199,18 +180,18 @@ const PricingPage: React.FC = () => {
                   </div>
 
                   <button
-                    onClick={() => setSelectedPlan(plan.id)}
+                    onClick={() => navigate(isAuthenticated ? '/settings?tab=billing' : '/register')}
                     className={`w-full py-5 rounded-[1.75rem] font-black text-lg transition-all active:scale-95 ${plan.popular
                         ? 'bg-teal-500 text-white dark:bg-teal-600 hover:shadow-xl hover:shadow-teal-500/30'
                         : 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 hover:bg-teal-600 hover:text-white dark:hover:bg-teal-500'
                       }`}
                   >
-                    {selectedPlan === plan.id ? 'Selected Plan' : 'Get Started Now'}
+                    Get Started Now
                   </button>
 
                   {plan.popular && (
                     <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap bg-teal-500 text-white text-[10px] font-black uppercase tracking-widest px-6 py-2 rounded-full shadow-lg">
-                      Recommended by Experts
+                      Most popular
                     </div>
                   )}
                 </div>
@@ -233,23 +214,21 @@ const PricingPage: React.FC = () => {
                       <th className="p-8 font-black text-slate-900 dark:text-white uppercase text-xs tracking-widest">Core Capabilities</th>
                       <th className="p-8 text-center font-black text-slate-900 dark:text-white tracking-widest uppercase text-xs">Starter</th>
                       <th className="p-8 text-center font-black text-teal-600 dark:text-teal-400 tracking-widest uppercase text-xs">Professional</th>
-                      <th className="p-8 text-center font-black text-slate-900 dark:text-white tracking-widest uppercase text-xs">Enterprise</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                     {[
-                      { feature: 'AI Consultations', starter: '5 / month', pro: 'Unlimited', enterprise: 'Unlimited' },
-                      { feature: 'Document Analysis', starter: 'Basic PDF', pro: 'Advanced OCR', enterprise: 'Unlimited Batch' },
-                      { feature: 'Support Level', starter: 'Email Only', pro: '24/7 Live Chat', enterprise: 'Priority Phone' },
-                      { feature: 'Custom Templates', starter: 'Limited', pro: 'Full Library', enterprise: 'Customizable' },
-                      { feature: 'Search History', starter: '30 Days', pro: 'Unlimited', enterprise: 'Encrypted Vault' },
-                      { feature: 'API Connectivity', starter: '-', pro: '-', enterprise: 'Full REST API' }
+                      { feature: 'AI Consultations', starter: '5 / month', pro: 'Unlimited' },
+                      { feature: 'Document Analysis', starter: 'Basic PDF', pro: 'Advanced OCR' },
+                      { feature: 'Support Level', starter: 'Email Only', pro: '24/7 Live Chat' },
+                      { feature: 'Custom Templates', starter: 'Limited', pro: 'Full Library' },
+                      { feature: 'Search History', starter: '30 Days', pro: 'Unlimited' },
+                      { feature: 'API Connectivity', starter: '-', pro: '-' }
                     ].map((row, i) => (
                       <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                         <td className="p-8 font-bold text-slate-900 dark:text-white">{row.feature}</td>
                         <td className="p-8 text-center text-slate-500 dark:text-gray-400 font-medium">{row.starter}</td>
                         <td className="p-8 text-center font-black text-slate-900 dark:text-white">{row.pro}</td>
-                        <td className="p-8 text-center text-slate-500 dark:text-gray-400 font-medium">{row.enterprise}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -273,7 +252,7 @@ const PricingPage: React.FC = () => {
                 },
                 {
                   question: 'Is my data legally secure?',
-                  answer: 'We use enterprise-grade AES-256 encryption. Your consultations are private and never used for general AI training.'
+                  answer: 'Your consultations stay in your account and are only accessible after you sign in.'
                 },
                 {
                   question: 'How does the free trial work?',
@@ -306,16 +285,21 @@ const PricingPage: React.FC = () => {
                 <span className="text-teal-400 dark:text-teal-600">The Legal Revolution?</span>
               </h2>
               <p className="text-xl text-slate-400 dark:text-slate-500 font-medium mb-12">
-                Join over 50,000 users who have modernized their legal
-                workflows with PocketLawyer.
+                Start with a free account and upgrade when you need more.
               </p>
               <div className="flex flex-col sm:flex-row gap-6 justify-center">
-                <button className="px-10 py-5 bg-teal-500 text-white rounded-[2rem] text-lg font-black shadow-xl shadow-teal-500/30 hover:scale-105 active:scale-95 transition-all">
+                <Link
+                  to={isAuthenticated ? '/chat' : '/register'}
+                  className="px-10 py-5 bg-teal-500 text-white rounded-[2rem] text-lg font-black shadow-xl shadow-teal-500/30 hover:scale-105 active:scale-95 transition-all"
+                >
                   Get Started Free
-                </button>
-                <button className="px-10 py-5 bg-transparent text-white dark:text-slate-900 border-2 border-white/20 dark:border-slate-200 rounded-[2rem] text-lg font-black hover:bg-white/10 transition-all">
-                  Consultation
-                </button>
+                </Link>
+                <Link
+                  to="/contact"
+                  className="px-10 py-5 bg-transparent text-white dark:text-slate-900 border-2 border-white/20 dark:border-slate-200 rounded-[2rem] text-lg font-black hover:bg-white/10 transition-all"
+                >
+                  Talk to Sales
+                </Link>
               </div>
             </div>
 

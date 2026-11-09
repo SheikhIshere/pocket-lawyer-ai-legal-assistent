@@ -28,7 +28,7 @@ const LandingPage: React.FC = () => {
     {
       icon: <MessageSquare className="w-8 h-8" />,
       title: "AI-Powered Legal Consultation",
-      description: "Advanced AI trained on millions of legal cases provides instant, accurate legal guidance 24/7.",
+      description: "Grounded in Bangladesh's legal corpus with citations for every answer.",
       gradient: "from-[#0E8E82] to-[#0a6d62]"
     },
     {
@@ -44,15 +44,9 @@ const LandingPage: React.FC = () => {
       gradient: "from-[#0E8E82] to-[#0a6d62]"
     },
     {
-      icon: <Users2 className="w-8 h-8" />,
-      title: "Attorney Connect Platform",
-      description: "Seamlessly connect with vetted legal professionals in our network when needed.",
-      gradient: "from-[#0E8E82] to-[#0a6d62]"
-    },
-    {
       icon: <ShieldCheck className="w-8 h-8" />,
-      title: "Enterprise-Grade Security",
-      description: "Bank-level encryption with SOC 2 compliance ensures complete confidentiality.",
+      title: "Private by Design",
+      description: "Encrypted transport for every request, with no training on your conversations.",
       gradient: "from-[#0E8E82] to-[#0a6d62]"
     },
     {
@@ -61,37 +55,6 @@ const LandingPage: React.FC = () => {
       description: "Track progress, store documents, and manage all legal matters in one secure dashboard.",
       gradient: "from-[#0E8E82] to-[#0a6d62]"
     }
-  ];
-
-  const testimonials = [
-    {
-      name: "Sarah Chen",
-      role: "General Counsel, TechStart Inc.",
-      content: "PocketLawyer has revolutionized how our legal team operates. The AI provides immediate preliminary analysis, saving us 40+ hours monthly.",
-      rating: 5,
-      company: "Technology"
-    },
-    {
-      name: "Marcus Rodriguez",
-      role: "Managing Partner, Rodriguez & Associates",
-      content: "As a practicing attorney, I'm impressed by the accuracy and depth of legal analysis. It's become an essential tool for my practice.",
-      rating: 5,
-      company: "Legal Services"
-    },
-    {
-      name: "Jennifer Park",
-      role: "Chief Compliance Officer",
-      content: "The compliance analysis feature has been invaluable. It identified potential issues in our vendor contracts that our team had overlooked.",
-      rating: 5,
-      company: "Finance"
-    }
-  ];
-
-  const stats = [
-    { number: "98.7%", label: "Client Satisfaction Rate", icon: <Star className="w-5 h-5" /> },
-    { number: "50K+", label: "Legal Documents Analyzed", icon: <FileCheck className="w-5 h-5" /> },
-    { number: "2M+", label: "Legal Queries Processed", icon: <MessageSquare className="w-5 h-5" /> },
-    { number: "99.9%", label: "Uptime & Reliability", icon: <Shield className="w-5 h-5" /> }
   ];
 
   const industries = [
@@ -115,11 +78,11 @@ const LandingPage: React.FC = () => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
             <div className="grid lg:grid-cols-2 gap-16 items-center">
               <div className="space-y-8">
-                <div className="inline-flex items-center gap-3 px-4 py-2.5 rounded-full bg-[#0E8E82]/10 dark:bg-[#0E8E82]/20 border border-[#0E8E82]/20 dark:border-[#0E8E82]/30">
+                <div className="inline-flex flex-wrap max-w-full items-center gap-3 px-4 py-2.5 rounded-full bg-[#0E8E82]/10 dark:bg-[#0E8E82]/20 border border-[#0E8E82]/20 dark:border-[#0E8E82]/30">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-[#0E8E82] animate-pulse"></div>
-                    <span className="text-sm font-semibold text-[#0E8E82]">
-                      Trusted by Fortune 500 Companies
+                    <span className="text-xs sm:text-sm font-semibold text-[#0E8E82]">
+                      Built for Bangladesh's legal system
                     </span>
                   </div>
                   <div className="flex -space-x-2">
@@ -140,8 +103,8 @@ const LandingPage: React.FC = () => {
                 </h1>
 
                 <p className="text-xl text-gray-600 dark:text-gray-400 leading-relaxed max-w-xl">
-                  Enterprise-grade AI legal assistant providing instant, accurate, and secure legal guidance.
-                  Trusted by legal professionals and businesses worldwide.
+                  AI legal guidance grounded in Bangladesh's legal sources.
+                  Clear answers, with citations, whenever you need them.
                 </p>
 
                 <div className="flex flex-col sm:flex-row gap-4 pt-4">
@@ -155,17 +118,18 @@ const LandingPage: React.FC = () => {
                     <ArrowRight className="w-5 h-5 relative z-10 group-hover:translate-x-1 transition-transform" />
                   </Link>
 
-                  <Link
-                    to="/demo"
+                  <button
+                    type="button"
+                    onClick={() => document.getElementById('demo-preview')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
                     className="group inline-flex items-center justify-center gap-3 bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-slate-700 px-8 py-4 rounded-2xl text-lg font-semibold hover:bg-gray-50 dark:hover:bg-slate-700 active:scale-95 transition-all"
                   >
-                    <span>Watch Demo</span>
+                    <span>See a preview</span>
                     <div className="w-10 h-10 rounded-full bg-teal-50 dark:bg-teal-900/20 flex items-center justify-center group-hover:bg-teal-100 dark:group-hover:bg-teal-900/40 transition-colors">
                       <svg className="w-5 h-5 text-teal-600 dark:text-teal-400" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M8 5v14l11-7z" />
                       </svg>
                     </div>
-                  </Link>
+                  </button>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 pt-8 max-w-lg">
@@ -192,7 +156,7 @@ const LandingPage: React.FC = () => {
 
               {/* Hero Chat Interface */}
               <div className="relative">
-                <div className="relative bg-white dark:bg-slate-800 rounded-3xl shadow-2xl shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-slate-700 overflow-hidden">
+                <div id="demo-preview" className="relative bg-white dark:bg-slate-800 rounded-3xl shadow-2xl shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-slate-700 overflow-hidden">
                   {/* Chat Header */}
                   <div className="bg-gradient-to-r from-gray-900 to-gray-800 p-6">
                     <div className="flex items-center justify-between">
@@ -207,7 +171,7 @@ const LandingPage: React.FC = () => {
                           <div className="font-semibold text-white">PocketLawyer AI</div>
                           <div className="text-sm text-[#0E8E82]/80 dark:text-teal-400/80 flex items-center gap-2">
                             <div className="w-2 h-2 rounded-full bg-[#0E8E82] dark:bg-teal-400 animate-pulse"></div>
-                            Online • Enterprise Edition
+                            Online • Legal Assistant
                           </div>
                         </div>
                       </div>
@@ -230,7 +194,7 @@ const LandingPage: React.FC = () => {
                         <div className="text-xs font-semibold text-gray-900 mb-1">PocketLawyer AI</div>
                         <div className="bg-gray-50 dark:bg-slate-900 rounded-2xl rounded-tl-none p-4 border border-gray-100 dark:border-slate-800">
                           <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                            Welcome to PocketLawyer Enterprise. I can assist with: contract analysis,
+                            Welcome to PocketLawyer. I can assist with: contract analysis,
                             legal research, compliance checks, and document review. How may I help you today?
                           </p>
                         </div>
@@ -300,17 +264,15 @@ const LandingPage: React.FC = () => {
                   {/* Chat Input */}
                   <div className="border-t border-gray-100 dark:border-slate-700 p-4 bg-white dark:bg-slate-800">
                     <div className="flex items-center gap-3 bg-gray-50 dark:bg-slate-900 rounded-xl px-4 py-3 border border-gray-200 dark:border-slate-700">
-                      <input
-                        type="text"
-                        placeholder="Type your legal question or upload document..."
-                        className="bg-transparent flex-1 outline-none text-sm text-gray-600 dark:text-gray-400 placeholder-gray-400"
-                        readOnly
-                      />
-                      <button className="flex items-center gap-2 bg-gradient-to-r from-[#0E8E82] to-[#0a6d62] text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:shadow-lg transition-all">
+                      <div aria-hidden="true" className="flex-1 text-sm text-gray-400">
+                        Ask about a contract, notice, or legal question...
+                      </div>
+                      <Link to="/register" className="flex items-center gap-2 bg-gradient-to-r from-[#0E8E82] to-[#0a6d62] text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:shadow-lg transition-all">
+                        Try it free
                         <ArrowRight className="w-4 h-4" />
-                        Send
-                      </button>
+                      </Link>
                     </div>
+                    <p className="text-[10px] text-gray-400 mt-2">Preview only</p>
                   </div>
                 </div>
 
@@ -322,36 +284,19 @@ const LandingPage: React.FC = () => {
           </div>
         </section>
 
-        {/* Stats Section */}
-        <section className="py-16 bg-gray-50 dark:bg-slate-950 border-t border-b border-gray-100 dark:border-slate-800">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
-              {stats.map((stat, index) => (
-                <div key={index} className="bg-white dark:bg-slate-900/50 p-8 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm text-center group transition-all active:scale-95">
-                  <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400 mb-6 group-hover:scale-110 transition-transform">
-                    {stat.icon}
-                  </div>
-                  <div className="text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-2">{stat.number}</div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400 font-medium uppercase tracking-wider">{stat.label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
         {/* Features Section */}
         <section className="py-24 bg-white dark:bg-slate-900">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center max-w-3xl mx-auto mb-20">
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#0E8E82]/10 dark:bg-[#0E8E82]/20 text-[#0E8E82] dark:text-teal-400 text-sm font-semibold mb-6">
                 <Award className="w-4 h-4" />
-                Enterprise-Grade Features
+                Professional Features
               </div>
               <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-6">
                 Comprehensive Legal AI Platform
               </h2>
               <p className="text-xl text-gray-600 dark:text-gray-400">
-                Advanced tools designed for professionals, backed by AI trained on millions of legal documents
+                Advanced tools designed for professionals, backed by Bangladesh's legal corpus
               </p>
             </div>
 
@@ -367,10 +312,10 @@ const LandingPage: React.FC = () => {
                     </div>
                     <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 leading-tight">{feature.title}</h3>
                     <p className="text-gray-600 dark:text-gray-400 leading-relaxed mb-8">{feature.description}</p>
-                    <div className="flex items-center text-teal-600 dark:text-teal-400 font-bold group-hover:translate-x-2 transition-transform h-6">
-                      <span className="text-sm">Explore Feature</span>
+                    <Link to="/services" className="flex items-center text-teal-600 dark:text-teal-400 font-bold group-hover:translate-x-2 transition-transform h-6 w-fit">
+                      <span className="text-sm">Explore services</span>
                       <ChevronRight className="w-4 h-4 ml-1" />
-                    </div>
+                    </Link>
                   </div>
                 </div>
               ))}
@@ -386,7 +331,7 @@ const LandingPage: React.FC = () => {
                 Trusted Across Industries
               </h2>
               <p className="text-xl text-gray-600 dark:text-gray-400">
-                From startups to Fortune 500 companies, we provide tailored legal solutions
+                From individuals to growing firms, we provide tailored legal guidance
               </p>
             </div>
 
@@ -398,47 +343,6 @@ const LandingPage: React.FC = () => {
                       {industry.icon}
                     </div>
                     <div className="font-semibold text-gray-900 dark:text-white text-sm">{industry.name}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Testimonials Section */}
-        <section className="py-24 bg-white dark:bg-slate-900">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center max-w-3xl mx-auto mb-20">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#0E8E82]/10 dark:bg-[#0E8E82]/20 text-[#0E8E82] dark:text-teal-400 text-sm font-semibold mb-6">
-                <Star className="w-4 h-4 fill-[#0E8E82]" />
-                Client Testimonials
-              </div>
-              <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-6">
-                Trusted by Legal Professionals
-              </h2>
-              <p className="text-xl text-gray-600 dark:text-gray-400">
-                See how leading organizations leverage PocketLawyer for their legal needs
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {testimonials.map((testimonial, index) => (
-                <div key={index} className="group h-full">
-                  <div className="bg-slate-50 dark:bg-slate-900/50 p-8 rounded-[2rem] border border-gray-100 dark:border-slate-800 hover:shadow-2xl hover:shadow-teal-500/5 transition-all duration-300 h-full flex flex-col">
-                    <div className="flex items-center gap-1 mb-8">
-                      {[...Array(testimonial.rating)].map((_, i) => (
-                        <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
-                      ))}
-                    </div>
-                    <p className="text-gray-700 dark:text-gray-300 mb-8 leading-relaxed text-lg flex-grow font-medium">"{testimonial.content}"</p>
-                    <div className="pt-8 border-t border-gray-200/60 dark:border-slate-800">
-                      <div className="font-bold text-gray-900 dark:text-white text-lg">{testimonial.name}</div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-3">{testimonial.role}</div>
-                      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400 text-xs font-bold uppercase tracking-wider">
-                        <Briefcase className="w-3 h-3" />
-                        {testimonial.company}
-                      </div>
-                    </div>
                   </div>
                 </div>
               ))}

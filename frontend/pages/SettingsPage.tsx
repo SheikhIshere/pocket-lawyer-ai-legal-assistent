@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 // Header and Footer are now globally handled by Layout in App.tsx
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
@@ -23,6 +24,7 @@ const shakeAnimation = `
 
 const SettingsPage: React.FC = () => {
   const { user, logout, updateUser } = useAuth();
+  const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState('profile');
   const [isEditing, setIsEditing] = useState(false);
   const [securityTab, setSecurityTab] = useState('password');
@@ -258,6 +260,14 @@ const SettingsPage: React.FC = () => {
     }
   }, [activeTab]);
 
+  useEffect(() => {
+    const requested = searchParams.get('tab');
+    const next = requested === 'api-keys' ? 'api' : requested;
+    if (next && ['profile', 'security', 'api', 'billing'].includes(next)) {
+      setActiveTab(next);
+    }
+  }, [searchParams]);
+
   return (
     <>
       <style>{shakeAnimation}</style>
@@ -286,41 +296,41 @@ const SettingsPage: React.FC = () => {
         )}
 
         <main className="flex-grow max-w-7xl mx-auto px-4 py-8 w-full">
-          <h1 className="text-2xl font-bold text-slate-900 mb-8">Account Settings</h1>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-8">Account Settings</h1>
 
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Sidebar (Desktop) */}
             <aside className="hidden lg:block w-full lg:w-64 flex-shrink-0">
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+              <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
                 <nav className="flex flex-col">
                   <button
                     onClick={() => setActiveTab('profile')}
-                    className={`flex items-center gap-3 px-6 py-4 text-sm font-medium transition-colors ${activeTab === 'profile' ? 'bg-[#0D9488]/10 text-[#0D9488] border-r-2 border-[#0D9488]' : 'text-slate-600 hover:bg-slate-50'}`}
+                    className={`flex items-center gap-3 px-6 py-4 text-sm font-medium transition-colors ${activeTab === 'profile' ? 'bg-[#0D9488]/10 text-[#0D9488] border-r-2 border-[#0D9488]' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
                   >
                     <User className="w-5 h-5" /> Profile Info
                   </button>
                   <button
                     onClick={() => setActiveTab('security')}
-                    className={`flex items-center gap-3 px-6 py-4 text-sm font-medium transition-colors ${activeTab === 'security' ? 'bg-[#0D9488]/10 text-[#0D9488] border-r-2 border-[#0D9488]' : 'text-slate-600 hover:bg-slate-50'}`}
+                    className={`flex items-center gap-3 px-6 py-4 text-sm font-medium transition-colors ${activeTab === 'security' ? 'bg-[#0D9488]/10 text-[#0D9488] border-r-2 border-[#0D9488]' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
                   >
                     <Lock className="w-5 h-5" /> Security
                   </button>
                   <button
                     onClick={() => setActiveTab('api')}
-                    className={`flex items-center gap-3 px-6 py-4 text-sm font-medium transition-colors ${activeTab === 'api' ? 'bg-[#0D9488]/10 text-[#0D9488] border-r-2 border-[#0D9488]' : 'text-slate-600 hover:bg-slate-50'}`}
+                    className={`flex items-center gap-3 px-6 py-4 text-sm font-medium transition-colors ${activeTab === 'api' ? 'bg-[#0D9488]/10 text-[#0D9488] border-r-2 border-[#0D9488]' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
                   >
                     <Key className="w-5 h-5" /> API Keys
                   </button>
                   <button
                     onClick={() => setActiveTab('billing')}
-                    className={`flex items-center gap-3 px-6 py-4 text-sm font-medium transition-colors ${activeTab === 'billing' ? 'bg-[#0D9488]/10 text-[#0D9488] border-r-2 border-[#0D9488]' : 'text-slate-600 hover:bg-slate-50'}`}
+                    className={`flex items-center gap-3 px-6 py-4 text-sm font-medium transition-colors ${activeTab === 'billing' ? 'bg-[#0D9488]/10 text-[#0D9488] border-r-2 border-[#0D9488]' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
                   >
                     <CreditCard className="w-5 h-5" /> Subscription
                   </button>
-                  <div className="h-px bg-slate-100 my-2"></div>
+                  <div className="h-px bg-slate-100 dark:bg-slate-800 my-2"></div>
                   <button
                     onClick={logout}
-                    className="flex items-center gap-3 px-6 py-4 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                    className="flex items-center gap-3 px-6 py-4 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                   >
                     <LogOut className="w-5 h-5" /> Sign Out
                   </button>
@@ -329,7 +339,7 @@ const SettingsPage: React.FC = () => {
             </aside>
 
             {/* Mobile Tab Navigation (Horizontal Scroll) */}
-            <div className="lg:hidden -mx-4 px-4 mb-6 sticky top-0 z-10 bg-slate-50 dark:bg-[#020617] py-2 overflow-x-auto scrollbar-hide flex gap-2">
+            <div className="lg:hidden -mx-4 px-4 mb-6 sticky top-0 z-10 bg-slate-50 dark:bg-[#020617] py-2 flex flex-wrap gap-2">
               {[
                 { id: 'profile', label: 'Profile', icon: User },
                 { id: 'security', label: 'Security', icon: Lock },
@@ -360,20 +370,20 @@ const SettingsPage: React.FC = () => {
             {/* Content */}
             <div className="flex-1">
               {activeTab === 'profile' && (
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8">
-                  <div className="flex items-start justify-between mb-8">
-                    <div className="flex items-center gap-4">
-                      <div className="relative">
-                        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#0D9488] to-[#0f766e] flex items-center justify-center text-white text-2xl font-bold border-4 border-slate-50">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 p-8">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div className="relative shrink-0">
+                        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#0D9488] to-[#0f766e] flex items-center justify-center text-white text-2xl font-bold border-4 border-slate-50 dark:border-slate-800">
                           {(user?.full_name || user?.name || 'U').charAt(0).toUpperCase()}
                         </div>
-                        <button className="absolute bottom-0 right-0 bg-white p-1.5 rounded-full shadow border border-slate-200 hover:bg-slate-50">
-                          <Camera className="w-4 h-4 text-slate-600" />
+                        <button aria-label="Change profile photo" className="absolute bottom-0 right-0 bg-white dark:bg-slate-800 p-1.5 rounded-full shadow border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700">
+                          <Camera className="w-4 h-4 text-slate-600 dark:text-slate-300" />
                         </button>
                       </div>
-                      <div>
-                        <h2 className="text-xl font-bold text-slate-900">{user?.full_name || user?.name}</h2>
-                        <p className="text-slate-500 text-sm">{user?.email}</p>
+                      <div className="min-w-0">
+                        <h2 className="text-xl font-bold text-slate-900 dark:text-white break-words">{user?.full_name || user?.name}</h2>
+                        <p className="text-slate-500 dark:text-slate-400 text-sm break-words">{user?.email}</p>
                         <div className="flex items-center gap-4 mt-2 text-xs text-slate-400">
                           {user?.gender && <span>Gender: {user?.gender}</span>}
                           {user?.language && <span>Language: {user?.language}</span>}
@@ -394,42 +404,42 @@ const SettingsPage: React.FC = () => {
                   <form onSubmit={handleUpdateProfile} className="space-y-6 max-w-lg">
                     <div className="grid grid-cols-1 gap-6">
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Full Name</label>
                         <input
                           type="text"
                           disabled={!isEditing}
                           value={formData.full_name}
                           onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                          className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#0D9488] disabled:opacity-60 disabled:cursor-not-allowed"
+                          className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg focus:ring-2 focus:ring-[#0D9488] disabled:opacity-60 disabled:cursor-not-allowed"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Email Address</label>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Email Address</label>
                         <input
                           type="email"
                           disabled={true} // Email cannot be changed
                           value={formData.email}
-                          className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#0D9488] disabled:opacity-60 disabled:cursor-not-allowed"
+                          className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg focus:ring-2 focus:ring-[#0D9488] disabled:opacity-60 disabled:cursor-not-allowed"
                           readOnly
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Phone Number</label>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Phone Number</label>
                         <input
                           type="tel"
                           disabled={!isEditing}
                           value={formData.phone}
                           onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                          className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#0D9488] disabled:opacity-60 disabled:cursor-not-allowed"
+                          className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg focus:ring-2 focus:ring-[#0D9488] disabled:opacity-60 disabled:cursor-not-allowed"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Gender</label>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Gender</label>
                         <select
                           disabled={!isEditing}
                           value={formData.gender}
                           onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                          className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#0D9488] disabled:opacity-60 disabled:cursor-not-allowed"
+                          className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg focus:ring-2 focus:ring-[#0D9488] disabled:opacity-60 disabled:cursor-not-allowed"
                         >
                           <option value="">Select Gender</option>
                           <option value="male">Male</option>
@@ -438,22 +448,22 @@ const SettingsPage: React.FC = () => {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Date of Birth</label>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Date of Birth</label>
                         <input
                           type="date"
                           disabled={!isEditing}
                           value={formData.birth_day ? new Date(formData.birth_day).toISOString().split('T')[0] : ''}
                           onChange={(e) => setFormData({ ...formData, birth_day: e.target.value })}
-                          className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#0D9488] disabled:opacity-60 disabled:cursor-not-allowed"
+                          className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg focus:ring-2 focus:ring-[#0D9488] disabled:opacity-60 disabled:cursor-not-allowed"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Language Preference</label>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Language Preference</label>
                         <select
                           disabled={!isEditing}
                           value={formData.language}
                           onChange={(e) => setFormData({ ...formData, language: e.target.value })}
-                          className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#0D9488] disabled:opacity-60 disabled:cursor-not-allowed"
+                          className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg focus:ring-2 focus:ring-[#0D9488] disabled:opacity-60 disabled:cursor-not-allowed"
                         >
                           <option value="english">English</option>
                           <option value="bangla">Bangla</option>
@@ -469,7 +479,7 @@ const SettingsPage: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => setIsEditing(false)}
-                          className="bg-slate-100 text-slate-700 px-6 py-2 rounded-lg text-sm font-medium hover:bg-slate-200"
+                          className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 dark:text-slate-300 px-6 py-2 rounded-lg text-sm font-medium hover:bg-slate-200"
                         >
                           Cancel
                         </button>
@@ -480,8 +490,8 @@ const SettingsPage: React.FC = () => {
               )}
 
               {activeTab === 'security' && (
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8">
-                  <h2 className="text-xl font-bold text-slate-900 mb-6">Security Settings</h2>
+                <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 p-8">
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6">Security Settings</h2>
 
                   {/* Security Sub-tabs */}
                   <div className="flex border-b border-slate-200 mb-6">
@@ -489,7 +499,7 @@ const SettingsPage: React.FC = () => {
                       onClick={() => setSecurityTab('password')}
                       className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${securityTab === 'password'
                         ? 'border-[#0D9488] text-[#0D9488]'
-                        : 'border-transparent text-slate-600 hover:text-slate-900'
+                        : 'border-transparent text-slate-600 hover:text-slate-900 dark:text-white'
                         }`}
                     >
                       <Lock className="w-4 h-4 inline mr-2" />
@@ -501,7 +511,7 @@ const SettingsPage: React.FC = () => {
                   {securityTab === 'password' && (
                     <form onSubmit={handleChangePassword} className="space-y-6 max-w-lg">
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Current Password</label>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Current Password</label>
                         <div className="relative">
                           <input
                             data-field="old_password"
@@ -514,13 +524,14 @@ const SettingsPage: React.FC = () => {
                                 setFieldErrors({ ...fieldErrors, old_password: undefined });
                               }
                             }}
-                            className={`password-input w-full px-4 py-2 pr-10 bg-slate-50 border rounded-lg focus:ring-2 focus:ring-[#0D9488] ${fieldErrors.old_password ? 'border-red-500' : 'border-slate-200'
+                            className={`password-input w-full px-4 py-2 pr-10 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg focus:ring-2 focus:ring-[#0D9488] ${fieldErrors.old_password ? 'border-red-500' : 'border-slate-200 dark:border-slate-700'
                               }`}
                             required
                           />
                           <button
                             type="button"
                             onClick={() => setShowPasswords({ ...showPasswords, old: !showPasswords.old })}
+                            aria-label={showPasswords.old ? 'Hide current password' : 'Show current password'}
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                           >
                             {showPasswords.old ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -533,7 +544,7 @@ const SettingsPage: React.FC = () => {
                         )}
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">New Password</label>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">New Password</label>
                         <div className="relative">
                           <input
                             data-field="new_password"
@@ -546,13 +557,14 @@ const SettingsPage: React.FC = () => {
                                 setFieldErrors({ ...fieldErrors, new_password: undefined });
                               }
                             }}
-                            className={`password-input w-full px-4 py-2 pr-10 bg-slate-50 border rounded-lg focus:ring-2 focus:ring-[#0D9488] ${fieldErrors.new_password ? 'border-red-500' : 'border-slate-200'
+                            className={`password-input w-full px-4 py-2 pr-10 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg focus:ring-2 focus:ring-[#0D9488] ${fieldErrors.new_password ? 'border-red-500' : 'border-slate-200 dark:border-slate-700'
                               }`}
                             required
                           />
                           <button
                             type="button"
                             onClick={() => setShowPasswords({ ...showPasswords, new: !showPasswords.new })}
+                            aria-label={showPasswords.new ? 'Hide new password' : 'Show new password'}
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                           >
                             {showPasswords.new ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -565,7 +577,7 @@ const SettingsPage: React.FC = () => {
                         )}
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Confirm New Password</label>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Confirm New Password</label>
                         <div className="relative">
                           <input
                             data-field="confirm_password"
@@ -578,13 +590,14 @@ const SettingsPage: React.FC = () => {
                                 setFieldErrors({ ...fieldErrors, confirm_password: undefined });
                               }
                             }}
-                            className={`password-input w-full px-4 py-2 pr-10 bg-slate-50 border rounded-lg focus:ring-2 focus:ring-[#0D9488] ${fieldErrors.confirm_password ? 'border-red-500' : 'border-slate-200'
+                            className={`password-input w-full px-4 py-2 pr-10 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg focus:ring-2 focus:ring-[#0D9488] ${fieldErrors.confirm_password ? 'border-red-500' : 'border-slate-200 dark:border-slate-700'
                               }`}
                             required
                           />
                           <button
                             type="button"
                             onClick={() => setShowPasswords({ ...showPasswords, confirm: !showPasswords.confirm })}
+                            aria-label={showPasswords.confirm ? 'Hide confirmation password' : 'Show confirmation password'}
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                           >
                             {showPasswords.confirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -613,7 +626,7 @@ const SettingsPage: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => setShowForgotPasswordModal(true)}
-                            className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors"
+                            className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 dark:text-slate-300 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors"
                           >
                             <Send className="w-4 h-4" />
                             Reset via Email
@@ -626,8 +639,8 @@ const SettingsPage: React.FC = () => {
               )}
 
               {activeTab === 'api' && (
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8">
-                  <h2 className="text-xl font-bold text-slate-900 mb-6">API Keys Management</h2>
+                <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 p-8">
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6">API Keys Management</h2>
 
                   {/* API Keys Section - No sub-tabs needed */}
                   <div className="space-y-6">
@@ -636,7 +649,7 @@ const SettingsPage: React.FC = () => {
                     <div className="space-y-6">
                       <div className="flex items-center justify-between mb-6">
                         <div>
-                          <h3 className="text-lg font-semibold text-slate-900">Your API Keys</h3>
+                          <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Your API Keys</h3>
                           <p className="text-sm text-slate-600">Manage your API keys for external integrations</p>
                         </div>
                         <button
@@ -655,16 +668,17 @@ const SettingsPage: React.FC = () => {
                           onClick={() => setShowNewKeyForm(false)}
                         >
                           <div
-                            className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md"
+                            className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-100 dark:border-slate-800 p-6 w-full max-w-md"
                             onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside the modal
                           >
                             <div className="flex items-center justify-between mb-4">
-                              <h3 className="text-lg font-semibold text-slate-900">Add New API Key</h3>
+                              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Add New API Key</h3>
                               <button
                                 onClick={() => {
                                   setShowNewKeyForm(false);
                                   setNewApiKeyInput('');
                                 }}
+                                aria-label="Close"
                                 className="text-gray-400 hover:text-gray-600"
                               >
                                 <X className="w-5 h-5" />
@@ -673,7 +687,7 @@ const SettingsPage: React.FC = () => {
 
                             <div className="space-y-4">
                               <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-2">
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                                   API Key
                                 </label>
                                 <input
@@ -719,7 +733,7 @@ const SettingsPage: React.FC = () => {
                                   setShowNewKeyForm(false);
                                   setNewApiKeyInput('');
                                 }}
-                                className="flex-1 bg-slate-200 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-300 transition-colors"
+                                className="flex-1 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 dark:text-slate-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-300 transition-colors"
                               >
                                 Cancel
                               </button>
@@ -731,7 +745,7 @@ const SettingsPage: React.FC = () => {
                       {/* API Keys List */}
                       <div className="space-y-4">
                         {apiKeys.map((key) => (
-                          <div key={key.id} className={`bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden ${key.worker_status === 'RUNNING' ? 'ring-2 ring-purple-200' : ''
+                          <div key={key.id} className={`bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden ${key.worker_status === 'RUNNING' ? 'ring-2 ring-purple-200' : ''
                             }`}>
                             {/* Loading Overlay for RUNNING status */}
                             {key.worker_status === 'RUNNING' && (
@@ -779,6 +793,7 @@ const SettingsPage: React.FC = () => {
                                       setShowDetailsModal(true);
                                     }}
                                     className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                    aria-label="View API key details"
                                     title="View Details"
                                     disabled={key.worker_status === 'RUNNING'}
                                   >
@@ -790,6 +805,7 @@ const SettingsPage: React.FC = () => {
                                       setShowDeleteModal(true);
                                     }}
                                     className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                    aria-label="Delete API key"
                                     title="Delete API Key"
                                     disabled={key.worker_status === 'RUNNING'}
                                   >
@@ -811,6 +827,7 @@ const SettingsPage: React.FC = () => {
                                       <button
                                         onClick={() => setShowFullKey(prev => ({ ...prev, [key.id]: !prev[key.id] }))}
                                         className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-100 rounded transition-colors"
+                                        aria-label={showFullKey[key.id] ? 'Hide API key' : 'Show API key'}
                                         title={showFullKey[key.id] ? "Hide Key" : "Show Key"}
                                       >
                                         <Eye className="w-4 h-4" />
@@ -914,16 +931,17 @@ const SettingsPage: React.FC = () => {
                         }}
                       >
                         <div
-                          className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto"
+                          className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-100 dark:border-slate-800 p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto"
                           onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside the modal
                         >
                           <div className="flex items-center justify-between mb-6">
-                            <h3 className="text-lg font-semibold text-slate-900">API Key Details</h3>
+                            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">API Key Details</h3>
                             <button
                               onClick={() => {
                                 setShowDetailsModal(false);
                                 setSelectedApiKey(null);
                               }}
+                              aria-label="Close"
                               className="text-gray-400 hover:text-gray-600"
                             >
                               <X className="w-5 h-5" />
@@ -1115,7 +1133,7 @@ const SettingsPage: React.FC = () => {
                                 setShowDetailsModal(false);
                                 setSelectedApiKey(null);
                               }}
-                              className="flex-1 bg-slate-200 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-300 transition-colors"
+                              className="flex-1 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 dark:text-slate-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-300 transition-colors"
                             >
                               Close
                             </button>
@@ -1134,16 +1152,17 @@ const SettingsPage: React.FC = () => {
                         }}
                       >
                         <div
-                          className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md"
+                          className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-100 dark:border-slate-800 p-6 w-full max-w-md"
                           onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside the modal
                         >
                           <div className="flex items-center justify-between mb-6">
-                            <h3 className="text-lg font-semibold text-slate-900">Delete API Key</h3>
+                            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Delete API Key</h3>
                             <button
                               onClick={() => {
                                 setShowDeleteModal(false);
                                 setKeyToDelete(null);
                               }}
+                              aria-label="Close"
                               className="text-gray-400 hover:text-gray-600"
                             >
                               <X className="w-5 h-5" />
@@ -1207,17 +1226,17 @@ const SettingsPage: React.FC = () => {
               )}
 
               {activeTab === 'billing' && (
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8">
-                  <h2 className="text-xl font-bold text-slate-900 mb-6">Current Subscription</h2>
-                  <div className="bg-teal-50 border border-teal-100 rounded-xl p-6 mb-8 flex items-center justify-between">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 p-8">
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6">Current Subscription</h2>
+                  <div className="bg-teal-50 dark:bg-teal-900/20 border border-teal-100 dark:border-teal-800 rounded-xl p-6 mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
-                      <div className="text-sm font-bold text-teal-800 uppercase tracking-wide">Current Plan</div>
-                      <div className="text-2xl font-bold text-slate-900 mt-1">Free Basic</div>
-                      <p className="text-sm text-slate-600 mt-1">Limited to 5 AI consultations per month.</p>
+                      <div className="text-sm font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wide">Current Plan</div>
+                      <div className="text-2xl font-bold text-slate-900 dark:text-white mt-1 capitalize">{user?.plan || 'Free'} Plan</div>
+                      <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">Manage your plan and see available upgrades.</p>
                     </div>
-                    <button className="bg-teal-600 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-lg shadow-teal-600/20 hover:bg-teal-700">
-                      Upgrade to Pro
-                    </button>
+                    <Link to="/pricing" className="bg-teal-600 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-lg shadow-teal-600/20 hover:bg-teal-700 text-center">
+                      View Plans
+                    </Link>
                   </div>
                 </div>
               )}

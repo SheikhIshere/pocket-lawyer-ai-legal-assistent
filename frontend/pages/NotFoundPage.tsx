@@ -4,10 +4,10 @@ import { Home, Search, ArrowLeft, FileQuestion } from 'lucide-react';
 
 const NotFoundPage: React.FC = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 flex items-center justify-center">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 dark:from-slate-950 dark:to-slate-900 flex items-center justify-center">
       <div className="text-center max-w-lg mx-auto px-6">
         {/* Error Icon */}
-        <div className="relative mb-8">
+        <div className="relative w-24 h-24 mx-auto mb-8">
           <div className="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center shadow-lg">
             <FileQuestion className="w-12 h-12 text-gray-400" />
           </div>
@@ -17,18 +17,18 @@ const NotFoundPage: React.FC = () => {
         </div>
 
         {/* Error Message */}
-        <h1 className="text-4xl font-bold text-gray-900 mb-4">Page Not Found</h1>
-        <p className="text-lg text-gray-600 mb-8 leading-relaxed">
+        <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">Page Not Found</h1>
+        <p className="text-lg text-gray-600 dark:text-slate-300 mb-8 leading-relaxed">
           Oops! The page you're looking for seems to have vanished into the digital void.
         </p>
 
         {/* Possible Solutions */}
-        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6 mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Search className="w-5 h-5 text-gray-600" />
+        <div className="bg-white dark:bg-slate-900 rounded-xl shadow-md border border-gray-200 dark:border-slate-800 p-6 mb-8">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <Search className="w-5 h-5 text-gray-600 dark:text-slate-300" />
             What can you do?
           </h2>
-          <ul className="text-left space-y-3 text-gray-600">
+          <ul className="text-left space-y-3 text-gray-600 dark:text-slate-300">
             <li className="flex items-start gap-3">
               <div className="w-1.5 h-1.5 bg-teal-600 rounded-full mt-2 flex-shrink-0"></div>
               <span>Check the URL for typos or errors</span>
@@ -64,9 +64,9 @@ const NotFoundPage: React.FC = () => {
         </div>
 
         {/* Help Text */}
-        <p className="text-sm text-gray-500 mt-8">
+        <p className="text-sm text-gray-500 dark:text-slate-400 mt-8">
           If you believe this is an error, please contact our 
-          <a href="/contact" className="text-teal-600 hover:text-teal-700 font-medium"> support team</a>
+          <Link to="/contact" className="text-teal-600 hover:text-teal-700 font-medium"> support team</Link>
         </p>
       </div>
     </div>

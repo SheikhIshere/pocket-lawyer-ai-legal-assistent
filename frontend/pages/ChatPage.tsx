@@ -65,9 +65,13 @@ const ChatPage = () => {
 
   // Handle new session trigger from navigation state (e.g., "Start Consultation" button)
   useEffect(() => {
-    const state = location.state as { newSession?: boolean } | null;
+    const state = location.state as { newSession?: boolean; sessionId?: string } | null;
     if (state?.newSession) {
       createNewSession();
+    } else if (state?.sessionId) {
+      selectSession(state.sessionId);
+    }
+    if (state?.newSession || state?.sessionId) {
       // Clear the state to prevent re-triggering on re-render
       window.history.replaceState({}, document.title);
     }
@@ -321,7 +325,10 @@ const ChatPage = () => {
       } else if (err.response?.status === 401) {
         setError('Authentication expired. Please log in again.');
       } else if (err.response?.status === 429) {
-        setError('Too many requests. Please wait a moment.');
+        setError(
+          err.response.data?.error ||
+          'Daily free limit reached. Try again tomorrow or add your own API key.'
+        );
       } else {
         setError('Failed to send message. Please try again.');
       }
@@ -368,8 +375,10 @@ const ChatPage = () => {
           }`}>
           <div className="flex items-center gap-3">
             <button
+              type="button"
               onClick={() => setSidebarOpen(true)}
-              className="md:hidden p-2 hover:bg-teal-50 dark:hover:bg-slate-800 rounded-xl text-teal-600 dark:text-teal-400"
+              aria-label="Open sessions"
+              className="lg:hidden p-2 hover:bg-teal-50 dark:hover:bg-slate-800 rounded-xl text-teal-600 dark:text-teal-400"
             >
               <Menu size={20} />
             </button>
@@ -556,7 +565,7 @@ const ChatPage = () => {
           </div>
         </div>
 
-        <div className={`p-4 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:p-6 lg:pb-6 border-t transition-all duration-500 ${isLight
+        <div className={`p-4 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-4 lg:p-6 lg:pb-6 border-t transition-all duration-500 ${isLight
           ? 'bg-white/80 backdrop-blur-xl border-slate-200/60 shadow-[0_-8px_30px_rgb(0,0,0,0.02)]'
           : 'bg-[#020617]/90 backdrop-blur-xl border-slate-800/40 shadow-[0_-8px_30px_rgb(0,0,0,0.15)]'
           }`}>
@@ -686,6 +695,10 @@ const ChatPage = () => {
                 </button>
               </div>
             </div>
+
+            <p className={`text-center text-xs leading-relaxed mt-2 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+              PocketLawyer can make mistakes. Please consult a real lawyer for legal advice.
+            </p>
 
             {/* Error Display */}
             {error && (

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
 // Header and Footer are now globally handled by Layout in App.tsx
 import {
-  Mail, Phone, MapPin, Send, MessageSquare, Clock,
+  Mail, Send, MessageSquare, Clock,
   Shield, Users, ArrowRight, HelpCircle, CheckCircle2,
   AlertCircle, ChevronRight, Star, Zap, Headphones, 
   Sparkles, Globe, ShieldCheck
@@ -23,6 +24,7 @@ const ContactPage: React.FC = () => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [formError, setFormError] = useState('');
   const [characterCount, setCharacterCount] = useState(0);
 
   const services = [
@@ -50,42 +52,38 @@ const ContactPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setFormError('');
+    setSubmitStatus('idle');
 
     try {
-      const response = await fetch('http://localhost:8000/v1/api/contact-us/submit/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          full_name: formData.name,
-          email: formData.email,
-          service_type: formData.service,
-          other: formData.service === 'other' ? formData.other : '',
-          priority_level: formData.priority,
-          subject: formData.subject,
-          message: formData.message
-        })
+      await api.contactService.submit({
+        full_name: formData.name,
+        email: formData.email,
+        service_type: formData.service,
+        other: formData.service === 'other' ? formData.other : '',
+        priority_level: formData.priority,
+        subject: formData.subject,
+        message: formData.message
       });
 
-      if (response.ok) {
-        setSubmitStatus('success');
-        setFormData({
-          name: '',
-          email: '',
-          subject: '',
-          message: '',
-          service: 'general_inquiry',
-          priority: 'normal',
-          other: ''
-        });
-        setCharacterCount(0);
-        setTimeout(() => setSubmitStatus('idle'), 5000);
-      } else {
-        setSubmitStatus('error');
-        setTimeout(() => setSubmitStatus('idle'), 5000);
-      }
-    } catch (error) {
+      setSubmitStatus('success');
+      setFormData({
+        name: '',
+        email: '',
+        subject: '',
+        message: '',
+        service: 'general_inquiry',
+        priority: 'normal',
+        other: ''
+      });
+      setCharacterCount(0);
+      setTimeout(() => setSubmitStatus('idle'), 5000);
+    } catch (error: any) {
+      const data = error?.response?.data;
+      const first = typeof data === 'string'
+        ? data
+        : data && Object.values(data).flat().find((value) => typeof value === 'string');
+      setFormError(typeof first === 'string' ? first : 'Could not send your message. Please try again.');
       setSubmitStatus('error');
       setTimeout(() => setSubmitStatus('idle'), 5000);
     } finally {
@@ -123,12 +121,9 @@ const ContactPage: React.FC = () => {
         {/* Contact Method Cards - MD3 Overhaul */}
         <section className="py-12 px-4">
           <div className="max-w-7xl mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 max-w-md mx-auto gap-6">
               {[
-                { icon: Mail, title: 'Email Us', value: 'support@pocketlawyer.ai', desc: 'Response within 4h', color: 'teal' },
-                { icon: Phone, title: 'Call Us', value: '1-800-LAWYER', desc: 'Mon-Fri 9AM-6PM', color: 'blue' },
-                { icon: MapPin, title: 'Visit Us', value: '123 Legal Plaza', desc: 'NY, New York 10001', color: 'indigo' },
-                { icon: MessageSquare, title: 'Live Chat', value: 'Instant Access', desc: 'Available 24/7', color: 'emerald' }
+                { icon: Mail, title: 'Email Us', value: 'support@pocketlawyer.ai', desc: 'We reply by email', color: 'teal' }
               ].map((item, i) => (
                 <div key={i} className="group p-10 rounded-[3rem] bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:scale-105 active:scale-95 transition-all duration-500 hover:shadow-2xl flex flex-col items-center text-center">
                   <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-8 shadow-sm transition-transform group-hover:rotate-12
@@ -140,7 +135,7 @@ const ContactPage: React.FC = () => {
                     <item.icon className="w-8 h-8" />
                   </div>
                   <h3 className="text-xl font-black text-slate-900 dark:text-white mb-2">{item.title}</h3>
-                  <div className="text-teal-600 dark:text-teal-400 font-bold mb-1">{item.value}</div>
+                  <a href={`mailto:${item.value}`} className="text-teal-600 dark:text-teal-400 font-bold mb-1 hover:underline">{item.value}</a>
                   <p className="text-xs text-slate-400 font-medium uppercase tracking-widest">{item.desc}</p>
                 </div>
               ))}
@@ -167,9 +162,9 @@ const ContactPage: React.FC = () => {
 
                 <div className="space-y-4">
                   {[
-                    { title: 'Secure Protocol', desc: 'End-to-end encrypted submission', icon: Shield },
-                    { title: 'Priority Routing', desc: 'Smart sorting based on case urgency', icon: Zap },
-                    { title: 'Expert Oversight', desc: 'Verified by our legal operations team', icon: ShieldCheck }
+                    { title: 'Private request', desc: 'Only our support team reads it', icon: Shield },
+                    { title: 'Priority', desc: 'Tell us how urgent it is', icon: Zap },
+                    { title: 'Support', desc: 'We reply by email', icon: ShieldCheck }
                   ].map((feat, i) => (
                     <div key={i} className="flex items-center gap-4 p-4 bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800">
                       <div className="w-12 h-12 rounded-xl bg-teal-50 dark:bg-teal-900/30 flex items-center justify-center text-teal-600">
@@ -203,16 +198,23 @@ const ContactPage: React.FC = () => {
                         <CheckCircle2 className="w-6 h-6" />
                       </div>
                       <div>
-                        <p className="font-black">Mission Accomplished!</p>
-                        <p className="text-sm font-medium">Your request has been received. Sit tight.</p>
+                        <p className="font-black">Message sent</p>
+                        <p className="text-sm font-medium">We'll reply by email as soon as we can.</p>
                       </div>
+                    </div>
+                  )}
+
+                  {formError && (
+                    <div role="alert" className="mb-8 p-4 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 rounded-2xl border border-red-200 dark:border-red-900/30 flex items-center gap-3">
+                      <AlertCircle className="w-5 h-5 shrink-0" />
+                      <span className="text-sm font-medium">{formError}</span>
                     </div>
                   )}
 
                   <form onSubmit={handleSubmit} className="space-y-8">
                     <div className="grid md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-4">Full Identity</label>
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-4">Full name</label>
                         <input
                           type="text"
                           name="name"
@@ -224,7 +226,7 @@ const ContactPage: React.FC = () => {
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-4">Email Channel</label>
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-4">Email</label>
                         <input
                           type="email"
                           name="email"
@@ -239,7 +241,7 @@ const ContactPage: React.FC = () => {
 
                     <div className="grid md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-4">Service Category</label>
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-4">Service</label>
                         <select
                           name="service"
                           value={formData.service}
@@ -250,7 +252,7 @@ const ContactPage: React.FC = () => {
                         </select>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-4">Priority Protocol</label>
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-4">Priority</label>
                         <select
                           name="priority"
                           value={formData.priority}
@@ -265,7 +267,7 @@ const ContactPage: React.FC = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-4">Subject Directive</label>
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-4">Subject</label>
                       <input
                         type="text"
                         name="subject"
@@ -279,7 +281,7 @@ const ContactPage: React.FC = () => {
 
                     <div className="space-y-2">
                       <div className="flex justify-between px-4">
-                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Case Description</label>
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Message</label>
                         <span className="text-[10px] font-black text-slate-300">{characterCount}/500</span>
                       </div>
                       <textarea
@@ -303,14 +305,14 @@ const ContactPage: React.FC = () => {
                         <div className="w-8 h-8 border-4 border-white border-t-transparent animate-spin rounded-full"></div>
                       ) : (
                         <>
-                          <span>Deploy Message</span>
+                          <span>Send message</span>
                           <Send className="w-6 h-6" />
                         </>
                       )}
                     </button>
                     
                     <p className="text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                      End-to-End Encrypted Transmission Active
+                      Your message is sent to our support team
                     </p>
                   </form>
                 </div>
@@ -326,7 +328,7 @@ const ContactPage: React.FC = () => {
             <div className="space-y-4">
               {[
                 { q: "How fast is the verification process?", a: "AI-driven preliminary verification is instant. Human review for complex cases takes 1-4 business hours." },
-                { q: "Are my documents legally protected?", a: "Yes. Every byte is encrypted with AES-256 and subject to strict confidentiality protocols." },
+                { q: "Who reads my message?", a: "Only the support team uses your details to reply to this request." },
                 { q: "Can I cancel a priority request?", a: "Priority requests are routed immediately and cannot be cancelled once processing has begun." },
                 { q: "Global availability status?", a: "PocketLawyer operates 24/7/365 with specialized nodes for various legal jurisdictions." }
               ].map((faq, i) => (

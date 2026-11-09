@@ -39,12 +39,7 @@ const DashboardPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
-  const [stats, setStats] = useState({
-    documents: 0,
-    cases: 0,
-    apiCalls: 0,
-    storageUsed: 0,
-  });
+  const [sessionCount, setSessionCount] = useState<number | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -61,21 +56,15 @@ const DashboardPage: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const [profileData, keysData] = await Promise.all([
+      const [profileData, keysData, sessionsData] = await Promise.all([
         api.accountService.getProfile(),
         api.accountService.getApiKeys(),
+        api.assistantService.getSessions(),
       ]);
 
       setProfile(profileData);
       setApiKeys(keysData);
-
-      // Using mock stats data since dashboard-stats endpoint doesn't exist yet
-      setStats({
-        documents: 12,
-        cases: 3,
-        apiCalls: 1250,
-        storageUsed: 716,
-      });
+      setSessionCount(sessionsData.length);
     } catch (err: any) {
       setError(err.message || 'Failed to load dashboard data');
     } finally {
@@ -123,10 +112,10 @@ const DashboardPage: React.FC = () => {
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
           {[
-            { label: 'Documents', value: stats.documents, icon: FileText, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/20' },
-            { label: 'Active Cases', value: stats.cases, icon: Briefcase, color: 'text-purple-600', bg: 'bg-purple-50 dark:bg-purple-900/20' },
-            { label: 'AI Interactions', value: stats.apiCalls, icon: Zap, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-900/20' },
-            { label: 'Storage Used', value: `${(stats.storageUsed / 1024).toFixed(1)}GB`, icon: Database, color: 'text-teal-600', bg: 'bg-teal-50 dark:bg-teal-900/20' }
+            { label: 'Chat Sessions', value: sessionCount ?? '—', icon: FileText, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/20' },
+            { label: 'API Keys', value: apiKeys.length, icon: Key, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-900/20' },
+            { label: 'Plan', value: profile?.plan || user?.plan || 'Free', icon: CreditCard, color: 'text-teal-600', bg: 'bg-teal-50 dark:bg-teal-900/20' },
+            { label: 'Member Since', value: profile?.created_at ? formatDate(profile.created_at) : '—', icon: Calendar, color: 'text-purple-600', bg: 'bg-purple-50 dark:bg-purple-900/20' }
           ].map((stat, i) => (
             <div key={i} className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-xl transition-all group">
               <div className={`${stat.bg} ${stat.color} w-12 h-12 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
@@ -196,15 +185,6 @@ const DashboardPage: React.FC = () => {
                   </div>
                 </div>
               </div>
-              <div className="p-8 lg:p-10 bg-slate-50/50 dark:bg-white/5">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-500 font-medium">Profile Security Health</span>
-                  <span className="text-teal-600 font-bold">Excellent</span>
-                </div>
-                <div className="mt-4 w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
-                  <div className="bg-teal-500 h-full w-[85%] rounded-full shadow-[0_0_10px_rgba(20,184,166,0.3)]"></div>
-                </div>
-              </div>
             </div>
 
             {/* API Vault */}
@@ -215,15 +195,15 @@ const DashboardPage: React.FC = () => {
                     <Key className="w-5 h-5 text-blue-600" />
                     Secure API Vault
                   </h3>
-                  <p className="text-sm text-slate-500 mt-1">Manage your enterprise access points.</p>
+                  <p className="text-sm text-slate-500 mt-1">Manage your API access keys.</p>
                 </div>
-                <Link to="/settings?tab=api-keys" className="text-sm font-bold text-teal-600 hover:text-teal-700">View All</Link>
+                <Link to="/settings?tab=api" className="text-sm font-bold text-teal-600 hover:text-teal-700">View All</Link>
               </div>
               <div className="space-y-4">
                 {apiKeys.length === 0 ? (
                   <div className="text-center py-10 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-3xl">
                     <p className="text-slate-400 font-medium">No API keys found.</p>
-                    <Link to="/settings?tab=api-keys" className="text-teal-600 font-bold mt-2 inline-block">Add Your First Key</Link>
+                    <Link to="/settings?tab=api" className="text-teal-600 font-bold mt-2 inline-block">Add Your First Key</Link>
                   </div>
                 ) : (
                   apiKeys.slice(0, 3).map((key, i) => (
@@ -266,8 +246,7 @@ const DashboardPage: React.FC = () => {
               <h3 className="text-lg font-black text-slate-900 dark:text-white mb-6 uppercase tracking-widest text-[11px]">Control Panel</h3>
               <div className="grid grid-cols-1 gap-3">
                 {[
-                  { label: 'My Documents', path: '/documents', icon: FileText, color: 'text-blue-500' },
-                  { label: 'Active Cases', path: '/dashboard', icon: Briefcase, color: 'text-purple-500' },
+                  { label: 'Chat Sessions', path: '/documents', icon: FileText, color: 'text-blue-500' },
                   { label: 'Account Settings', path: '/settings', icon: Settings, color: 'text-slate-500' },
                   { label: 'Premium Upgrade', path: '/pricing', icon: Award, color: 'text-amber-500' }
                 ].map((item, i) => (
