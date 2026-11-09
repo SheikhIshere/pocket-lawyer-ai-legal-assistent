@@ -1,6 +1,9 @@
 import { User, ChatSession, Message, RequestStatus } from '../types';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/v1/api';
+const ENV_API_URL = import.meta.env.VITE_API_URL;
+const API_BASE_URL = ENV_API_URL
+  ? `${ENV_API_URL.replace(/\/$/, '')}${ENV_API_URL.replace(/\/$/, '').endsWith('/v1/api') ? '' : '/v1/api'}`
+  : '/v1/api';
 
 let isRefreshing = false;
 let refreshSubscribers: ((token: string) => void)[] = [];

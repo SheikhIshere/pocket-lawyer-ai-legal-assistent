@@ -20,8 +20,13 @@ class ApiKeySerializers(serializers.ModelSerializer):
         read_only_fields = ['created_at', 'is_working', 'total_used', 'worker_status', 'meta_data']
         extra_kwargs = {
             'api_key': {'write_only': True},
-            'meta_data': {'write_only': True},
         }
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        # provider errors live in meta_data; keep it out of API responses
+        data.pop('meta_data', None)
+        return data
 
     def validate(self, attrs):
         key = attrs.get('api_key')  # safe access
