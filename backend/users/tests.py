@@ -60,7 +60,8 @@ class ResendOtpTests(TestCase):
         self.assertEqual(email, self.user.email)
         self.assertEqual(subject, "Account Activation OTP")
         self.assertIn("Your OTP is:", message)
-        self.assertEqual(response.json()["user"]["user_id"], self.user.id)
+        # account enumeration removed: uniform body, no user identifiers
+        self.assertNotIn("user", response.json())
 
     @patch("users.views.send_otp_email.delay")
     def test_registration_resend_uses_same_working_path(self, delay):
@@ -77,11 +78,94 @@ class ResendOtpTests(TestCase):
             1,
         )
 
-    def test_unknown_email_returns_400_not_500(self):
+    @patch("users.views.send_otp_email.delay")
+    def test_unknown_email_returns_uniform_200(self, delay):
         response = self.client.post(
             "/v1/api/users/login/otp/resend/",
             {"email": "missing-user@example.com"},
             format="json",
         )
 
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn("user", response.json())
+        delay.assert_not_called()
+
+
+class LoginOtpLockoutTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(
+            email="lockout-user@example.com",
+            password="Str0ngPass!2026",
+            full_name="Lockout User",
+        )
+
+    def test_five_wrong_otps_lock_the_account(self):
+        Otp.objects.create(user=self.user, otp="222222")
+        for _ in range(5):
+            response = self.client.post(
+                "/v1/api/users/login/otp/verify/",
+                {"email": self.user.email, "otp": "000000"},
+                format="json",
+            )
+            self.assertEqual(response.status_code, 400)
+
+        response = self.client.post(
+            "/v1/api/users/login/otp/verify/",
+            {"email": self.user.email, "otp": "222222"},
+            format="json",
+        )
         self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            Otp.objects.filter(user=self.user, is_expired=False).count(), 0
+        )
+
+
+class PasswordResetTokenTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(
+            email="reset-user@example.com",
+            password="Str0ngPass!2026",
+            full_name="Reset User",
+        )
+        self.user.is_verified = True
+        self.user.save()
+
+    def test_reset_token_is_single_purpose_and_confirm_changes_password(self):
+        Otp.objects.create(user=self.user, otp="333333")
+        verified = self.client.post(
+            "/v1/api/users/forget-password/otp/verify/",
+            {"email": self.user.email, "otp": "333333"},
+            format="json",
+        )
+        self.assertEqual(verified.status_code, 200)
+        reset_token = verified.json()["access_token"]
+        # opaque token, not a JWT bearer
+        self.assertNotIn(".", reset_token)
+
+        reset = self.client.post(
+            "/v1/api/users/forget-password/confirm/",
+            {
+                "email": self.user.email,
+                "new_password": "N3wStr0ngPass!2026",
+                "confirm_password": "N3wStr0ngPass!2026",
+            },
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {reset_token}",
+        )
+        self.assertEqual(reset.status_code, 200)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password("N3wStr0ngPass!2026"))
+
+        reuse = self.client.post(
+            "/v1/api/users/forget-password/confirm/",
+            {
+                "email": self.user.email,
+                "new_password": "An0therStr0ng!2026",
+                "confirm_password": "An0therStr0ng!2026",
+            },
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {reset_token}",
+        )
+        self.assertEqual(reuse.status_code, 400)

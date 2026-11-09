@@ -42,7 +42,7 @@ class UserAdmin(BaseUserAdmin):
 
 @admin.register(Otp)
 class OtpAdmin(admin.ModelAdmin):
-    list_display = ('user', 'otp', 'is_expired', 'created_at')
+    list_display = ('user', 'is_expired', 'created_at')
     list_filter = ('user', 'is_expired')
-    search_fields = ('user__email', 'otp')
+    search_fields = ('user__email',)
     ordering = ('-created_at',)

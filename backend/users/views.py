@@ -37,6 +37,8 @@ User = get_user_model()
 # jwt import
 from rest_framework_simplejwt.tokens import RefreshToken
 # documentation
+from secrets import token_urlsafe
+from django.core.cache import cache
 from drf_spectacular.utils import extend_schema
 # timezone import
 from django.utils import timezone
@@ -94,11 +96,6 @@ class UserRegistrationView(generics.CreateAPIView):
             )
 
             # NOTE: remove this At production
-            print('\n\n\n')
-            print(f'activation otp is: {account_activation_otp}') # just for debugging
-            print('\n\n\n')
-            
-            
             # sending otp to user asynchronously
             subject = 'Account Activation OTP'
             message = f"Your OTP is: {account_activation_otp}"
@@ -159,6 +156,7 @@ resending another otp to activate user
 @permission_classes([permissions.AllowAny])  # Explicitly allow any user
 class ResendingOtpView(APIView):
     serializer_class = ResendingOtpSerializer
+    throttle_scope = 'otp-resend'
 
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
@@ -169,10 +167,10 @@ class ResendingOtpView(APIView):
             try:
                 user = User.objects.get(email=email)
             except User.DoesNotExist:
-                return Response(
-                    {'error': 'Email does not exist.'},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+                # Uniform response prevents account enumeration.
+                return Response({
+                    'message': 'If the email exists, an OTP has been re-sent.',
+                }, status=status.HTTP_200_OK)
 
             # expiring all previous otp
             Otp.objects.filter(user=user).update(is_expired=True)
@@ -191,10 +189,6 @@ class ResendingOtpView(APIView):
             send_otp_email.delay(user.email, subject, message)
 
             return Response({
-                'user': {
-                    "user_id": user.id,
-                    "is_verified": user.is_verified
-                },
                 'message': 'Otp re-sent successfully',
             }, status=status.HTTP_200_OK)
 
@@ -228,6 +222,7 @@ deployment
 @permission_classes([permissions.AllowAny])  # Explicitly allow any user
 class UserLoginView(generics.CreateAPIView):
     serializer_class = LoginSerializer
+    throttle_scope = 'login'
 
     def post(self, request, *args, **kwargs):
         # defining the serializer initialized in serializer_class
@@ -244,10 +239,6 @@ class UserLoginView(generics.CreateAPIView):
             )
 
             # NOTE: remove this
-            print('\n\n\n')
-            print(f'your otp is: {account_activation_otp}') # just for debugging
-            print('\n\n\n')
-
             # sending otp to user asynchronously
             subject = 'OTP Verification'
             message = f"Your OTP is: {account_activation_otp}"
@@ -275,6 +266,7 @@ here i am checking otp founded from login serializer
 @permission_classes([permissions.AllowAny])  # Explicitly allow any user
 class LoginOtpCheckView(generics.CreateAPIView):
     serializer_class = LoginOtpSerializer
+    throttle_scope = 'otp-verify'
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data, context={"request": request})
@@ -335,17 +327,19 @@ password reset - verify OTP
 @permission_classes([permissions.AllowAny])  # Explicitly allow any user
 class PasswordResetVerifyOTPView(generics.CreateAPIView):
     serializer_class = PasswordResetVerifyOTPSerializer
+    throttle_scope = 'otp-verify'
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
-            # Generate a token for the next step (optional, can use OTP itself)
-            refresh = RefreshToken.for_user(user)
+            # Single-purpose, short-lived reset token (not a login bearer).
+            reset_token = token_urlsafe(32)
+            cache.set(f"pwdreset:{reset_token}", user.pk, timeout=600)
             return Response({
                 'message': 'OTP verified successfully. You can now reset your password.',
                 'email': user.email,
-                'access_token': str(refresh.access_token),  # For the next step
+                'access_token': reset_token,
             }, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -359,12 +353,24 @@ password resetting
 )
 class PasswordResetConfirmView(APIView):
     serializer_class = PasswordResetConfirmSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    authentication_classes = []
+    permission_classes = [permissions.AllowAny]
 
     def post(self, request, *args, **kwargs):
-        serializer = self.serializer_class(data=request.data, context={'request': request})
+        header = request.headers.get('Authorization', '')
+        token = header[7:] if header.startswith('Bearer ') else ''
+        user_pk = cache.get(f"pwdreset:{token}") if token else None
+        if not user_pk:
+            return Response(
+                {'error': 'Invalid or expired reset token.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        serializer = self.serializer_class(
+            data=request.data, context={'user_pk': user_pk}
+        )
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        cache.delete(f"pwdreset:{token}")
         return Response({
             'message': 'Password reset successful. You can now login with your new password.',
         }, status=status.HTTP_200_OK)

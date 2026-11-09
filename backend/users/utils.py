@@ -1,6 +1,4 @@
-from random import randint
+from secrets import randbelow
 
 def generate_otp():
-    return randint(100000, 999999)
-
-print(generate_otp())
+    return 100000 + randbelow(900000)
