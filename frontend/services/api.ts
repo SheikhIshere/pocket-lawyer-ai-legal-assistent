@@ -314,7 +314,8 @@ export const assistantService = {
             role: 'assistant',
             timestamp: new Date(msg.created_at).getTime(),
             status: 'completed',
-            created_at: msg.created_at
+            created_at: msg.created_at,
+            sources: msg.sources || []
           });
         }
       });
@@ -416,11 +417,29 @@ export const newsletterService = {
   }
 };
 
+export const contactService = {
+  submit: async (data: {
+    full_name: string;
+    email: string;
+    service_type: string;
+    other?: string;
+    priority_level: string;
+    subject: string;
+    message: string;
+  }) => {
+    return apiCall('/contact-us/submit/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+};
+
 export default {
   authService,
   accountService,
   assistantService,
-  newsletterService
+  newsletterService,
+  contactService
 };
 
 

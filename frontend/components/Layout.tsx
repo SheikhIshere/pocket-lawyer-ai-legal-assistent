@@ -21,7 +21,7 @@ const LogoIcon: React.FC<{ className?: string }> = ({ className }) => (
 );
 
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
   const { theme, toggleTheme, isDark } = useTheme();
   const [bottomMenuOpen, setBottomMenuOpen] = useState(false);
   const bottomMenuRef = useRef<HTMLDivElement>(null);
@@ -31,7 +31,12 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const [bottomMenuDragDelta, setBottomMenuDragDelta] = useState(0);
 
   const location = useLocation();
-  const isActive = (path: string) => location.pathname === path;
+  const path = location.pathname;
+  const isActive = (pathname: string) => location.pathname === pathname;
+  const isAuthRoute = ['/login', '/register', '/verify-otp', '/register-verify-otp', '/forgot-password-verify-otp'].includes(path);
+  const isBareRoute = path === '/no-permission' || path === '/404';
+  const hideChrome = isAuthRoute || isBareRoute;
+  const isChat = path.includes('/chat');
 
   // Scroll lock for bottom menu
   useEffect(() => {
@@ -71,10 +76,10 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950 flex flex-col transition-colors duration-500 pb-[env(safe-area-inset-bottom,1.5rem)] lg:pb-0">
-      {!location.pathname.includes('/chat') && <Header setBottomMenuOpen={setBottomMenuOpen} />}
-      <main className={`flex-1 ${location.pathname.includes('/chat') ? 'h-full' : 'pb-20 lg:pb-0'}`}>{children}</main>
-      {!location.pathname.includes('/chat') && <Footer />}
+    <div className="min-h-screen bg-white dark:bg-slate-950 flex flex-col transition-colors duration-500">
+      {!hideChrome && !isChat && <Header setBottomMenuOpen={setBottomMenuOpen} />}
+      <main className={`flex-1 ${isChat ? 'h-full' : 'pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-0'}`}>{children}</main>
+      {!hideChrome && !isChat && <Footer />}
       <AnimatePresence>
         {bottomMenuOpen && (
           <>
@@ -98,25 +103,46 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             >
               {/* Handle Bar */}
               <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full mx-auto mb-8 shrink-0" />
+              <button
+                onClick={() => setBottomMenuOpen(false)}
+                aria-label="Close menu"
+                className="absolute top-6 right-6 p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                <X className="w-5 h-5" />
+              </button>
 
-              <div className="flex items-center gap-4 mb-8 pb-6 border-b border-slate-100 dark:border-slate-800">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-teal-600 to-emerald-700 flex items-center justify-center text-white text-2xl font-black shadow-xl">
-                  {(user?.full_name || user?.name || 'U').charAt(0).toUpperCase()}
+              {user ? (
+                <div className="flex items-center gap-4 mb-8 pb-6 border-b border-slate-100 dark:border-slate-800">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-teal-600 to-emerald-700 flex items-center justify-center text-white text-2xl font-black shadow-xl">
+                    {(user?.full_name || user?.name || 'U').charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xl font-black text-slate-900 dark:text-white capitalize truncate">{user?.name || 'User'}</div>
+                    <div className="text-sm font-medium text-slate-500 dark:text-gray-400 truncate">{user?.email}</div>
+                  </div>
                 </div>
-                <div>
-                  <div className="text-xl font-black text-slate-900 dark:text-white capitalize">{user?.name || 'User'}</div>
-                  <div className="text-sm font-medium text-slate-500 dark:text-gray-400">{user?.email}</div>
+              ) : (
+                <div className="mb-8 pb-6 border-b border-slate-100 dark:border-slate-800">
+                  <div className="text-xl font-black text-slate-900 dark:text-white">PocketLawyer</div>
+                  <div className="text-sm font-medium text-slate-500 dark:text-gray-400">Sign in to save your sessions.</div>
                 </div>
-              </div>
+              )}
 
               <div className="flex-1 overflow-y-auto -mx-6 px-6 scrollbar-hide">
                 <div className="grid grid-cols-1 gap-2">
-                  {[
+                  {(user ? [
                     { to: '/dashboard', icon: LayoutDashboard, title: 'Dashboard Overview', desc: 'Monitor your activity' },
+                    { to: '/documents', icon: FileText, title: 'Chat Sessions', desc: 'Your consultations' },
                     { to: '/settings', icon: Settings, title: 'Account Settings', desc: 'Profile & preferences' },
                     { to: '/about', icon: Scale, title: 'About Us', desc: 'Our mission & team' },
                     { to: '/contact', icon: Phone, title: 'Contact Support', desc: 'Get in touch' },
-                  ].map((item) => (
+                  ] : [
+                    { to: '/', icon: Home, title: 'Home', desc: 'Back to the landing page' },
+                    { to: '/services', icon: Briefcase, title: 'Services', desc: 'Explore legal help' },
+                    { to: '/pricing', icon: Star, title: 'Pricing', desc: 'Compare plans' },
+                    { to: '/about', icon: Scale, title: 'About Us', desc: 'Our mission & team' },
+                    { to: '/contact', icon: Phone, title: 'Contact Support', desc: 'Get in touch' },
+                  ]).map((item) => (
                     <Link
                       key={item.to}
                       to={item.to}
@@ -151,15 +177,34 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
                   <div className="my-4 h-px bg-slate-100 dark:bg-slate-800 mx-4" />
 
-                  <button
-                    className="w-full p-4 bg-red-50 dark:bg-red-900/10 text-red-600 font-bold rounded-2xl hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors flex items-center justify-center gap-3"
-                    onClick={() => {
-                      setBottomMenuOpen(false);
-                      // Add logout call here if needed or let AuthContext handle it
-                    }}
-                  >
-                    Log Out Account
-                  </button>
+                  {user ? (
+                    <button
+                      className="w-full p-4 bg-red-50 dark:bg-red-900/10 text-red-600 font-bold rounded-2xl hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors flex items-center justify-center gap-3"
+                      onClick={() => {
+                        logout();
+                        setBottomMenuOpen(false);
+                      }}
+                    >
+                      Log Out Account
+                    </button>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3">
+                      <Link
+                        to="/login"
+                        onClick={() => setBottomMenuOpen(false)}
+                        className="p-4 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold rounded-2xl text-center"
+                      >
+                        Sign In
+                      </Link>
+                      <Link
+                        to="/register"
+                        onClick={() => setBottomMenuOpen(false)}
+                        className="p-4 bg-teal-600 text-white font-bold rounded-2xl text-center"
+                      >
+                        Get Started
+                      </Link>
+                    </div>
+                  )}
                 </div>
               </div>
             </motion.div>
@@ -168,19 +213,26 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       </AnimatePresence>
 
       {/* Premium Mobile Navigation Bar */}
+      {!hideChrome && (
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[65] px-4 sm:px-6 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-2">
         <div className="max-w-md mx-auto relative">
           {/* Enhanced Glass Carrier with better backdrop blur */}
           <div className="absolute inset-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl rounded-[2rem] border border-white/30 dark:border-slate-700/50 shadow-[0_-4px_24px_rgba(0,0,0,0.12),0_20px_50px_rgba(0,0,0,0.15)] dark:shadow-[0_-4px_24px_rgba(0,0,0,0.3),0_20px_50px_rgba(0,0,0,0.4)] pointer-events-none" />
 
           <div className="relative flex justify-around items-center h-16 px-2">
-            {[
+            {(isAuthenticated ? [
               { path: '/', label: 'Home', icon: Home },
               { path: '/services', label: 'Explore', icon: Briefcase },
               { path: '/chat', label: 'Ask AI', icon: MessageSquare, primary: true },
-              { path: '/dashboard', label: 'Dash', icon: LayoutDashboard },
+              { path: '/documents', label: 'Sessions', icon: FileText },
+              { path: '/settings', label: 'Settings', icon: Settings },
+            ] : [
+              { path: '/', label: 'Home', icon: Home },
+              { path: '/services', label: 'Explore', icon: Briefcase },
+              { path: '/chat', label: 'Ask AI', icon: MessageSquare, primary: true },
               { path: '/pricing', label: 'Plans', icon: Star },
-            ].map((item) => (
+              { path: '/login', label: 'Sign In', icon: User },
+            ]).map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
@@ -236,6 +288,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           </div>
         </div>
       </nav>
+      )}
     </div>
   );
 };
@@ -244,7 +297,6 @@ export const Header: React.FC<{ setBottomMenuOpen?: (isOpen: boolean) => void }>
   const { isAuthenticated, user } = useAuth();
   const { theme, toggleTheme, isDark } = useTheme();
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -256,11 +308,6 @@ export const Header: React.FC<{ setBottomMenuOpen?: (isOpen: boolean) => void }>
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  // Close mobile menu on route change
-  useEffect(() => {
-    setMobileMenuOpen(false);
-  }, [location.pathname]);
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -295,8 +342,8 @@ export const Header: React.FC<{ setBottomMenuOpen?: (isOpen: boolean) => void }>
               </div>
             </Link>
 
-            {/* Desktop Navigation (md and up) */}
-            <nav className="hidden md:flex items-center gap-1">
+            {/* Desktop Navigation (lg and up) */}
+            <nav className="hidden xl:flex items-center gap-1">
               {navLinks.map((item) => (
                 <Link
                   key={item.path}
@@ -313,10 +360,19 @@ export const Header: React.FC<{ setBottomMenuOpen?: (isOpen: boolean) => void }>
             </nav>
 
             {/* Right Section */}
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+              <button
+                onClick={() => setBottomMenuOpen(true)}
+                aria-label="Open menu"
+                className="xl:hidden p-2 sm:p-2.5 rounded-xl bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700 transition-all active:scale-95"
+              >
+                <Menu className="w-5 h-5" />
+              </button>
+
               {/* Theme Toggle */}
               <button
                 onClick={toggleTheme}
+                aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
                 className="p-2 sm:p-2.5 rounded-xl bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700 transition-all active:scale-95"
                 title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
               >
@@ -326,7 +382,7 @@ export const Header: React.FC<{ setBottomMenuOpen?: (isOpen: boolean) => void }>
               {isAuthenticated ? (
                 <>
                   {/* Desktop Auth Actions */}
-                  <div className="hidden md:flex items-center gap-3">
+                  <div className="hidden xl:flex items-center gap-3">
                     <button
                       onClick={() => navigate('/chat', { state: { newSession: true } })}
                       className="relative group overflow-hidden bg-gradient-to-r from-teal-600 to-emerald-700 text-white px-4 lg:px-6 py-2.5 rounded-lg text-sm font-semibold hover:shadow-xl hover:shadow-teal-600/20 transition-all duration-300 hover:-translate-y-0.5"
@@ -342,6 +398,7 @@ export const Header: React.FC<{ setBottomMenuOpen?: (isOpen: boolean) => void }>
                     <div className="relative">
                       <button
                         onClick={() => setProfileMenuOpen(!profileMenuOpen)}
+                        aria-label="Open profile menu"
                         className="flex items-center gap-2 lg:gap-3 p-1.5 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors border border-gray-200 dark:border-slate-700"
                       >
                         <div className="relative">
@@ -351,7 +408,7 @@ export const Header: React.FC<{ setBottomMenuOpen?: (isOpen: boolean) => void }>
                         </div>
                         <div className="hidden lg:block text-left mr-2">
                           <div className="text-sm font-semibold text-gray-900 dark:text-white">{user?.name}</div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">Premium Account</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 capitalize">{user?.plan || 'Free'} Plan</div>
                         </div>
                         <ChevronDown className={`hidden lg:block w-4 h-4 text-gray-400 transition-transform duration-200 ${profileMenuOpen ? 'rotate-180' : ''}`} />
                       </button>
@@ -375,13 +432,6 @@ export const Header: React.FC<{ setBottomMenuOpen?: (isOpen: boolean) => void }>
                               >
                                 <User className="w-4 h-4" />
                                 Dashboard
-                              </Link>
-                              <Link
-                                to="/cases"
-                                className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-teal-50 dark:hover:bg-teal-900/20 hover:text-teal-700 dark:hover:text-teal-400 transition-colors"
-                              >
-                                <FileText className="w-4 h-4" />
-                                My Legal Cases
                               </Link>
                               <Link
                                 to="/documents"
@@ -416,7 +466,7 @@ export const Header: React.FC<{ setBottomMenuOpen?: (isOpen: boolean) => void }>
                   </div>
                 </>
               ) : (
-                <div className="flex items-center gap-2 sm:gap-3">
+                <div className="hidden xl:flex items-center gap-2 sm:gap-3">
                   <Link
                     to="/login"
                     className="px-3 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
@@ -466,7 +516,7 @@ export const Footer: React.FC = () => {
   };
 
   return (
-    <footer className="bg-gradient-to-b from-gray-900 to-gray-950 text-gray-300 pt-16 pb-8">
+    <footer className="bg-gradient-to-b from-gray-900 to-gray-950 text-gray-300 pt-16 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Main Footer Content */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-10 lg:gap-16 mb-12">
@@ -486,18 +536,6 @@ export const Footer: React.FC = () => {
               Empowering individuals and businesses with accessible,
               reliable legal guidance 24/7.
             </p>
-            <div className="flex items-center gap-4">
-              <a href="#" className="w-9 h-9 rounded-lg bg-gray-800 flex items-center justify-center hover:bg-teal-700 transition-colors group">
-                <svg className="w-4 h-4 text-gray-400 group-hover:text-white" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z" />
-                </svg>
-              </a>
-              <a href="#" className="w-9 h-9 rounded-lg bg-gray-800 flex items-center justify-center hover:bg-teal-700 transition-colors group">
-                <svg className="w-4 h-4 text-gray-400 group-hover:text-white" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
-                </svg>
-              </a>
-            </div>
           </div>
 
           {/* Quick Links */}
@@ -509,34 +547,32 @@ export const Footer: React.FC = () => {
             <ul className="space-y-3">
               {['Document Review', 'Contract Analysis', 'Legal Research', 'Case Evaluation', 'Compliance Check'].map((service) => (
                 <li key={service}>
-                  <a href="#" className="text-sm text-gray-400 hover:text-teal-400 transition-colors flex items-center gap-2">
+                  <Link to="/services" className="text-sm text-gray-400 hover:text-teal-400 transition-colors flex items-center gap-2">
                     <span className="w-1.5 h-1.5 bg-teal-500 rounded-full"></span>
                     {service}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* Legal */}
+          {/* Support */}
           <div>
             <h4 className="text-white font-semibold text-lg mb-6 flex items-center gap-2">
               <Shield className="w-5 h-5 text-teal-400" />
-              Legal
+              Support
             </h4>
             <ul className="space-y-3">
               {[
-                { label: 'Privacy Policy', icon: <Lock className="w-4 h-4" /> },
-                { label: 'Terms of Service', icon: <FileText className="w-4 h-4" /> },
-                { label: 'Disclaimer', icon: <Shield className="w-4 h-4" /> },
-                { label: 'Cookie Policy', icon: <Globe className="w-4 h-4" /> },
-                { label: 'GDPR Compliance', icon: <Shield className="w-4 h-4" /> },
+                { label: 'About Us', to: '/about' },
+                { label: 'Pricing', to: '/pricing' },
+                { label: 'Contact Support', to: '/contact' },
               ].map((item) => (
                 <li key={item.label}>
-                  <a href="#" className="text-sm text-gray-400 hover:text-teal-400 transition-colors flex items-center gap-2">
-                    {item.icon}
+                  <Link to={item.to} className="text-sm text-gray-400 hover:text-teal-400 transition-colors flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 bg-teal-500 rounded-full"></span>
                     {item.label}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -575,12 +611,8 @@ export const Footer: React.FC = () => {
             </form>
             <div className="mt-6 pt-6 border-t border-gray-800">
               <div className="flex items-center gap-2 text-sm text-gray-400">
-                <Phone className="w-4 h-4" />
-                <span>+1 (555) 123-4567</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-400 mt-2">
                 <Mail className="w-4 h-4" />
-                <span>support@pocketlawyer.ai</span>
+                <a href="mailto:support@pocketlawyer.ai" className="hover:text-teal-400 transition-colors">support@pocketlawyer.ai</a>
               </div>
             </div>
           </div>
@@ -590,21 +622,15 @@ export const Footer: React.FC = () => {
         <div className="pt-8 border-t border-gray-800">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="text-sm text-gray-500">
-              © 2024 PocketLawyer AI. All rights reserved.
+              © {new Date().getFullYear()} PocketLawyer AI. All rights reserved.
               <span className="block md:inline mt-1 md:mt-0 md:ml-2 text-gray-600">
                 This platform provides AI-assisted legal guidance and is not a substitute for professional legal advice.
               </span>
             </div>
             <div className="flex items-center gap-6 text-sm">
-              <a href="#" className="text-gray-500 hover:text-teal-400 transition-colors">
-                Sitemap
-              </a>
-              <a href="#" className="text-gray-500 hover:text-teal-400 transition-colors">
-                Accessibility
-              </a>
-              <a href="#" className="text-gray-500 hover:text-teal-400 transition-colors">
-                Careers
-              </a>
+              <Link to="/contact" className="text-gray-500 hover:text-teal-400 transition-colors">
+                Contact
+              </Link>
             </div>
           </div>
         </div>

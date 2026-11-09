@@ -32,6 +32,17 @@ export interface ChatSession {
   updated_at: string;
 }
 
+export interface LegalSource {
+  id: string;
+  section_label?: string;
+  page_start?: number | null;
+  page_end?: number | null;
+  source_url?: string;
+  document_title?: string;
+  score?: number;
+  citation?: string;
+}
+
 export interface Message {
   id?: string; // Optional for backward compatibility
   message?: string; // User input (for API compatibility)
@@ -42,6 +53,7 @@ export interface Message {
   status?: 'pending' | 'completed' | 'failed';
   error?: string;
   created_at?: string;
+  sources?: LegalSource[];
 }
 
 export interface AiRequest {

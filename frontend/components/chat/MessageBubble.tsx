@@ -87,6 +87,35 @@ export const MessageBubble: React.FC<MessageBubbleProps> = memo(({ message, isSt
             </div>
           </div>
 
+          {/* Sources */}
+          {!isUser && message.sources && message.sources.length > 0 && (
+            <div className={`mt-3 w-full rounded-2xl border p-4 text-xs ${isLight ? 'border-slate-200 bg-white/70 text-slate-600' : 'border-slate-700 bg-slate-900/60 text-slate-300'}`}>
+              <div className="mb-2 font-semibold uppercase tracking-wide">Sources</div>
+              <div className="space-y-2">
+                {message.sources.map((source, index) => {
+                  const page = source.page_start
+                    ? source.page_end && source.page_end !== source.page_start
+                      ? `pages ${source.page_start}–${source.page_end}`
+                      : `page ${source.page_start}`
+                    : '';
+                  return (
+                    <div key={source.id || index} className="flex flex-wrap items-baseline gap-2">
+                      <span className="font-mono">[{source.citation || `S${index + 1}`}]</span>
+                      <span className="font-medium">{source.document_title || 'Legal source'}</span>
+                      {source.section_label && <span>{source.section_label}</span>}
+                      {page && <span>{page}</span>}
+                      {source.source_url && (
+                        <a href={source.source_url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">
+                          view
+                        </a>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Status / Meta */}
           {!isUser && message.status === 'failed' && (
             <div className={`mt-2 text-xs flex items-center gap-2 p-2 rounded transition-colors duration-300 ${isLight ? 'text-red-600 bg-red-50' : 'text-red-400 bg-red-900/20'
@@ -120,6 +149,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = memo(({ message, isSt
     prevProps.message.id === nextProps.message.id &&
     prevProps.message.content === nextProps.message.content &&
     prevProps.message.status === nextProps.message.status &&
+    JSON.stringify(prevProps.message.sources) === JSON.stringify(nextProps.message.sources) &&
     prevProps.isStreaming === nextProps.isStreaming
   );
 });
