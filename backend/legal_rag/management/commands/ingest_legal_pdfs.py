@@ -349,6 +349,13 @@ class Command(BaseCommand):
             help="Ingest paths/titles from a JSON manifest instead of scanning a directory.",
         )
 
+    def _within_law_dir(self, path):
+        try:
+            Path(path).resolve().relative_to(LAW_DIR.resolve())
+            return True
+        except ValueError:
+            return False
+
     def handle(self, *args, **options):
         if options.get("manifest"):
             self._handle_manifest(
@@ -362,6 +369,9 @@ class Command(BaseCommand):
             if options.get("dir")
             else LAW_DIR
         )
+        if not self._within_law_dir(law_dir):
+            self.stderr.write(f"Refusing path outside LAW_DIR: {law_dir}")
+            return
         if not law_dir.is_dir():
             self.stderr.write(f"Law directory not found: {law_dir}")
             return
@@ -441,6 +451,10 @@ class Command(BaseCommand):
             path = Path(record["path"])
             if not path.is_absolute():
                 path = Path(settings.BASE_DIR) / path
+            if not self._within_law_dir(path):
+                skipped += 1
+                self.stderr.write(f"Skipped {path.name}: outside LAW_DIR")
+                continue
             scanned += 1
             try:
                 pages = self._read_pages(path)
