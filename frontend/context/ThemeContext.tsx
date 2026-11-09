@@ -18,10 +18,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const [theme, setThemeState] = useState<Theme>(() => {
         if (typeof window !== 'undefined') {
             const stored = localStorage.getItem(THEME_STORAGE_KEY);
-            console.log('ThemeContext: Loaded from storage:', stored);
             if (stored === 'dark') return 'dark';
         }
-        console.log('ThemeContext: Defaulting to light');
         return 'light';
     });
 

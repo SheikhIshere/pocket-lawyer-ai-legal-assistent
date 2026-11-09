@@ -69,13 +69,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Validate token by making a simple API call
           try {
             await api.accountService.getProfile();
-            console.log('Token validation successful');
           } catch (error: any) {
             console.error('Token validation failed:', error);
 
             // Check if it's a 401 Unauthorized error (token expired)
             if (error?.status === 401 || error?.response?.status === 401) {
-              console.log('Token expired, clearing authentication');
               // Clear invalid token
               localStorage.removeItem('pl_token');
               localStorage.removeItem('pl_access_token');
@@ -167,7 +165,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const register = async (data: { email: string; password: string; full_name: string; password2: string }) => {
     try {
-      console.log('Register function called with:', { email: data.email, full_name: data.full_name });
 
       const registerData = {
         email: data.email,
@@ -177,18 +174,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
 
       const res = await api.authService.register(registerData);
-      console.log('Registration API response:', res);
 
       // Check if registration was successful
-      console.log('Checking registration success conditions:');
-      console.log('- res.message:', res.message);
-      console.log('- res.user:', res.user);
-      console.log('- res.status:', res.status);
-      console.log('- res:', res);
 
       // More flexible success condition
       if (res.message || res.user || res.status === 'success' || res.id) {
-        console.log('Registration successful - storing email and setting OTP required');
         // Store email for OTP verification
         localStorage.setItem('temp_email', data.email);
         localStorage.setItem('is_registration', 'true');
@@ -201,12 +191,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           requiresOtp: true
         }));
 
-        console.log('OTP state set - should redirect to register-verify-otp page');
-        console.log('localStorage is_registration:', localStorage.getItem('is_registration'));
-        console.log('localStorage temp_email:', localStorage.getItem('temp_email'));
         // Navigation will be handled by the router based on requiresOtp state
       } else {
-        console.log('Registration failed - invalid response:', res);
         // Handle registration errors
         const errorMessage = res.error || res.detail || res.message || 'Registration failed';
         throw new Error(errorMessage);
@@ -219,21 +205,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const verifyRegistrationOtp = async (email: string, otp: string) => {
     try {
-      console.log('verifyRegistrationOtp called with:', { email, otp });
       const res = await api.authService.verifyRegistrationOtp(email, otp);
-      console.log('OTP verification API response:', res);
 
       // Check for different possible success response structures
-      console.log('Checking OTP verification success conditions:');
-      console.log('- res.access:', res.access);
-      console.log('- res.refresh:', res.refresh);
-      console.log('- res.token:', res.token);
-      console.log('- res.success:', res.success);
-      console.log('- res.status:', res.status);
-      console.log('- res:', res);
 
       if (res.access && res.refresh) {
-        console.log('OTP verification successful - tokens received');
         const finalToken = res.access;
 
         // Store tokens
@@ -243,7 +219,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         // Fetch user profile data after successful OTP verification
         const profileData = await api.accountService.getProfile();
-        console.log('User profile data:', profileData);
 
         // Create user object with backend structure
         const user: User = {
@@ -262,7 +237,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           is_verified: true
         };
 
-        console.log('Created user object:', user);
 
         // Store user data
         localStorage.setItem('pl_user', JSON.stringify(user));
@@ -273,7 +247,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setTempEmail(null);
         setIsRegistration(false);
 
-        console.log('Setting auth state to authenticated');
         setState({
           user,
           isAuthenticated: true,
@@ -281,10 +254,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           token: finalToken
         });
 
-        console.log('User authentication complete');
         return true;
       } else if (res.token || res.success || res.status === 'success') {
-        console.log('OTP verification successful - alternative success format');
         const finalToken = res.token || res.access;
 
         if (finalToken) {
@@ -322,11 +293,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             token: finalToken
           });
 
-          console.log('User authentication complete (basic)');
           return true;
         }
       } else {
-        console.log('OTP verification failed - no valid success indicators');
         throw new Error('OTP verification failed - invalid response');
       }
     } catch (error) {
@@ -410,12 +379,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setTempEmail(null);
     setIsRegistration(false);
 
-    console.log('User logged out successfully');
   };
 
   // Handle token expiration globally
   const handleTokenExpiration = () => {
-    console.log('Handling token expiration');
     logout();
     // Optional: Show a toast message or redirect to login with a message
     // window.location.href = '/login?message=session_expired';
