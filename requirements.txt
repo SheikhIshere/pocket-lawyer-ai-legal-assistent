@@ -12,12 +12,12 @@ click==8.3.1
 click-didyoumean==0.3.1
 click-plugins==1.1.1.2
 click-repl==0.3.0
-cryptography==46.0.3
+cryptography>=46.0.7,<47
 distro==1.9.0
-Django==6.0.1
+Django>=6.0.2,<6.1
 django-appconf==1.2.0
 django-cors-headers==4.9.0
-djangorestframework==3.16.1
+djangorestframework>=3.17.2,<3.18
 djangorestframework_simplejwt==5.5.1
 drf-spectacular==0.29.0
 google-auth==2.47.0
@@ -59,7 +59,7 @@ uritemplate==4.2.0
 urllib3==2.6.3
 vine==5.1.0
 wcwidth==0.2.14
-pypdf
-pgvector
+pypdf==6.21.4
+pgvector==0.5.1
 
 unicodeconverter==0.1.0b12
