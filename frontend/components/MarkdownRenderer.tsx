@@ -75,6 +75,10 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, className 
             return <em className="italic text-gray-700">{children}</em>;
           },
           a({ href, children }) {
+            const safe = href && /^(https?:\/\/|mailto:|tel:|\/|#)/i.test(href);
+            if (!safe) {
+              return <span className="text-blue-600 underline">{children}</span>;
+            }
             return (
               <a 
                 href={href} 

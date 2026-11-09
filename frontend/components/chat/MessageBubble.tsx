@@ -104,7 +104,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = memo(({ message, isSt
                       <span className="font-medium">{source.document_title || 'Legal source'}</span>
                       {source.section_label && <span>{source.section_label}</span>}
                       {page && <span>{page}</span>}
-                      {source.source_url && (
+                      {source.source_url && /^(https?:\/\/|\/)/i.test(source.source_url) && (
                         <a href={source.source_url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">
                           view
                         </a>
