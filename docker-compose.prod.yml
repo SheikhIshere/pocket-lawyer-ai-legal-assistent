@@ -1,5 +1,4 @@
 x-backend-env: &backend-env
-  SECRET_KEY: ${SECRET_KEY:?}
   DEBUG: ${DEBUG:-False}
   DOCS_ENABLED: ${DOCS_ENABLED:-False}
   ALLOWED_HOSTS: ${ALLOWED_HOSTS:-poketlawyer.app,api.poketlawyer.app}
@@ -8,7 +7,6 @@ x-backend-env: &backend-env
   DB_USER: ${SERVICE_USER_POSTGRES}
   DB_PASS: ${SERVICE_PASSWORD_64_POSTGRES}
   CELERY_BROKER_URL: amqp://${SERVICE_USER_RABBIT}:${SERVICE_PASSWORD_64_RABBIT}@mq:5672//
-  DJANGO_CRYPTO_KEY: ${DJANGO_CRYPTO_KEY:?}
   GEMINI_API_KEY: ${GEMINI_API_KEY:-}
   OMNIROUTE_BASE_URL: ${OMNIROUTE_BASE_URL:-}
   OMNIROUTE_API_KEY: ${OMNIROUTE_API_KEY:-}
@@ -62,8 +60,13 @@ services:
       context: .
       dockerfile: Dockerfile.prod
     restart: unless-stopped
+    entrypoint: ["/backend/entrypoint.sh"]
     command: sh -c "python manage.py migrate && python manage.py collectstatic --noinput && gunicorn core.wsgi:application --bind 0.0.0.0:8001 --workers 3 --timeout 120"
-    environment: *backend-env
+    environment:
+      <<: *backend-env
+      GENERATE_SECRETS: "1"
+    volumes:
+      - app-secrets:/data
     depends_on:
       db:
         condition: service_healthy
@@ -81,8 +84,11 @@ services:
       context: .
       dockerfile: Dockerfile.prod
     restart: unless-stopped
+    entrypoint: ["/backend/entrypoint.sh"]
     command: celery -A core worker -l INFO --concurrency=2
     environment: *backend-env
+    volumes:
+      - app-secrets:/data
     depends_on:
       db:
         condition: service_healthy
@@ -102,3 +108,4 @@ services:
 volumes:
   db-data:
   mq-data:
+  app-secrets:
