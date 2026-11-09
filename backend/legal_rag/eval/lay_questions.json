@@ -1,0 +1,126 @@
+[
+  {
+    "question": "I need a gun and how can I own a gun? What is the procedure, minimum age, fees and renewal?",
+    "expected_terms": ["Arms Act"]
+  },
+  {
+    "question": "Why LGBT is forbidden in Bangladesh?",
+    "expected_terms": ["Penal Code"]
+  },
+  {
+    "question": "What is the punishment for taking dowry?",
+    "expected_terms": ["যৌতুক নিরোধ"]
+  },
+  {
+    "question": "My employer has not paid my salary for three months. What can I do?",
+    "expected_terms": ["শ্রম আইন"]
+  },
+  {
+    "question": "How do I get bail?",
+    "expected_terms": ["Criminal Procedure"]
+  },
+  {
+    "question": "How can a Muslim woman get a divorce?",
+    "expected_terms": ["Dissolution of Muslim Marriages", "Muslim Family Laws"]
+  },
+  {
+    "question": "What is the punishment for rape?",
+    "expected_terms": ["Penal Code"]
+  },
+  {
+    "question": "How do I file a cheque bounce case?",
+    "expected_terms": ["Negotiable Instruments"]
+  },
+  {
+    "question": "What does Article 27 of the Constitution say?",
+    "expected_terms": ["Constitution"]
+  },
+  {
+    "question": "How do I complain about cyber harassment?",
+    "expected_terms": ["সাইবার সুরক্ষা"]
+  },
+  {
+    "question": "What is the punishment for bribery?",
+    "expected_terms": ["Corruption"]
+  },
+  {
+    "question": "What is the punishment for theft?",
+    "expected_terms": ["Penal Code"]
+  },
+  {
+    "question": "What is the punishment for murder?",
+    "expected_terms": ["Penal Code"]
+  },
+  {
+    "question": "How do I report domestic violence against a woman?",
+    "expected_terms": ["পারিবারিক সহিংসতা", "নারী ও শিশু নির্যাতন"]
+  },
+  {
+    "question": "What is the legal age of marriage in Bangladesh?",
+    "expected_terms": ["বাল্যবিবাহ"]
+  },
+  {
+    "question": "How do I register a marriage?",
+    "expected_terms": ["Marriages and Divorces"]
+  },
+  {
+    "question": "What is the definition of evidence?",
+    "expected_terms": ["The Evidence Act, 1872"]
+  },
+  {
+    "question": "What is a contract?",
+    "expected_terms": ["Contract Act"]
+  },
+  {
+    "question": "How do I transfer ownership of land?",
+    "expected_terms": ["Transfer of Property"]
+  },
+  {
+    "question": "What is the limitation period to file a civil suit?",
+    "expected_terms": ["Limitation Act"]
+  },
+  {
+    "question": "How do I file for specific performance of a contract?",
+    "expected_terms": ["Specific Relief"]
+  },
+  {
+    "question": "How do I get guardianship of a child?",
+    "expected_terms": ["Guardians and Wards"]
+  },
+  {
+    "question": "How is property inherited when there is no will?",
+    "expected_terms": ["Succession Act"]
+  },
+  {
+    "question": "Which court hears a family case?",
+    "expected_terms": ["Family Courts"]
+  },
+  {
+    "question": "How do I resolve a dispute between business partners?",
+    "expected_terms": ["Partnership"]
+  },
+  {
+    "question": "How is a Christian marriage solemnised?",
+    "expected_terms": ["Christian Marriage"]
+  },
+  {
+    "question": "How do I register a special marriage?",
+    "expected_terms": ["Special Marriage"]
+  },
+  {
+    "question": "Who manages a waqf property?",
+    "expected_terms": ["Waqfs"]
+  },
+  {
+    "question": "What is the stamp duty on a deed?",
+    "expected_terms": ["Stamp Act"]
+  },
+  {
+    "question": "What is the procedure to file a civil suit?",
+    "expected_terms": ["Civil Procedure"]
+  },
+  {
+    "question": "How do I appeal against a conviction?",
+    "expected_terms": ["Criminal Procedure"]
+  }
+]

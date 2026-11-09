@@ -62,3 +62,45 @@ def get_legal_prompt(style, user_query):
             "- Focus on being supportive and guiding the user toward lawful resolutions.\n"
             "- No personal talk; strictly professional greetings and legal business.\n"
         )
+
+
+def get_rag_prompt(style, user_query, context, plan=None):
+    """Legal prompt with strict source grounding and an answer-first contract."""
+    base = get_legal_prompt(style, user_query)
+    refusal = (
+        "I could not find this in the provided legal sources. "
+        "Please try to connect with a real lawyer licensed in Bangladesh. "
+        "If you can tell me the Act or section, I can look it up."
+    )
+    follow_up = ""
+    if plan and plan.get("clarifying_question"):
+        follow_up = (
+            "- After answering, ask exactly this one question: "
+            f"{plan['clarifying_question']}\n"
+        )
+    else:
+        follow_up = "- Do not ask a question. Answer the question directly.\n"
+
+    return (
+        f"{base}\n\n"
+        "GROUNDING RULES:\n"
+        "- Use ONLY the sources below for legal facts.\n"
+        "- Answer the user's legal question directly. Do not ask why they need it.\n"
+        "- Answer every part you can. For a part the sources do not cover, write exactly: The sources do not cover ...\n"
+        "- Every sentence that states a legal rule, punishment, right, or procedure must end with [S1], [S2], etc.\n"
+        "- Name the Act and section you rely on in the same sentence as the citation.\n"
+        "- Sources are ordered from most relevant to least; prefer the earlier ones.\n"
+        "- If two Acts cover the same issue, prefer the more recent Act.\n"
+        "- Never cite a source label that is not present below.\n"
+        "- Never use your training data. If you know the answer but the sources do not contain it, do not answer it.\n"
+        "- Do not add facts, examples, or advice that are not in the sources.\n"
+        "- Never ask for information the user already provided.\n"
+        "- For a procedure question, cover: legal basis, eligibility, steps and authority, documents, fees or renewal, penalty, and any gap.\n"
+        "- Only if none of the sources are relevant, reply exactly: "
+        f"{refusal}\n"
+        + follow_up
+        + "- Do not use your own memory for legal facts, even if you know them.\n"
+        "- Keep the answer under 300 characters unless the user asks for detail.\n\n"
+        f"--- SOURCES ---\n{context}\n--- END SOURCES ---\n"
+        f"User Query: {user_query}\nResponse:"
+    )

@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.postgres',
 
     # local apps
     'users',
@@ -53,6 +54,7 @@ INSTALLED_APPS = [
     'chat_bot',
     'newsletter',
     'contact_us',
+    'legal_rag',
 
     # 3rd package
     'rest_framework',
@@ -63,9 +65,9 @@ INSTALLED_APPS = [
 
 # CORS
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:8000",
+    "http://localhost:8001",
     "http://localhost:3000",
-    "http://127.0.0.1:8000",
+    "http://127.0.0.1:8001",
     "http://127.0.0.1:3000",
 ]
 
@@ -77,7 +79,7 @@ CORS_ALLOW_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
 
 # CSRF
 CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:8000",
+    "http://localhost:8001",
     "http://localhost:3000",
 ]
 
@@ -197,16 +199,50 @@ CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL")
 # gemini
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
+# platform AI fallback (OmniRoute OpenAI-compatible endpoint)
+OMNIROUTE_BASE_URL = os.getenv("OMNIROUTE_BASE_URL", "")
+OMNIROUTE_API_KEY = os.getenv("OMNIROUTE_API_KEY", "")
+OMNIROUTE_MODEL = os.getenv("OMNIROUTE_MODEL", "ddgw/tinfoil/gpt-oss-120b")
+OMNIROUTE_FALLBACK_MODELS = [
+    model.strip()
+    for model in os.getenv(
+        "OMNIROUTE_FALLBACK_MODELS",
+        "ddgw/gpt-5.6-luna,ddgw/tinfoil/gemma4-31b,ddgw/claude-haiku-4-5",
+    ).split(",")
+    if model.strip()
+]
+OMNIROUTE_DAILY_LIMIT = int(os.getenv("OMNIROUTE_DAILY_LIMIT") or 50)
+
+# Legal RAG
+LEGAL_RAG_TOP_K = max(1, int(os.getenv("LEGAL_RAG_TOP_K") or 20))
+LEGAL_RAG_CANDIDATE_K = max(
+    LEGAL_RAG_TOP_K, int(os.getenv("LEGAL_RAG_CANDIDATE_K") or 50)
+)
+LEGAL_RAG_MIN_SCORE = float(os.getenv("LEGAL_RAG_MIN_SCORE") or 0.0)
+LEGAL_RAG_MAX_CONTEXT_CHARS = int(
+    os.getenv("LEGAL_RAG_MAX_CONTEXT_CHARS") or 30000
+)
+LEGAL_RAG_EMBEDDING_PROVIDER = os.getenv(
+    "LEGAL_RAG_EMBEDDING_PROVIDER", "ollama"
+)
+LEGAL_RAG_EMBEDDING_MODEL = os.getenv(
+    "LEGAL_RAG_EMBEDDING_MODEL", "qwen3-embedding:0.6b"
+)
+LEGAL_RAG_EMBEDDING_DIM = int(os.getenv("LEGAL_RAG_EMBEDDING_DIM") or 1024)
+OLLAMA_BASE_URL = os.getenv(
+    "OLLAMA_BASE_URL", "http://host.docker.internal:11435"
+)
+
 
 # email
-# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'          # Gmail SMTP server
-EMAIL_PORT = 587                        # TLS port
-EMAIL_USE_TLS = True                    # TLS security
-EMAIL_HOST_USER = os.getenv ('EMAIL_HOST_USER')   # your email
-EMAIL_HOST_PASSWORD = os.getenv ('EMAIL_HOST_PASSWORD')  # app password (not your normal Gmail password)
-DEFAULT_FROM_EMAIL = os.getenv ('DEFAULT_FROM_EMAIL')
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.resend.com')
+EMAIL_PORT = int(os.getenv('EMAIL_PORT') or 587)
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL')
+EMAIL_TIMEOUT = 20
 
 
 # drf-spectacular
