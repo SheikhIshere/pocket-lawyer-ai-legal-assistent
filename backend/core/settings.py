@@ -14,6 +14,7 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv
 from datetime import timedelta
+from django.core.exceptions import ImproperlyConfigured
 
 # Load .env from project root
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -27,13 +28,22 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY')
+SECRET_KEY = os.environ.get('SECRET_KEY')
+if not SECRET_KEY:
+    raise ImproperlyConfigured("SECRET_KEY is not set")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG')
+DEBUG = os.getenv('DEBUG') == 'True'
 
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in (
+        os.getenv('ALLOWED_HOSTS')
+        or 'poketlawyer.app,api.poketlawyer.app,localhost,127.0.0.1'
+    ).split(',')
+    if host.strip()
+]
 
 
 # Application definition
@@ -59,12 +69,15 @@ INSTALLED_APPS = [
     # 3rd package
     'rest_framework',
     'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
     'drf_spectacular',
     'corsheaders',
 ]
 
 # CORS
 CORS_ALLOWED_ORIGINS = [
+    "https://poketlawyer.app",
+    "https://api.poketlawyer.app",
     "http://localhost:8001",
     "http://localhost:3000",
     "http://127.0.0.1:8001",
@@ -73,15 +86,27 @@ CORS_ALLOWED_ORIGINS = [
 
 # CORS Settings
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_ALL_ORIGINS = True  # For development only
 CORS_ALLOW_HEADERS = ['Content-Type', 'Authorization']
 CORS_ALLOW_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
 
 # CSRF
 CSRF_TRUSTED_ORIGINS = [
+    "https://poketlawyer.app",
+    "https://api.poketlawyer.app",
     "http://localhost:8001",
     "http://localhost:3000",
 ]
+
+# HTTPS / cookie hardening (off only while DEBUG=True)
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SECURE_SSL_REDIRECT = not DEBUG
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+SECURE_HSTS_SECONDS = 0 if DEBUG else 31536000
+SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG
+SECURE_HSTS_PRELOAD = not DEBUG
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
 
 
 # custom user define
@@ -98,15 +123,21 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_THROTTLE_RATES': {
         'forgot-password': '5/hour',
+        'login': '10/hour',
+        'otp-verify': '10/hour',
+        'otp-resend': '5/hour',
+        'chat-send': '60/hour',
+        'public-form': '10/hour',
     },
 }
 
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "AUTH_HEADER_TYPES": ("Bearer",),
     "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
 }
 
 
@@ -258,7 +289,7 @@ SPECTACULAR_SETTINGS = {
     'VERSION': '1.0.0',
     
     # Add these to prevent duplicates
-    'SERVE_PUBLIC': True,
+    'SERVE_PUBLIC': os.getenv('DOCS_ENABLED') == 'True',
     'SERVE_INCLUDE_SCHEMA': False,
     
     # Try disabling automatic path detection
