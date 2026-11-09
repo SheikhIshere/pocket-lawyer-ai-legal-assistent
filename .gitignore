@@ -87,3 +87,9 @@ CLAUDE.md
 ledger_book
 research
 trash
+
+# Legal corpus source data (1,177 PDFs + manifests; not normal git data)
+backend/BASE/law/
+
+# Generated frontend build output
+frontend/dist_root_owned/
