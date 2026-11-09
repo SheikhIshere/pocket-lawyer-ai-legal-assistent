@@ -21,7 +21,25 @@ class ChatSessionSerializer(serializers.ModelSerializer):
 
 
 
+class ChatSessionListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ChatSession
+        fields = [
+            "id",
+            "title",
+            "created_at",
+            "updated_at",
+        ]
+
+
+class AiRequestListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AiRequest
+        fields = ["id", "session", "status", "created_at"]
+
+
 class AiRequestCreateSerializer(serializers.ModelSerializer):
+    message = serializers.CharField(max_length=4000)
     class Meta:
         model = AiRequest
         fields = [

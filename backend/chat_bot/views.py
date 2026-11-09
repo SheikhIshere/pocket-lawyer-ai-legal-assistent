@@ -12,7 +12,12 @@ from django.utils import timezone
 from accounts.models import Account
 from api_key.models import ApiKey
 from .models import ChatSession, AiRequest
-from .serializers import ChatSessionSerializer, AiRequestCreateSerializer
+from .serializers import (
+    ChatSessionSerializer,
+    ChatSessionListSerializer,
+    AiRequestCreateSerializer,
+    AiRequestListSerializer,
+)
 
 # documentation
 from drf_spectacular.utils import extend_schema
@@ -26,6 +31,7 @@ class ChatSessionViewSet(
     mixins.CreateModelMixin,
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
+    mixins.DestroyModelMixin,
     viewsets.GenericViewSet,
 ):
     """
@@ -35,6 +41,16 @@ class ChatSessionViewSet(
     queryset = ChatSession.objects.all().order_by("-updated_at")
     serializer_class = ChatSessionSerializer
     permission_classes = (IsAuthenticated, IsVerifiedUser)
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return ChatSessionListSerializer
+        return ChatSessionSerializer
+
+    def get_throttles(self):
+        if self.action == "send":
+            self.throttle_scope = 'chat-send'
+        return super().get_throttles()
 
     def get_queryset(self):
         """
@@ -132,6 +148,11 @@ class AiRequestViewSet(
     queryset = AiRequest.objects.all().order_by("-created_at")
     serializer_class = AiRequestCreateSerializer
     permission_classes = (IsAuthenticated, IsVerifiedUser)
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return AiRequestListSerializer
+        return AiRequestCreateSerializer
 
     def get_queryset(self):
         """

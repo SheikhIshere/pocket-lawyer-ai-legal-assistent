@@ -495,7 +495,7 @@ class ChatSession(BaseModel):
             conversation_text = self._conversation_text() or "No conversation text available."
             prompt = generate_title_prompt(conversation_text)
 
-            key = ApiKey.objects.filter(account_id=self.account_id).first()
+            key = ApiKey.objects.filter(account_id=self.account_id, is_working=True).first()
             if key:
                 client = genai.Client(
                     api_key=key.api_key,
@@ -603,9 +603,9 @@ class ChatSession(BaseModel):
 
         self.messages.append(entry)
 
-        # instant fallback title (first message only)
+        # instant fallback title (first message only); never expose raw message text
         if is_first_message and message:
-            self.title = str(message).strip()[:60]
+            self.title = "New Chat"
 
         # save messages (and title if set)
         update_fields = ["messages"]
@@ -777,7 +777,7 @@ class AiRequest(BaseModel):
                     )
             else:
                 self.status = CeleryStatus.FAILED
-                self.response = str(exc)
+                self.response = "The AI service is temporarily unavailable. Please try again."
                 self.save(update_fields=["status", "response", "updated_at"])
 
     def _finish_with_reply(self, text):
@@ -1041,7 +1041,7 @@ class AiRequest(BaseModel):
                             )
                 else:
                     self.status = CeleryStatus.FAILED
-                    self.response = str(e)
+                    self.response = "The AI service is temporarily unavailable. Please try again."
 
             # final save: only update limited fields
             update_fields = ['status', 'response', 'response_engine']
@@ -1068,9 +1068,7 @@ class AiRequest(BaseModel):
 
         # If new and no session, create one (use message as title)
         if is_new and not self.session:
-            title_candidate = (self.message or "").strip()[:60]
-            if not title_candidate:
-                title_candidate = f"new chat {uuid.uuid4().hex[:8]}"
+            title_candidate = "New Chat"
 
             session = ChatSession.objects.create(
                 title=title_candidate,
