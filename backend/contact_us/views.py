@@ -18,6 +18,7 @@ user's what they need information
 @extend_schema(tags=['contact us'])
 class ContactUsView(G):
     serializer_class = ContactUsSerializer
+    throttle_scope = 'public-form'
     
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
