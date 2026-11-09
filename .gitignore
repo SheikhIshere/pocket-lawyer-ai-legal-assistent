@@ -31,6 +31,7 @@ test.json
 .env
 .env.local
 .env.production
+docker-compose.override.yml
 
 # Build and dist
 build/
@@ -74,3 +75,15 @@ dist-ssr
 
 # self help file
 xyz/
+
+
+#base
+.agents
+AGENTS.md
+.claude
+CLAUDE.md
+.code-review-graph
+.code-review-graph-venv
+ledger_book
+research
+trash
