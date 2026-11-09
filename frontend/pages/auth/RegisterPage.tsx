@@ -16,40 +16,10 @@ const RegisterPage: React.FC = () => {
   const { register } = useAuth();
   const navigate = useNavigate();
 
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/3b5466ef-e4ad-485a-98f1-d363bc9e423a', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      sessionId: 'debug-session',
-      runId: 'post-fix-2',
-      hypothesisId: 'H11',
-      location: 'RegisterPage.tsx:render',
-      message: 'RegisterPage rendered',
-      data: { pathHash: window.location.hash },
-      timestamp: Date.now()
-    })
-  }).catch(() => { });
-  // #endregion agent log
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/3b5466ef-e4ad-485a-98f1-d363bc9e423a', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        sessionId: 'debug-session',
-        runId: 'post-fix-3',
-        hypothesisId: 'H13',
-        location: 'RegisterPage.tsx:handleSubmit:start',
-        message: 'Register submit handler invoked',
-        data: { hasEmail: !!email, hasFullName: !!full_name },
-        timestamp: Date.now()
-      })
-    }).catch(() => { });
-    // #endregion agent log
 
     console.log('Form validation:', {
       password,
@@ -58,21 +28,6 @@ const RegisterPage: React.FC = () => {
     });
 
     if (password !== confirmPassword) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/3b5466ef-e4ad-485a-98f1-d363bc9e423a', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId: 'debug-session',
-          runId: 'post-fix-3',
-          hypothesisId: 'H14',
-          location: 'RegisterPage.tsx:handleSubmit:validation',
-          message: 'Register submit blocked by password mismatch',
-          data: {},
-          timestamp: Date.now()
-        })
-      }).catch(() => { });
-      // #endregion agent log
 
       setError("Passwords don't match");
       return;
@@ -84,59 +39,14 @@ const RegisterPage: React.FC = () => {
     setError('');
 
     try {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/3b5466ef-e4ad-485a-98f1-d363bc9e423a', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId: 'debug-session',
-          runId: 'post-fix-2',
-          hypothesisId: 'H9',
-          location: 'RegisterPage.tsx:handleSubmit:entry',
-          message: 'Register submit started',
-          data: { hasEmail: !!email, hasFullName: !!full_name },
-          timestamp: Date.now()
-        })
-      }).catch(() => { });
-      // #endregion agent log
 
       const result = await register({ email, password, full_name, password2: confirmPassword });
       console.log('Registration API result:', result);
 
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/3b5466ef-e4ad-485a-98f1-d363bc9e423a', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId: 'debug-session',
-          runId: 'post-fix-2',
-          hypothesisId: 'H12',
-          location: 'RegisterPage.tsx:handleSubmit:after-register',
-          message: 'register() resolved, about to navigate to OTP page',
-          data: { pathHash: window.location.hash },
-          timestamp: Date.now()
-        })
-      }).catch(() => { });
-      // #endregion agent log
 
       // We explicitly navigate now because PublicOnlyRoute allows /register even when requiresOtp=true
       navigate('/register-verify-otp');
 
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/3b5466ef-e4ad-485a-98f1-d363bc9e423a', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId: 'debug-session',
-          runId: 'post-fix-2',
-          hypothesisId: 'H10',
-          location: 'RegisterPage.tsx:handleSubmit:navigate',
-          message: 'Navigating to register OTP page after register() resolved',
-          data: { pathHash: window.location.hash },
-          timestamp: Date.now()
-        })
-      }).catch(() => { });
-      // #endregion agent log
 
     } catch (err: any) {
       console.error('Registration error:', err);
@@ -173,8 +83,8 @@ const RegisterPage: React.FC = () => {
         </Link>
 
         <div className="max-w-md w-full mx-auto">
-          <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Create Account</h2>
-          <p className="text-slate-500 dark:text-gray-400 mb-8">Join 50,000+ users getting instant legal help.</p>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Create Account</h1>
+          <p className="text-slate-500 dark:text-gray-400 mb-8">Create your account to start a legal consultation.</p>
 
           {error && (
             <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-900/30 rounded-lg text-sm">
@@ -228,6 +138,7 @@ const RegisterPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300 p-1"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -250,6 +161,7 @@ const RegisterPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300 p-1"
                 >
                   {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -296,7 +208,7 @@ const RegisterPage: React.FC = () => {
           </div>
           <h2 className="text-4xl font-bold mb-6">Start Your Legal Journey Today</h2>
           <p className="text-teal-100 text-lg leading-relaxed mb-12">
-            Join thousands of professionals who trust our AI-powered legal assistant for accurate, secure, and instant legal guidance.
+            Create an account to keep your consultations, documents, and settings together.
           </p>
 
           <div className="space-y-4 text-left inline-block">

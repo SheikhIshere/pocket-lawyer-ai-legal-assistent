@@ -9,6 +9,7 @@ const VerifyOtpPage: React.FC = () => {
   const [error, setError] = useState('');
   const [timeLeft, setTimeLeft] = useState(300); // 5 minutes in seconds
   const [isResending, setIsResending] = useState(false);
+  const [resendMessage, setResendMessage] = useState('');
 
   const { verifyRegistrationOtp, verifyLoginOtp, tempEmail, isRegistration } = useAuth();
   const navigate = useNavigate();
@@ -108,6 +109,7 @@ const VerifyOtpPage: React.FC = () => {
   const handleResend = async () => {
     setIsResending(true);
     setError('');
+    setResendMessage('');
 
     try {
       if (!tempEmail) {
@@ -119,17 +121,20 @@ const VerifyOtpPage: React.FC = () => {
       const { authService } = await import('../../services/api');
 
       // Use the appropriate resend method based on whether it's registration or login
-      const result = isRegistration ?
-        await authService.resendRegistrationOtp(tempEmail) :
-        await authService.resendLoginOtp(tempEmail);
-
-      console.log('Resend OTP result:', result);
+      await (isRegistration
+        ? authService.resendRegistrationOtp(tempEmail)
+        : authService.resendLoginOtp(tempEmail));
 
       setTimeLeft(300); // Reset timer
       setError('');
+      setResendMessage('New code sent.');
     } catch (err: any) {
       console.error('Resend OTP error:', err);
-      setError('Failed to resend code. Please try again.');
+      const data = err?.response?.data;
+      const first = typeof data === 'string'
+        ? data
+        : data && Object.values(data).flat().find((value) => typeof value === 'string');
+      setError(typeof first === 'string' ? first : 'Failed to resend code. Please try again.');
     } finally {
       setIsResending(false);
     }
@@ -150,20 +155,20 @@ const VerifyOtpPage: React.FC = () => {
       <div className="relative z-10 w-full max-w-lg">
         <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden">
           {/* Header */}
-          <div className="bg-gradient-to-r from-teal-600 to-blue-600 p-6 text-white">
-            <div className="flex items-center justify-center mb-4">
-              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                <Mail className="w-8 h-8 text-white" />
+          <div className="bg-gradient-to-r from-teal-600 to-blue-600 p-4 sm:p-6 text-white">
+            <div className="flex items-center justify-center mb-2 sm:mb-4">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                <Mail className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
               </div>
             </div>
-            <h1 className="text-2xl font-bold text-center">Verify Your Email</h1>
-            <p className="text-teal-100 text-center text-sm">
+            <h1 className="text-xl sm:text-2xl font-bold text-center">Verify Your Email</h1>
+            <p className="text-teal-100 text-center text-xs sm:text-sm">
               We've sent a 6-digit verification code to your email address
             </p>
           </div>
 
           {/* Content */}
-          <div className="p-8">
+          <div className="p-5 sm:p-8">
             {error && (
               <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30 rounded-lg flex items-start gap-3">
                 <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
@@ -174,9 +179,9 @@ const VerifyOtpPage: React.FC = () => {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
               <div>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-3 text-center">
+                <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-2 text-center">
                   Enter 6-digit code
                 </label>
                 <div className="relative">
@@ -185,7 +190,7 @@ const VerifyOtpPage: React.FC = () => {
                     maxLength={6}
                     value={otp}
                     onChange={(e) => handleOtpChange(e.target.value)}
-                    className="w-full text-center text-3xl tracking-[0.5em] font-bold py-4 px-4 border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:border-teal-500 focus:ring-4 focus:ring-teal-500/20 outline-none transition-all text-slate-800 dark:text-white bg-slate-50 dark:bg-slate-800"
+                    className="w-full text-center text-2xl sm:text-3xl tracking-[0.5em] font-bold py-3 px-4 border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:border-teal-500 focus:ring-4 focus:ring-teal-500/20 outline-none transition-all text-slate-800 dark:text-white bg-slate-50 dark:bg-slate-800"
                     placeholder="000000"
                     autoFocus
                     disabled={isLoading}
@@ -198,8 +203,8 @@ const VerifyOtpPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Timer */}
-              <div className="text-center">
+              {/* Timer + recovery hint */}
+              <div className="text-center space-y-1.5">
                 {timeLeft > 0 ? (
                   <div className="flex items-center justify-center gap-2 text-slate-600 dark:text-gray-400">
                     <Clock className="w-4 h-4" />
@@ -210,12 +215,15 @@ const VerifyOtpPage: React.FC = () => {
                     Code expired. Please request a new one.
                   </div>
                 )}
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed max-w-xs mx-auto">
+                  Can't find the email? Check your spam or junk folder.
+                </p>
               </div>
 
               <button
                 type="submit"
                 disabled={isLoading || otp.length !== 6}
-                className="w-full bg-teal-600 text-white py-4 rounded-xl font-semibold hover:bg-teal-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-teal-600/20 hover:shadow-xl hover:-translate-y-0.5 flex items-center justify-center gap-2"
+                className="w-full bg-teal-600 text-white py-3.5 rounded-xl font-semibold hover:bg-teal-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-teal-600/20 hover:shadow-xl hover:-translate-y-0.5 flex items-center justify-center gap-2"
               >
                 {isLoading ? (
                   <>
@@ -230,44 +238,55 @@ const VerifyOtpPage: React.FC = () => {
                 )}
               </button>
 
-              <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-                <button
-                  type="button"
-                  onClick={handleResend}
-                  disabled={isResending || timeLeft > 240} // Prevent spam (wait at least 1 minute)
-                  className="w-full text-teal-600 font-medium hover:text-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
-                >
-                  {isResending ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-teal-600 dark:border-teal-400 border-t-transparent animate-spin rounded-full"></div>
-                      <span>Sending...</span>
-                    </>
-                  ) : (
-                    <>
-                      <RefreshCw className="w-4 h-4" />
-                      <span>Resend Code</span>
-                    </>
-                  )}
-                </button>
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
+                <div className="flex items-center justify-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handleResend}
+                    disabled={isResending || timeLeft > 240} // Prevent spam (wait at least 1 minute)
+                    className="min-h-[40px] flex-1 text-teal-600 font-medium hover:text-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-xs sm:text-sm"
+                  >
+                    {isResending ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span>Sending...</span>
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="w-4 h-4" />
+                        <span>{timeLeft > 240 ? `Resend in ${formatTime(timeLeft - 240)}` : 'Resend Code'}</span>
+                      </>
+                    )}
+                  </button>
 
-                <div className="text-center mt-4">
+                  <span className="h-4 w-px bg-slate-200 dark:bg-slate-700" />
+
                   <button
                     onClick={() => navigate('/login')}
-                    className="flex items-center justify-center gap-2 text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300 mx-auto text-sm transition-colors"
+                    className="min-h-[40px] flex-1 flex items-center justify-center gap-2 text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300 text-xs sm:text-sm transition-colors"
                   >
                     <ArrowLeft className="w-4 h-4" />
                     <span>Back to Login</span>
                   </button>
                 </div>
+                {resendMessage && (
+                  <p
+                    role="status"
+                    aria-live="polite"
+                    className="text-center text-xs text-green-600 dark:text-green-400 mt-2"
+                  >
+                    {resendMessage}
+                  </p>
+                )}
               </div>
             </form>
           </div>
 
           {/* Security Badge */}
-          <div className="bg-slate-50 dark:bg-slate-900/50 px-6 py-4 border-t border-slate-100 dark:border-slate-800">
+          <div className="bg-slate-50 dark:bg-slate-900/50 px-5 py-3 border-t border-slate-100 dark:border-slate-800">
             <div className="flex items-center justify-center gap-2 text-xs text-slate-500">
               <Shield className="w-3 h-3" />
-              <span>Your code is encrypted and secure</span>
+              <span>Never share this code with anyone</span>
             </div>
           </div>
         </div>

@@ -300,7 +300,7 @@ const RegisterVerifyOtpPage: React.FC = () => {
           <div className="bg-slate-50 dark:bg-slate-900/50 px-6 py-4 border-t border-slate-100 dark:border-slate-800">
             <div className="flex items-center justify-center gap-2 text-xs text-slate-500">
               <Shield className="w-3 h-3" />
-              <span>Your code is encrypted and secure</span>
+              <span>Never share this code with anyone</span>
             </div>
           </div>
         </div>
