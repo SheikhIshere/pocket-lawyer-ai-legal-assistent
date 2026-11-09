@@ -252,7 +252,7 @@ class UserLoginView(generics.CreateAPIView):
                     'is_verified': user.is_verified
                 },
             }, status=status.HTTP_201_CREATED)        
-        return Response(serializer.errors)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 """
