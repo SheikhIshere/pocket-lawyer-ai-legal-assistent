@@ -17,13 +17,9 @@ const VerifyOtpPage: React.FC = () => {
   // Check if user has temp email from registration/login
   React.useEffect(() => {
     const storedEmail = localStorage.getItem('temp_email');
-    console.log('VerifyOtpPage - temp_email from localStorage:', storedEmail);
-    console.log('VerifyOtpPage - tempEmail from context:', tempEmail);
-    console.log('VerifyOtpPage - isRegistration:', isRegistration);
 
     if (!storedEmail) {
       // No temp email, redirect to login
-      console.log('No temp email found, redirecting to login');
       navigate('/login');
       return;
     }
@@ -59,23 +55,17 @@ const VerifyOtpPage: React.FC = () => {
     setError('');
 
     try {
-      console.log('OTP Verification - Email:', tempEmail);
-      console.log('OTP Verification - Is Registration:', isRegistration);
-      console.log('OTP Verification - Submitting code:', otp);
 
       // Use the appropriate verification method based on whether it's registration or login
       const result = isRegistration ?
         await verifyRegistrationOtp(tempEmail, otp) :
         await verifyLoginOtp(tempEmail, otp);
 
-      console.log('OTP verification result:', result);
 
       // Check if verification was successful
       if (result) {
-        console.log('OTP verification successful - navigating to chat');
         navigate('/chat');
       } else {
-        console.log('OTP verification failed - invalid result');
         setError('Invalid verification code. Please check your email and try again.');
       }
     } catch (err: any) {

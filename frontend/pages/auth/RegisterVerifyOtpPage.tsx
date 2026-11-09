@@ -16,12 +16,9 @@ const RegisterVerifyOtpPage: React.FC = () => {
   // Check if user has temp email from registration
   React.useEffect(() => {
     const storedEmail = localStorage.getItem('temp_email');
-    console.log('RegisterVerifyOtpPage - temp_email from localStorage:', storedEmail);
-    console.log('RegisterVerifyOtpPage - tempEmail from context:', tempEmail);
 
     if (!storedEmail) {
       // No temp email, redirect to register
-      console.log('No temp email found, redirecting to register');
       navigate('/register');
       return;
     }
@@ -57,19 +54,14 @@ const RegisterVerifyOtpPage: React.FC = () => {
     setError('');
 
     try {
-      console.log('Registration OTP Verification - Email:', tempEmail);
-      console.log('Registration OTP Verification - Submitting code:', otp);
 
       const result = await verifyRegistrationOtp(tempEmail, otp);
 
-      console.log('Registration OTP verification result:', result);
 
       // Check if verification was successful
       if (result) {
-        console.log('Registration OTP verification successful - navigating to chat');
         navigate('/chat');
       } else {
-        console.log('Registration OTP verification failed - invalid result');
         setError('Invalid verification code. Please check your email and try again.');
       }
     } catch (err: any) {
@@ -103,9 +95,6 @@ const RegisterVerifyOtpPage: React.FC = () => {
   const handleResend = async () => {
     if (isResending || timeLeft > 240) return; // Prevent spam (wait at least 1 minute)
 
-    console.log('RESEND: Starting resend process');
-    console.log('RESEND: Email:', tempEmail);
-    console.log('RESEND: Time left:', timeLeft);
 
     setIsResending(true);
     setError('');
@@ -114,9 +103,7 @@ const RegisterVerifyOtpPage: React.FC = () => {
       // Import authService for resend functionality
       const { authService, accountService } = await import('../../services/api');
 
-      console.log('RESEND: Calling authService.resendRegistrationOtp');
       const result = await authService.resendRegistrationOtp(tempEmail);
-      console.log('RESEND: API response:', result);
 
       // Reset timer
       setTimeLeft(300);

@@ -184,9 +184,7 @@ const SettingsPage: React.FC = () => {
     setApiKeys(apiKeys.filter(key => key.id !== id));
 
     try {
-      console.log('Deleting API key with ID:', id);
       await api.accountService.deleteApiKey(id);
-      console.log('API key deleted successfully');
     } catch (error: any) {
       console.error('Failed to delete API key:', error);
 

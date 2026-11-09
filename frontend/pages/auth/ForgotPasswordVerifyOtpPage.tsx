@@ -18,11 +18,9 @@ const ForgotPasswordVerifyOtpPage: React.FC = () => {
   // Check if user has temp email from forgot password
   React.useEffect(() => {
     const storedEmail = localStorage.getItem('temp_email');
-    console.log('ForgotPasswordVerifyOtpPage - temp_email from localStorage:', storedEmail);
 
     if (!storedEmail) {
       // No temp email, redirect to forgot password
-      console.log('No temp email found, redirecting to forgot password');
       navigate('/login');
       return;
     }
@@ -71,25 +69,20 @@ const ForgotPasswordVerifyOtpPage: React.FC = () => {
     setError('');
 
     try {
-      console.log('Forgot Password OTP Verification - Email:', storedEmail);
-      console.log('Forgot Password OTP Verification - Submitting code:', otp);
 
       // Import authService for forgot password OTP verification
       const { authService } = await import('../../services/api');
 
       // First verify OTP
       const verifyResult = await authService.verifyForgotPasswordOtp(storedEmail, otp);
-      console.log('Forgot password OTP verification result:', verifyResult);
 
       if (verifyResult) {
         // Then reset password
         const resetResult = await authService.resetPassword(storedEmail, newPassword);
-        console.log('Password reset result:', resetResult);
 
         if (resetResult) {
           // Clear temp email and redirect to login
           localStorage.removeItem('temp_email');
-          console.log('Password reset successful - navigating to login');
           navigate('/login');
         } else {
           setError('Failed to reset password. Please try again.');
@@ -138,7 +131,6 @@ const ForgotPasswordVerifyOtpPage: React.FC = () => {
       const storedEmail = localStorage.getItem('temp_email');
       const result = await authService.resendForgotPasswordOtp(storedEmail);
 
-      console.log('Resend forgot password OTP result:', result);
 
       // Reset timer
       setTimeLeft(300);

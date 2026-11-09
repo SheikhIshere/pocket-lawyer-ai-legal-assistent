@@ -191,7 +191,6 @@ const ChatPage = () => {
     try {
       // Note: Backend doesn't have rename endpoint, so this is a placeholder
       // You would need to add a PATCH endpoint to the backend
-      console.log('Rename session:', sessionId, newTitle);
       setError('Session rename not yet implemented');
     } catch (err) {
       console.error('Failed to rename session:', err);
@@ -207,7 +206,6 @@ const ChatPage = () => {
     const file = event.target.files?.[0];
     if (file) {
       // Handle file upload logic here
-      console.log('File selected:', file);
       setError('File upload not yet implemented');
     }
   };
@@ -242,9 +240,6 @@ const ChatPage = () => {
     setMessages(prev => [...prev, userMsg]);
 
     try {
-      console.log('=== STARTING MESSAGE SEND ===');
-      console.log('User message:', userMsgContent);
-      console.log('Current session ID:', currentSessionId);
 
       // Send message to API
       const response = await api.assistantService.sendMessage(
@@ -253,13 +248,9 @@ const ChatPage = () => {
         responseEngine,
         responseStyle
       );
-      console.log('Message sent successfully:', response);
-      console.log('Response type:', typeof response);
-      console.log('Response structure:', JSON.stringify(response, null, 2));
 
       // Handle both direct response and wrapped response
       const responseData = response.data || response;
-      console.log('Using response data:', responseData);
 
       if (!responseData) {
         throw new Error('Invalid response from server');
@@ -267,40 +258,31 @@ const ChatPage = () => {
 
       // Get the request ID for polling
       const requestId = responseData.id || responseData.request_id;
-      console.log('Extracted request ID:', requestId);
 
       if (!requestId) {
         throw new Error('No request ID received from server');
       }
 
       // Wait for completion synchronously (like demo)
-      console.log('Starting polling for request:', requestId);
       await api.assistantService.pollForCompletion(requestId);
-      console.log('Polling completed successfully');
 
       // Get the session ID for the completed request
       const newSessionId = responseData.session || currentSessionId;
-      console.log('Using session ID:', newSessionId);
 
       // Fetch updated session to get the full response
       const updatedSession = await api.assistantService.getSession(newSessionId);
-      console.log('Updated session:', updatedSession);
 
       // Update messages with the complete response
       const updatedMessages = (updatedSession.messages as Message[]) || [];
-      console.log('Setting messages:', updatedMessages);
       setMessages(updatedMessages);
 
       // Only update session ID after everything is complete
       if (!currentSessionId && responseData.session) {
-        console.log('Updating current session to:', responseData.session);
         setCurrentSessionId(responseData.session);
       }
 
       // Update session list order (since it was just updated)
       await fetchSessions(true);
-      console.log('Message flow completed successfully');
-      console.log('=== MESSAGE SEND COMPLETED ===');
 
       setIsSending(false); // Reset sending state
 

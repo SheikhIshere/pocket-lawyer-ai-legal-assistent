@@ -20,20 +20,12 @@ const RegisterPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-
-    console.log('Form validation:', {
-      password,
-      confirmPassword,
-      passwordsMatch: password === confirmPassword
-    });
-
     if (password !== confirmPassword) {
 
       setError("Passwords don't match");
       return;
     }
 
-    console.log('Submitting registration with data:', { email, full_name, password: '***', confirmPassword: '***' });
 
     setIsLoading(true);
     setError('');
@@ -41,7 +33,6 @@ const RegisterPage: React.FC = () => {
     try {
 
       const result = await register({ email, password, full_name, password2: confirmPassword });
-      console.log('Registration API result:', result);
 
 
       // We explicitly navigate now because PublicOnlyRoute allows /register even when requiresOtp=true
@@ -185,7 +176,6 @@ const RegisterPage: React.FC = () => {
           {/* Test Button */}
           {/* <button
             onClick={() => {
-              console.log('TEST BUTTON CLICKED');
               navigate('/register-verify-otp');
             }}
             className="w-full mt-4 bg-red-600 text-white py-2 rounded-lg"
