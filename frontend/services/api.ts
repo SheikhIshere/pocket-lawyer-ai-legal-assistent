@@ -15,9 +15,6 @@ const onTokenRefreshed = (token: string) => {
 };
 
 const apiCall = async (endpoint: string, options: RequestInit = {}): Promise<any> => {
-  console.log(`API Call: ${options.method || 'GET'} ${API_BASE_URL}${endpoint}`);
-  console.log('Request options:', options);
-
   const isAuthEndpoint = endpoint.startsWith('/users/');
   const isOtpEndpoint = endpoint.includes('/otp/') || endpoint.includes('/activate/via-otp') || endpoint.includes('/forget-password/confirm');
 
@@ -39,13 +36,11 @@ const apiCall = async (endpoint: string, options: RequestInit = {}): Promise<any
 
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
-    console.log(`Response status: ${response.status} for ${endpoint}`);
 
     if (response.status === 401 && !endpoint.includes('/users/login/') && !endpoint.includes('/users/token/refresh/')) {
       if (!isRefreshing) {
         isRefreshing = true;
         try {
-          console.log('Attempting to refresh token...');
           const refreshResult = await authService.refreshToken();
           const newToken = refreshResult.access;
           
@@ -86,7 +81,6 @@ const apiCall = async (endpoint: string, options: RequestInit = {}): Promise<any
     }
 
     const result = await response.json();
-    console.log('API response result:', result);
     return result;
   } catch (error) {
     console.error('API call failed:', error);
@@ -326,8 +320,6 @@ export const assistantService = {
   },
 
   sendMessage: async (message: string, sessionId: string | null = null, responseEngine: number = 2, responseStyle: string = "supportive"): Promise<any> => {
-    console.log('API sendMessage called:', { message, sessionId, responseEngine, responseStyle });
-
     const payload = {
       message: message,
       response_engine: responseEngine,
@@ -335,19 +327,16 @@ export const assistantService = {
     };
 
     if (sessionId) {
-      console.log('Sending to existing session:', sessionId);
       return apiCall(`/assistant/sessions/${sessionId}/send/`, {
         method: 'POST',
         body: JSON.stringify(payload),
       });
     } else {
-      console.log('Creating new session first');
       // If no session, create a new session first
       return apiCall('/assistant/sessions/', {
         method: 'POST',
         body: JSON.stringify({ title: "New Chat" }),
       }).then(session => {
-        console.log('New session created:', session);
         // Then send message to new session
         return apiCall(`/assistant/sessions/${session.id}/send/`, {
           method: 'POST',
@@ -362,7 +351,6 @@ export const assistantService = {
   },
 
   pollForCompletion: async (requestId: string): Promise<void> => {
-    console.log('Starting pollForCompletion for:', requestId);
     const startTime = Date.now();
     const POLLING_INTERVAL_MS = 1000;
     const POLLING_TIMEOUT_MS = 60000;
@@ -370,7 +358,6 @@ export const assistantService = {
     return new Promise((resolve, reject) => {
       const checkStatus = async () => {
         try {
-          console.log('Checking status for request:', requestId);
           if (Date.now() - startTime > POLLING_TIMEOUT_MS) {
             console.error('Request timed out');
             reject(new Error('Request timed out'));
@@ -378,16 +365,13 @@ export const assistantService = {
           }
 
           const data = await apiCall(`/assistant/requests/${requestId}/`);
-          console.log('Status check result:', data);
 
           if (data.status?.toUpperCase() === 'COMPLETED') {
-            console.log('Request completed successfully');
             resolve();
           } else if (data.status?.toUpperCase() === 'FAILED') {
             console.error('AI Request failed on server');
             reject(new Error('AI Request failed on server'));
           } else {
-            console.log(`Request status is ${data.status}, polling again...`);
             // Still pending or running
             setTimeout(checkStatus, POLLING_INTERVAL_MS);
           }
@@ -410,7 +394,7 @@ export const assistantService = {
 
 export const newsletterService = {
   subscribe: async (email: string) => {
-    return apiCall('/newsletter/subscribe/', {
+    return apiCall('/newsletter/submit/', {
       method: 'POST',
       body: JSON.stringify({ email }),
     });
