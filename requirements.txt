@@ -61,5 +61,7 @@ vine==5.1.0
 wcwidth==0.2.14
 pypdf==6.21.4
 pgvector==0.5.1
+gunicorn==26.2.0
+whitenoise==6.12.0
 
 unicodeconverter==0.1.0b12
