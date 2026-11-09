@@ -60,6 +60,20 @@ services:
       context: .
       dockerfile: Dockerfile.prod
     restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pl-backend-http.rule=Host(`api.poketlawyer.app`)"
+      - "traefik.http.routers.pl-backend-http.entryPoints=http"
+      - "traefik.http.routers.pl-backend-http.middlewares=pl-backend-redirect"
+      - "traefik.http.middlewares.pl-backend-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.pl-backend.rule=Host(`api.poketlawyer.app`)"
+      - "traefik.http.routers.pl-backend.entryPoints=https"
+      - "traefik.http.routers.pl-backend.tls=true"
+      - "traefik.http.routers.pl-backend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.pl-backend.loadbalancer.server.port=8001"
+    networks:
+      - default
+      - coolify
     entrypoint: ["/backend/entrypoint.sh"]
     command: sh -c "python manage.py migrate && python manage.py collectstatic --noinput && gunicorn core.wsgi:application --bind 0.0.0.0:8001 --workers 3 --timeout 120"
     environment:
@@ -102,6 +116,20 @@ services:
       args:
         VITE_API_URL: ${VITE_API_URL:-https://api.poketlawyer.app/v1/api}
     restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pl-frontend-http.rule=Host(`poketlawyer.app`)"
+      - "traefik.http.routers.pl-frontend-http.entryPoints=http"
+      - "traefik.http.routers.pl-frontend-http.middlewares=pl-frontend-redirect"
+      - "traefik.http.middlewares.pl-frontend-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.pl-frontend.rule=Host(`poketlawyer.app`)"
+      - "traefik.http.routers.pl-frontend.entryPoints=https"
+      - "traefik.http.routers.pl-frontend.tls=true"
+      - "traefik.http.routers.pl-frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.pl-frontend.loadbalancer.server.port=80"
+    networks:
+      - default
+      - coolify
     depends_on:
       - backend
 
@@ -109,3 +137,7 @@ volumes:
   db-data:
   mq-data:
   app-secrets:
+
+networks:
+  coolify:
+    external: true
