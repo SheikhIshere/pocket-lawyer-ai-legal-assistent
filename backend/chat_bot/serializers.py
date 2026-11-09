@@ -1,7 +1,7 @@
 # location: backend/chat_bot/serializers.py
 from pydantic import ValidationError
 from rest_framework import serializers
-from .models import ChatSession, AiRequest
+from .models import ChatSession, AiRequest, platform_ai_available
 from api_key.models import ApiKey
 # choice
 from BASE.base_choice import CeleryStatus
@@ -48,10 +48,14 @@ class AiRequestCreateSerializer(serializers.ModelSerializer):
             )
 
         # checking do user have a active api key or not
-        api_key = ApiKey.objects.filter(account_id__user=user, is_working=True).first()
-        if not api_key:
+        has_key = ApiKey.objects.filter(
+            account_id__user=user,
+            is_working=True,
+        ).exists()
+
+        if not has_key and not platform_ai_available():
             raise serializers.ValidationError(
-                {"error": "User does not have an Working API key."}
+                {"error": "No working API key and platform fallback is unavailable."}
             )
 
         # Message validation

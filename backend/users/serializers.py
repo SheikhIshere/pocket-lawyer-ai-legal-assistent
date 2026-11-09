@@ -27,12 +27,7 @@ from datetime import timedelta
 
 # generate otp
 from .utils import generate_otp
-
-# settings
-from django.conf import settings
-
-# send mail
-from django.core.mail import send_mail
+from .tasks import send_otp_email
 
 
 """
@@ -294,17 +289,10 @@ class ForgetPasswordRequestSerializer(serializers.Serializer):
             print(f"\nreset otp is: {reset_otp}\n")
             print('='*50)
 
-            # sending otp throw mail
+            # sending otp throw mail asynchronously
             subject = 'Forget Password OTP'
             message = f"Your OTP for password reset is: {reset_otp}.\nPlease use this OTP to reset your password. This OTP will expire in 10 minutes.\nIf you didn't request this, please ignore this email."
-            email = email
-            send_mail(
-                subject,
-                message,
-                settings.EMAIL_HOST_USER,
-                [email],
-                fail_silently=False
-            )   
+            send_otp_email.delay(email, subject, message)   
         
         except User.DoesNotExist:
             pass

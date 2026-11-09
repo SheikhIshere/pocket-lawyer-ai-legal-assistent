@@ -4,9 +4,13 @@
 from rest_framework import mixins, viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from django.conf import settings
+from django.db import transaction
+from django.utils import timezone
 
 # local import
 from accounts.models import Account
+from api_key.models import ApiKey
 from .models import ChatSession, AiRequest
 from .serializers import ChatSessionSerializer, AiRequestCreateSerializer
 
@@ -66,15 +70,50 @@ class ChatSessionViewSet(
         data = {
             "session": session.id,
             "message": request.data.get("message", ""),
-            "style": request.data.get("style", ""),
-            "engine": request.data.get("engine", ""),
         }
 
-        serializer = AiRequestCreateSerializer(data=data, context={'request': request})
-        serializer.is_valid(raise_exception=True)
-        
-        # Set account_id from session's account_id
-        ai_request = serializer.save(account_id=session.account_id)
+        # The frontend sends response_style/response_engine while the
+        # API docs also allow style/engine. Accept both spellings.
+        style = request.data.get("style") or request.data.get("response_style")
+        engine = request.data.get("engine") or request.data.get("response_engine")
+        if style:
+            data["response_style"] = style
+        if engine not in (None, ""):
+            data["response_engine"] = engine
+
+        with transaction.atomic():
+            # Lock the account row so two concurrent sends cannot both pass
+            # the daily-limit check at 49/50.
+            Account.objects.select_for_update().get(pk=session.account_id_id)
+
+            has_key = ApiKey.objects.filter(
+                account_id=session.account_id,
+                is_working=True,
+            ).exists()
+
+            if not has_key:
+                used_today = AiRequest.objects.filter(
+                    account_id=session.account_id,
+                    created_at__date=timezone.localdate(),
+                ).count()
+
+                if used_today >= settings.OMNIROUTE_DAILY_LIMIT:
+                    return Response(
+                        {
+                            "error": (
+                                f"Daily free limit reached "
+                                f"({settings.OMNIROUTE_DAILY_LIMIT} messages). "
+                                "Try again tomorrow or add your own API key."
+                            )
+                        },
+                        status=status.HTTP_429_TOO_MANY_REQUESTS,
+                    )
+
+            serializer = AiRequestCreateSerializer(data=data, context={'request': request})
+            serializer.is_valid(raise_exception=True)
+
+            # Set account_id from session's account_id
+            ai_request = serializer.save(account_id=session.account_id)
 
         out = AiRequestCreateSerializer(ai_request).data
         return Response(out, status=status.HTTP_201_CREATED)

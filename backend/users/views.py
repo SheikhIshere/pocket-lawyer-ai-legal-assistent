@@ -31,6 +31,7 @@ from .serializers import (
 )
 # user model
 from .models import Otp
+from .tasks import send_otp_email
 from django.contrib.auth import get_user_model
 User = get_user_model()
 # jwt import
@@ -39,10 +40,6 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from drf_spectacular.utils import extend_schema
 # timezone import
 from django.utils import timezone
-# for sent mail
-from django.core.mail import send_mail
-# importing settings
-from django.conf import settings
 # jwt token get and verify
 from rest_framework_simplejwt.views import (
     TokenRefreshView,
@@ -102,16 +99,10 @@ class UserRegistrationView(generics.CreateAPIView):
             print('\n\n\n')
             
             
-            # sending otp to user
+            # sending otp to user asynchronously
             subject = 'Account Activation OTP'
             message = f"Your OTP is: {account_activation_otp}"
-            send_mail(
-                subject,
-                message,
-                settings.EMAIL_HOST_USER,
-                [user.email],
-                fail_silently=False
-            )
+            send_otp_email.delay(user.email, subject, message)
             return Response({
                 'message': 'Otp sent successfully',
                 'user': {
@@ -172,43 +163,42 @@ class ResendingOtpView(APIView):
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
-            user = serializer.validated_data['email']
+            email = serializer.validated_data['email']
+
+            # The FK on Otp.user expects a User instance, not an email string.
+            try:
+                user = User.objects.get(email=email)
+            except User.DoesNotExist:
+                return Response(
+                    {'error': 'Email does not exist.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
             # expiring all previous otp
             Otp.objects.filter(user=user).update(is_expired=True)
-            
+
             # generating account activation otp
             account_activation_otp = generate_otp()
             # assigning into data base
             Otp.objects.create(
-                user=user, 
-                otp=account_activation_otp,            
+                user=user,
+                otp=account_activation_otp,
             )
 
-            # NOTE: remove this
-            print('\n\n\n')
-            print(f'activation otp is: {account_activation_otp}') # just for debugging
-            print('\n\n\n')
-            
-            # sending otp to user
+            # sending otp to user asynchronously
             subject = 'Account Activation OTP'
             message = f"Your OTP is: {account_activation_otp}"
-            send_mail(
-                subject,
-                message,
-                settings.EMAIL_HOST_USER,
-                [user.email],
-                fail_silently=False
-            )
+            send_otp_email.delay(user.email, subject, message)
 
             return Response({
                 'user': {
-                "user_id": user.id,
-                "is_verified": user.is_verified
+                    "user_id": user.id,
+                    "is_verified": user.is_verified
                 },
                 'message': 'Otp re-sent successfully',
-                }, status=status.HTTP_200_OK)   
-            
-        return Response(serializer.errors)
+            }, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 
@@ -258,17 +248,11 @@ class UserLoginView(generics.CreateAPIView):
             print(f'your otp is: {account_activation_otp}') # just for debugging
             print('\n\n\n')
 
-            # sending otp to user
+            # sending otp to user asynchronously
             subject = 'OTP Verification'
             message = f"Your OTP is: {account_activation_otp}"
             email = serializer.validated_data['email']
-            send_mail(
-                subject,
-                message,
-                settings.EMAIL_HOST_USER,
-                [email],
-                fail_silently=False
-            )
+            send_otp_email.delay(email, subject, message)
 
             return Response({
                 'message': 'Otp sent successfully',

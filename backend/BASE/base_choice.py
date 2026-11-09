@@ -36,16 +36,18 @@ class CeleryStatus(TextChoices):
 # for: backend/chat_bot/models.py
 class ChatEngine(IntegerChoices):
     """ types of gemini models i am using to response """
+    # NOTE: constant names are kept for backward compatibility. The labels below are
+    # the model IDs currently available to new Google AI Studio API keys.
     """
-    1 will be gemini-3-flash
-    2 will be gemini-2.5-flash
-    3 will be gemini-2.5-flash-lite
-    4 will be gemma-3-27b
+    1 will be gemini-3-flash-preview
+    2 will be gemini-3.5-flash
+    3 will be gemini-3.5-flash-lite
+    4 will be gemini-3.8-flash
     """
-    GEMINI_3_FLASH = 1, "gemini-3-flash"
-    GEMINI_2_5_FLASH = 2, "gemini-2.5-flash"
-    GEMINI_2_5_FLASH_LITE = 3, "gemini-2.5-flash-lite"
-    GEMMA_3_27B = 4, "gemma-3-27b-it" # lower performance but high free token allowance
+    GEMINI_3_FLASH = 1, "gemini-3-flash-preview"
+    GEMINI_2_5_FLASH = 2, "gemini-3.5-flash"
+    GEMINI_2_5_FLASH_LITE = 3, "gemini-3.5-flash-lite"
+    GEMMA_3_27B = 4, "gemini-3.8-flash"
 
 # for: backend/chat_bot/models.py
 class ModelStyle(TextChoices):
