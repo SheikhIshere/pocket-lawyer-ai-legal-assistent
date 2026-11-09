@@ -29,7 +29,7 @@ class ApiKey(BaseModel):
     worker_status = models.CharField(max_length=20, choices=CeleryStatus.choices, default=CeleryStatus.PENDING)
 
     def __str__(self):
-        return f"{self.account_id.user.email}: {self.api_key}"
+        return f"{self.account_id.user.email}: ****"
     
     def _queue_task(self):
         """ A privet method to trigger celery """
@@ -107,8 +107,5 @@ class ApiKey(BaseModel):
         super().save(**kwargs)
 
         if is_new:
-            print(f'{self.api_key}')
-
-            # SUGGESTED by ai donno working or not if you are keep seeing it it's working
             # queue task only after database transaction is committed
             transaction.on_commit(self._queue_task)

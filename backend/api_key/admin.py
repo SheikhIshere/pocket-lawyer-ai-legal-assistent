@@ -12,7 +12,6 @@ class ApiAdmin(admin.ModelAdmin):
         'account_id__user__email', 
         'is_working', 
         'total_used',
-        'api_key',
         'worker_status',
         'created_at',
     )

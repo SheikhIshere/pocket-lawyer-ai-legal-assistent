@@ -2,7 +2,13 @@
 
 from celery import shared_task
 
-@shared_task
-def handle_test_api_key(request_id):
+
+@shared_task(bind=True, max_retries=3)
+def handle_test_api_key(self, request_id):
     from .models import ApiKey
-    ApiKey.objects.get(id=request_id).handle()
+
+    try:
+        ApiKey.objects.get(id=request_id).handle()
+    except ApiKey.DoesNotExist:
+        # A stale or forged id must not crash the worker.
+        return None
