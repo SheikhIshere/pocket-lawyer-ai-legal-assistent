@@ -33,6 +33,9 @@ from .utils import generate_otp
 from .tasks import send_otp_email
 
 
+INVALID_OTP = "Invalid or expired OTP."
+
+
 """
 User list serializer
 """
@@ -96,18 +99,18 @@ class ActivatingAccountSerializer(serializers.Serializer):
         user = User.objects.filter(email=email, is_verified=False).first()
         
         if user is None:
-            raise serializers.ValidationError({"error": 'User not found.'})
+            raise serializers.ValidationError({"error": INVALID_OTP})
 
         # get most recent active otp for the user (so we can increment attempts on wrong input)
         otp_obj = Otp.objects.filter(user=user, is_expired=False).order_by("-created_at").first()
         if not otp_obj:
-            raise serializers.ValidationError({"error": "Invalid otp."})
+            raise serializers.ValidationError({"error": INVALID_OTP})
 
         now = timezone.now()
         if otp_obj.created_at + timezone.timedelta(minutes=5) < now:
             otp_obj.is_expired = True
             otp_obj.save()
-            raise serializers.ValidationError({"error": "Otp is expired."})
+            raise serializers.ValidationError({"error": INVALID_OTP})
 
         # wrong OTP -> increment attempt and possibly expire
         if otp_obj.otp != given_otp:
@@ -117,8 +120,8 @@ class ActivatingAccountSerializer(serializers.Serializer):
                 # do NOT delete the user here — prefer locking or notifying
             otp_obj.save()
             if otp_obj.is_expired:
-                raise serializers.ValidationError({"error": "Otp input reached its limit."})
-            raise serializers.ValidationError({"error": "Invalid otp."})
+                raise serializers.ValidationError({"error": INVALID_OTP})
+            raise serializers.ValidationError({"error": INVALID_OTP})
 
         # correct OTP: save its id so create() can use the same instance (avoid race conditions)
         attrs["_otp_pk"] = otp_obj.pk
@@ -137,11 +140,11 @@ class ActivatingAccountSerializer(serializers.Serializer):
             ).select_related("user").first()
 
             if not otp:
-                raise serializers.ValidationError({"error": "Otp not found or expired."})
+                raise serializers.ValidationError({"error": INVALID_OTP})
 
             user = otp.user
             if user.is_verified:
-                raise serializers.ValidationError({"error": "User already verified."})
+                raise serializers.ValidationError({"error": INVALID_OTP})
 
             user.is_verified = True
             user.save()
@@ -222,7 +225,7 @@ class LoginOtpSerializer(serializers.Serializer):
         try:
             user = User.objects.get(email=attrs['email'])
         except User.DoesNotExist:
-            raise serializers.ValidationError({"error": "User not found."})
+            raise serializers.ValidationError({"error": INVALID_OTP})
         
         given_otp = attrs['otp']
 
@@ -234,11 +237,11 @@ class LoginOtpSerializer(serializers.Serializer):
         )
 
         if not otp_obj:
-            raise serializers.ValidationError({"error": "Invalid OTP."})
+            raise serializers.ValidationError({"error": INVALID_OTP})
 
         if otp_obj.created_at + timezone.timedelta(minutes=5) < timezone.now():
             Otp.objects.filter(user=user, is_expired=False).update(is_expired=True)
-            raise serializers.ValidationError({"error": "OTP is expired."})
+            raise serializers.ValidationError({"error": INVALID_OTP})
 
         if otp_obj.otp != given_otp:
             # F() update survives the ValidationError (no atomic rollback)
@@ -246,11 +249,11 @@ class LoginOtpSerializer(serializers.Serializer):
             otp_obj.refresh_from_db(fields=["attempt"])
             if otp_obj.attempt >= 5:
                 Otp.objects.filter(pk=otp_obj.pk).update(is_expired=True)
-            raise serializers.ValidationError({"error": "Invalid OTP."})
+            raise serializers.ValidationError({"error": INVALID_OTP})
 
-        # success path
-        otp_obj.is_expired = True
-        otp_obj.save(update_fields=["is_expired"])
+        # success path: consume atomically so concurrent verifies cannot reuse it
+        if not Otp.objects.filter(pk=otp_obj.pk, is_expired=False).update(is_expired=True):
+            raise serializers.ValidationError({"error": INVALID_OTP})
 
         # Ensure user is verified and has an Account
         if not user.is_verified:
@@ -329,9 +332,7 @@ class PasswordResetVerifyOTPSerializer(serializers.Serializer):
         try:
             self._user = user = User.objects.get(email=attrs.get('email'))
         except User.DoesNotExist:
-            raise serializers.ValidationError({
-                "error":"Invalid otp. or Email not found."
-            })
+            raise serializers.ValidationError({"error": INVALID_OTP})
 
         reset_otp = (
             Otp.objects
@@ -340,21 +341,22 @@ class PasswordResetVerifyOTPSerializer(serializers.Serializer):
             .first()
         )
         if not reset_otp:
-            raise serializers.ValidationError({"error": "Invalid otp."})
+            raise serializers.ValidationError({"error": INVALID_OTP})
 
         if reset_otp.created_at + timezone.timedelta(minutes=5) < timezone.now():
             Otp.objects.filter(user=user, is_expired=False).update(is_expired=True)
-            raise serializers.ValidationError({"error": "Otp is expired."})
+            raise serializers.ValidationError({"error": INVALID_OTP})
 
         if reset_otp.otp != given_otp:
             Otp.objects.filter(pk=reset_otp.pk).update(attempt=F('attempt') + 1)
             reset_otp.refresh_from_db(fields=["attempt"])
             if reset_otp.attempt >= 5:
                 Otp.objects.filter(pk=reset_otp.pk).update(is_expired=True)
-            raise serializers.ValidationError({"error": "Invalid otp."})
+            raise serializers.ValidationError({"error": INVALID_OTP})
 
-        reset_otp.is_expired = True
-        reset_otp.save(update_fields=["is_expired"])
+        # success path: consume atomically so concurrent verifies cannot reuse it
+        if not Otp.objects.filter(pk=reset_otp.pk, is_expired=False).update(is_expired=True):
+            raise serializers.ValidationError({"error": INVALID_OTP})
 
         return attrs
 

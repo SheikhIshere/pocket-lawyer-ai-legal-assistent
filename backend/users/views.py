@@ -81,6 +81,7 @@ registration testing to do otp verification
 @permission_classes([permissions.AllowAny])  # Explicitly allow any user
 class UserRegistrationView(generics.CreateAPIView):
     serializer_class = RegistrationSerializer
+    throttle_scope = 'register'
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -125,6 +126,7 @@ activating account via otp
 @permission_classes([permissions.AllowAny])  # Explicitly allow any user
 class ActivatingAccountView(generics.CreateAPIView):
     serializer_class = ActivatingAccountSerializer
+    throttle_scope = 'activate'
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -189,7 +191,7 @@ class ResendingOtpView(APIView):
             send_otp_email.delay(user.email, subject, message)
 
             return Response({
-                'message': 'Otp re-sent successfully',
+                'message': 'If the email exists, an OTP has been re-sent.',
             }, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

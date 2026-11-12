@@ -1,6 +1,10 @@
 from unittest.mock import patch
 
+from axes.models import AccessAttempt
+from django.core.cache import cache
 from django.test import TestCase
+from django_otp.oath import totp
+from django_otp.plugins.otp_totp.models import TOTPDevice
 from rest_framework.test import APIClient
 
 from .models import Otp, User
@@ -169,3 +173,178 @@ class PasswordResetTokenTests(TestCase):
             HTTP_AUTHORIZATION=f"Bearer {reset_token}",
         )
         self.assertEqual(reuse.status_code, 400)
+
+
+class AdminLockoutTests(TestCase):
+    def setUp(self):
+        AccessAttempt.objects.all().delete()
+        self.user = User.objects.create_user(
+            email="admin-lockout@example.com",
+            password="Str0ngPass!2026",
+            full_name="Admin Lockout",
+        )
+        self.user.is_staff = True
+        self.user.is_superuser = True
+        self.user.is_verified = True
+        self.user.save()
+
+    def test_fifth_wrong_admin_login_is_locked(self):
+        statuses = []
+        for index in range(5):
+            response = self.client.post(
+                "/admin/login/",
+                {
+                    "username": self.user.email,
+                    "password": f"wrong-{index}",
+                    "next": "/admin/",
+                },
+            )
+            statuses.append(response.status_code)
+        self.assertEqual(statuses[-1], 429)
+
+
+class AdminOTPTests(TestCase):
+    def setUp(self):
+        AccessAttempt.objects.all().delete()
+        self.user = User.objects.create_user(
+            email="admin-otp@example.com",
+            password="Str0ngPass!2026",
+            full_name="Admin OTP",
+        )
+        self.user.is_staff = True
+        self.user.is_superuser = True
+        self.user.is_verified = True
+        self.user.save()
+        self.device = TOTPDevice.objects.create(
+            user=self.user,
+            name="default",
+            confirmed=True,
+        )
+
+    def test_admin_login_requires_totp(self):
+        response = self.client.post(
+            "/admin/login/",
+            {
+                "username": self.user.email,
+                "password": "Str0ngPass!2026",
+                "next": "/admin/",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "OTP Token")
+
+        token = totp(
+            self.device.bin_key,
+            step=self.device.step,
+            t0=self.device.t0,
+            digits=self.device.digits,
+        )
+        response = self.client.post(
+            "/admin/login/",
+            {
+                "username": self.user.email,
+                "password": "Str0ngPass!2026",
+                "otp_device": self.device.persistent_id,
+                "otp_token": str(token),
+                "next": "/admin/",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+
+
+class RegistrationThrottleTests(TestCase):
+    def setUp(self):
+        cache.clear()
+        self.client = APIClient()
+
+    def test_fourth_registration_is_throttled(self):
+        statuses = []
+        for index in range(4):
+            response = self.client.post(
+                "/v1/api/users/register/",
+                {
+                    "email": f"invalid-{index}",
+                    "full_name": "Throttle",
+                    "password": "x",
+                    "password2": "x",
+                },
+                format="json",
+            )
+            statuses.append(response.status_code)
+        self.assertEqual(statuses[-1], 429)
+
+
+class OtpEnumerationTests(TestCase):
+    def setUp(self):
+        cache.clear()
+        self.client = APIClient()
+        self.user = User.objects.create_user(
+            email="enum-user@example.com",
+            password="Str0ngPass!2026",
+            full_name="Enum User",
+        )
+        self.user.is_verified = True
+        self.user.save()
+        Otp.objects.create(user=self.user, otp="123456")
+
+    def test_unknown_email_and_wrong_otp_have_same_response(self):
+        unknown = self.client.post(
+            "/v1/api/users/login/otp/verify/",
+            {"email": "missing-user@example.com", "otp": "000000"},
+            format="json",
+        )
+        wrong = self.client.post(
+            "/v1/api/users/login/otp/verify/",
+            {"email": self.user.email, "otp": "000000"},
+            format="json",
+        )
+        self.assertEqual(unknown.status_code, wrong.status_code)
+        self.assertEqual(unknown.json(), wrong.json())
+
+    @patch("users.views.send_otp_email.delay")
+    def test_resend_known_and_unknown_have_same_response(self, delay):
+        known = self.client.post(
+            "/v1/api/users/login/otp/resend/",
+            {"email": self.user.email},
+            format="json",
+        )
+        unknown = self.client.post(
+            "/v1/api/users/login/otp/resend/",
+            {"email": "missing-user@example.com"},
+            format="json",
+        )
+        self.assertEqual(known.status_code, unknown.status_code)
+        self.assertEqual(known.json(), unknown.json())
+
+
+class OtpReplayTests(TestCase):
+    def setUp(self):
+        cache.clear()
+        self.client = APIClient()
+        self.user = User.objects.create_user(
+            email="replay-user@example.com",
+            password="Str0ngPass!2026",
+            full_name="Replay User",
+        )
+        self.user.is_verified = True
+        self.user.save()
+        Otp.objects.create(user=self.user, otp="123456")
+
+    def test_otp_cannot_be_used_twice(self):
+        first = self.client.post(
+            "/v1/api/users/login/otp/verify/",
+            {"email": self.user.email, "otp": "123456"},
+            format="json",
+        )
+        self.assertEqual(first.status_code, 200)
+
+        second = self.client.post(
+            "/v1/api/users/login/otp/verify/",
+            {"email": self.user.email, "otp": "123456"},
+            format="json",
+        )
+        self.assertEqual(second.status_code, 400)
+        self.assertEqual(
+            second.json(),
+            {"error": ["Invalid or expired OTP."]},
+        )
