@@ -14,9 +14,11 @@ click-plugins==1.1.1.2
 click-repl==0.3.0
 cryptography>=46.0.7,<47
 distro==1.9.0
-Django>=6.0.2,<6.1
+Django==6.0.10
 django-appconf==1.2.0
+django-axes[ipware]==9.0.0
 django-cors-headers==4.9.0
+django-otp==1.7.5
 djangorestframework>=3.17.2,<3.18
 djangorestframework_simplejwt==5.5.1
 drf-spectacular==0.29.0
