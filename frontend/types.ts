@@ -43,6 +43,14 @@ export interface LegalSource {
   citation?: string;
 }
 
+export interface StepRecord {
+  step: number;
+  name: string;
+  status: 'done' | 'skipped' | 'failed';
+  detail: string;
+  at?: number;
+}
+
 export interface Message {
   id?: string; // Optional for backward compatibility
   message?: string; // User input (for API compatibility)
@@ -54,6 +62,7 @@ export interface Message {
   error?: string;
   created_at?: string;
   sources?: LegalSource[];
+  trace?: StepRecord[];
 }
 
 export interface AiRequest {
