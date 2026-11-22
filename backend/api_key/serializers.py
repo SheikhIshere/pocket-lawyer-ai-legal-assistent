@@ -2,8 +2,8 @@
 # core import
 from rest_framework import serializers
 
-# model import
-from .models import ApiKey
+from BASE.base_choice import CeleryStatus
+from .models import ApiKey, validate_key
 from accounts.models import Account
 
 
@@ -49,6 +49,7 @@ class ApiKeySerializers(serializers.ModelSerializer):
         from django.db import transaction
 
         account = validated_data.pop('account')
+        is_working, meta = validate_key(validated_data.get('api_key', ''))
         # Lock the account row so two concurrent creates cannot both pass the cap.
         with transaction.atomic():
             Account.objects.select_for_update().get(pk=account.pk)
@@ -58,5 +59,10 @@ class ApiKeySerializers(serializers.ModelSerializer):
                 )
             return ApiKey.objects.create(
                 account_id=account,
-                **validated_data
+                is_working=is_working,
+                worker_status=(
+                    CeleryStatus.COMPLETED if is_working else CeleryStatus.FAILED
+                ),
+                meta_data=meta,
+                **validated_data,
             )
