@@ -13,6 +13,8 @@ Return ONLY one JSON object, with no prose before or after it.
 
 Keys:
 - intent: one of legal_question, vague_legal, chit_chat, gibberish, out_of_scope
+- risk: one of normal, emergency, harmful, off_topic
+- known_facts: object of facts the user already stated; empty object when none
 - answer_first: true when the question is clear enough to answer now
 - search_queries: 2 to 4 short search phrases using the words a Bangladesh
   statute would use. If the question is in Bangla, include Bangla phrases.
@@ -28,6 +30,9 @@ Keys:
 - clarifying_question: one question, or null
 
 Rules:
+- risk is emergency for immediate danger, harmful for how to commit or hide
+  a crime, off_topic for non-legal chat, normal otherwise.
+- known_facts contains only facts the user stated, never assumptions.
 - A complete question is legal_question. Do not ask a question for it.
 - answer_first is true unless the question is genuinely ambiguous. Asking
   what the law requires (age, fee, procedure) is not a missing fact; answer
@@ -54,10 +59,14 @@ VALID_INTENTS = {
     "out_of_scope",
 }
 
+VALID_RISKS = {"normal", "emergency", "harmful", "off_topic"}
+
 
 def _fallback(question):
     return {
         "intent": "legal_question" if question else "gibberish",
+        "risk": "normal",
+        "known_facts": {},
         "answer_first": True,
         "planner_ok": False,
         "search_queries": [question] if question else [],
@@ -104,6 +113,19 @@ def plan_question(question, history, complete):
     if intent not in VALID_INTENTS:
         intent = "legal_question"
 
+    risk = str(data.get("risk") or "normal").lower()
+    if risk not in VALID_RISKS:
+        risk = "normal"
+
+    known_facts = {}
+    raw_facts = data.get("known_facts")
+    if isinstance(raw_facts, dict):
+        for key, value in list(raw_facts.items())[:20]:
+            key = " ".join(str(key).split())[:64]
+            value = " ".join(str(value).split())[:300]
+            if key and value:
+                known_facts[key] = value
+
     queries = []
     for item in data.get("search_queries") or []:
         if isinstance(item, str):
@@ -139,6 +161,8 @@ def plan_question(question, history, complete):
 
     return {
         "intent": intent,
+        "risk": risk,
+        "known_facts": known_facts,
         "answer_first": bool(data.get("answer_first", True)),
         "planner_ok": True,
         "search_queries": queries,

@@ -145,9 +145,14 @@ def retrieve_legal_chunks(question, k=None, min_score=None):
                 "id": row.id,
                 "text": row.text,
                 "section_label": row.section_label,
+                "section_number": getattr(row, "section_number", ""),
+                "section_title": getattr(row, "section_title", ""),
                 "page_start": row.page_start,
                 "page_end": row.page_end,
-                "source_url": row.document.source_url,
+                "source_url": (
+                    getattr(row, "source_url", "") or row.document.source_url
+                ),
+                "source_type": getattr(row, "source_type", "local_pdf"),
                 "document_title": row.document.title,
                 "score": score,
             }
@@ -286,9 +291,14 @@ def retrieve_legal_chunks_keyword(query, k=None):
             "id": row.id,
             "text": row.text,
             "section_label": row.section_label,
+            "section_number": getattr(row, "section_number", ""),
+            "section_title": getattr(row, "section_title", ""),
+            "source_type": getattr(row, "source_type", "local_pdf"),
             "page_start": row.page_start,
             "page_end": row.page_end,
-            "source_url": row.document.source_url,
+            "source_url": (
+                getattr(row, "source_url", "") or row.document.source_url
+            ),
             "document_title": row.document.title,
             "score": score,
             "label_hits": label_hits,
@@ -364,9 +374,14 @@ def retrieve_legal_chunks_gloss(queries, max_df=5, k=30):
             "id": row.id,
             "text": row.text,
             "section_label": row.section_label,
+            "section_number": getattr(row, "section_number", ""),
+            "section_title": getattr(row, "section_title", ""),
+            "source_type": getattr(row, "source_type", "local_pdf"),
             "page_start": row.page_start,
             "page_end": row.page_end,
-            "source_url": row.document.source_url,
+            "source_url": (
+                getattr(row, "source_url", "") or row.document.source_url
+            ),
             "document_title": row.document.title,
             "score": 0.5,
             "exact_gloss": True,
@@ -456,9 +471,83 @@ def retrieve_multi_query(queries, limit=None, lexical_query=None):
     except Exception as exc:
         print(f"Legal RAG keyword retrieval failed for {exact!r}: {exc}")
     fused = rrf_fuse(weighted, limit=fused_limit)
+    fused = _limit_per_section(fused, max_per_section=2)
     return promote_title_matches(
         fused, lexical_query or queries[-1], queries
     )
+
+
+def _limit_per_section(chunks, max_per_section=2):
+    """Keep at most N chunks from one Act + section."""
+    counts = {}
+    out = []
+    for chunk in chunks:
+        key = (
+            chunk.get("document_title", ""),
+            chunk.get("section_number") or chunk.get("section_label", ""),
+        )
+        if counts.get(key, 0) >= max_per_section:
+            continue
+        counts[key] = counts.get(key, 0) + 1
+        out.append(chunk)
+    return out
+
+
+def get_section_window(act_title, section_number, before=2, after=3):
+    """Return nearby sections of one Act around a section hint."""
+    try:
+        center = int(str(section_number))
+    except (TypeError, ValueError):
+        return []
+    rows = LegalChunk.objects.select_related("document").filter(
+        document__title__icontains=act_title
+    )
+    out = []
+    for row in rows:
+        try:
+            number = int(row.section_number)
+        except (TypeError, ValueError):
+            continue
+        if center - before <= number <= center + after:
+            out.append(
+                {
+                    "id": row.id,
+                    "text": row.text,
+                    "section_label": row.section_label,
+                    "section_number": row.section_number,
+                    "section_title": row.section_title,
+                    "page_start": row.page_start,
+                    "page_end": row.page_end,
+                    "source_url": row.source_url,
+                    "source_type": row.source_type,
+                    "document_title": row.document.title,
+                }
+            )
+    return out
+
+
+def get_section(act_title, section_number=""):
+    """Return every chunk for one Act section, like the fleet's get_section."""
+    qs = LegalChunk.objects.select_related("document").filter(
+        document__title__icontains=act_title
+    )
+    if section_number:
+        qs = qs.filter(section_number=str(section_number))
+    return [
+        {
+            "id": row.id,
+            "text": row.text,
+            "section_label": row.section_label,
+            "section_number": row.section_number,
+            "section_title": row.section_title,
+            "page_start": row.page_start,
+            "page_end": row.page_end,
+            "source_url": row.source_url,
+            "source_type": row.source_type,
+            "document_title": row.document.title,
+        }
+        for row in qs.order_by("page_start", "id")
+    ]
 
 
 def build_context(chunks):
@@ -470,6 +559,12 @@ def build_context(chunks):
         heading = f"[S{index}] {chunk.get('document_title') or 'Untitled document'}"
 
         section = chunk.get("section_label")
+        if chunk.get("section_number"):
+            section = f"Section {chunk['section_number']}"
+            if chunk.get("section_title"):
+                section += f" — {chunk['section_title']}"
+        elif chunk.get("section_title"):
+            section = chunk["section_title"]
         if section:
             heading += f" — {section}"
 
