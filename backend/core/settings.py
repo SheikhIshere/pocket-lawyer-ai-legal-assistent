@@ -276,6 +276,12 @@ OMNIROUTE_DAILY_LIMIT = int(os.getenv("OMNIROUTE_DAILY_LIMIT") or 50)
 OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
 OPENROUTER_API_KEY = os.getenv("openrouter_key") or os.getenv("OPENROUTER_API_KEY", "")
 
+# Keyless requests must never fall through to a paid OmniRoute model. Set this
+# only when the owner has verified that the fallback is free/owner-funded.
+PLATFORM_ALLOW_PAID_FALLBACK = (
+    os.getenv("PLATFORM_ALLOW_PAID_FALLBACK", "False").strip().lower() == "true"
+)
+
 # Legal RAG
 LEGAL_RAG_TOP_K = max(1, int(os.getenv("LEGAL_RAG_TOP_K") or 20))
 LEGAL_RAG_CANDIDATE_K = max(

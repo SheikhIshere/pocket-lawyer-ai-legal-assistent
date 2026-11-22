@@ -92,10 +92,13 @@ class ChatSessionViewSet(
         # API docs also allow style/engine. Accept both spellings.
         style = request.data.get("style") or request.data.get("response_style")
         engine = request.data.get("engine") or request.data.get("response_engine")
+        model = request.data.get("response_model")
         if style:
             data["response_style"] = style
         if engine not in (None, ""):
             data["response_engine"] = engine
+        if model not in (None, ""):
+            data["response_model"] = model
 
         with transaction.atomic():
             # Lock the account row so two concurrent sends cannot both pass

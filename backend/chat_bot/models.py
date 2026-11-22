@@ -34,23 +34,34 @@ import re
 OPENROUTER_URL = "https://openrouter.ai/api/v1"
 # OpenRouter rejects a models array longer than 3 items (HTTP 400).
 OPENROUTER_MAX_MODELS = 3
-# ponytail: 6h catalog TTL; lower it if a retired free model starts failing
-# before the cache expires. Upgrade path: per-model failure tracking.
-OPENROUTER_CATALOG_TTL = 6 * 60 * 60
-_OPENROUTER_CACHE = {"models": [], "fetched_at": 0.0}
+# The router is a provider route, not a pinned model.
+FREE_ROUTER = "openrouter/free"
+# ponytail: 1h catalog TTL; free availability changes often. Upgrade path:
+# refresh per model on repeated 429s.
+OPENROUTER_CATALOG_TTL = 60 * 60
+_OPENROUTER_CACHE = {"models": [], "catalog": [], "fetched_at": 0.0}
 
 
-def _openrouter_free_models():
-    """Zero-price text models from the live OpenRouter catalog (cached)."""
+def _price_is_zero(value):
+    return str(value if value is not None else "0") in ("0", "0.0")
+
+
+def _openrouter_free_catalog():
+    """Full zero-price text catalog (cached) with names and context."""
     now = time.time()
+    cached = _OPENROUTER_CACHE.get("catalog") or []
     if (
-        _OPENROUTER_CACHE["models"]
+        cached
         and now - _OPENROUTER_CACHE["fetched_at"] < OPENROUTER_CATALOG_TTL
     ):
-        return _OPENROUTER_CACHE["models"]
+        return cached
     try:
         response = requests.get(
-            f"{OPENROUTER_URL}/models",
+            (
+                f"{OPENROUTER_URL}/models"
+                "?max_price=0&max_output_price=0&output_modalities=text"
+                "&sort=context-high-to-low&limit=50"
+            ),
             headers={"Authorization": f"Bearer {settings.OPENROUTER_API_KEY}"},
             timeout=20,
         )
@@ -58,39 +69,120 @@ def _openrouter_free_models():
         catalog = response.json().get("data") or []
     except Exception as exc:
         print(f"OpenRouter catalog failed: {exc}")
-        return _OPENROUTER_CACHE["models"]
+        return cached
 
     free = []
     for model in catalog:
         price = model.get("pricing") or {}
-        if str(price.get("prompt")) not in ("0", "0.0"):
-            continue
-        if str(price.get("completion")) not in ("0", "0.0"):
+        if not all(
+            _price_is_zero(price.get(field))
+            for field in ("prompt", "completion", "request", "image")
+        ):
             continue
         output = (model.get("architecture") or {}).get("output_modalities") or []
         # Text-only models: lyria-style text+audio entries reject chat calls.
-        if "text" not in output or any(mode != "text" for mode in output):
+        if output != ["text"]:
             continue
         model_id = model.get("id") or ""
-        if model_id:
-            free.append((model.get("context_length") or 0, model_id))
-    free.sort(reverse=True)
-    ids = [model_id for _, model_id in free[:OPENROUTER_MAX_MODELS]]
-    _OPENROUTER_CACHE["models"] = ids
+        if not model_id:
+            continue
+        benchmark = (
+            (model.get("benchmarks") or {}).get("artificial_analysis") or {}
+        )
+        free.append({
+            "id": model_id,
+            "name": model.get("name") or model_id,
+            "context_length": int(model.get("context_length") or 0),
+            "legal_index": benchmark.get("legal_index"),
+        })
+    free.sort(key=lambda item: (-item["context_length"], item["id"]))
+    _OPENROUTER_CACHE["catalog"] = free
+    _OPENROUTER_CACHE["models"] = [
+        item["id"] for item in free[:OPENROUTER_MAX_MODELS]
+    ]
     _OPENROUTER_CACHE["fetched_at"] = now
-    return ids
+    return free
+
+
+def _openrouter_free_models():
+    """Top three zero-price text IDs for the provider `models` array."""
+    now = time.time()
+    if (
+        _OPENROUTER_CACHE["models"]
+        and now - _OPENROUTER_CACHE["fetched_at"] < OPENROUTER_CATALOG_TTL
+    ):
+        return _OPENROUTER_CACHE["models"][:OPENROUTER_MAX_MODELS]
+    return [
+        item["id"]
+        for item in _openrouter_free_catalog()[:OPENROUTER_MAX_MODELS]
+    ]
+
+
+def is_free_model(model_id):
+    """Exact-match allowlist against the live zero-price catalog."""
+    if not model_id:
+        return False
+    if model_id == FREE_ROUTER:
+        return True
+    # The ids cache is populated only from the filtered catalog; accepting it
+    # keeps the check cheap and works when the full catalog is not in memory.
+    if model_id in (_OPENROUTER_CACHE.get("models") or []):
+        return True
+    return any(item["id"] == model_id for item in _openrouter_free_catalog())
+
+
+def build_free_model_array(selected_model=None):
+    """Free-only wire array, max three. Unknown/paid ids fall back to the router."""
+    if (
+        not selected_model
+        or selected_model == FREE_ROUTER
+        or not is_free_model(selected_model)
+    ):
+        return [FREE_ROUTER]
+    fallback = [
+        item["id"]
+        for item in _openrouter_free_catalog()
+        if item["id"] != selected_model
+    ][:OPENROUTER_MAX_MODELS - 1]
+    return [selected_model, *fallback][:OPENROUTER_MAX_MODELS]
 
 
 def platform_ai_available():
-    """True when the owner-configured OmniRoute fallback is usable."""
-    return bool(settings.OMNIROUTE_BASE_URL and settings.OMNIROUTE_API_KEY)
+    """True when OpenRouter free or the owner-configured fallback is usable."""
+    return bool(
+        getattr(settings, "OPENROUTER_API_KEY", "")
+        or (settings.OMNIROUTE_BASE_URL and settings.OMNIROUTE_API_KEY)
+    )
 
 
-def platform_completion(prompt, timeout=55, max_models=None):
-    """OpenRouter free-model array first, OmniRoute as the second fallback."""
+def build_model_candidates(selected_model=None, response_engine=None):
+    """Selected model first, then the tuned alias fallback, deduped."""
+    engine_map = {val: label for val, label in ChatEngine.choices}
+    candidates = []
+    if selected_model:
+        candidates.append(selected_model)
+    if response_engine in engine_map:
+        candidates.append(engine_map[response_engine])
+    for engine in (
+        ChatEngine.GEMINI_3_FLASH,
+        ChatEngine.GEMINI_2_5_FLASH,
+        ChatEngine.GEMINI_2_5_FLASH_LITE,
+        ChatEngine.GEMMA_3_27B,
+    ):
+        candidates.append(engine_map[engine])
+    return list(dict.fromkeys(candidates))
+
+
+def platform_completion(prompt, timeout=55, max_models=None, selected_model=None):
+    """OpenRouter free-only first; OmniRoute only when explicitly allowed."""
     if getattr(settings, "OPENROUTER_API_KEY", ""):
-        models = _openrouter_free_models()[: max_models or OPENROUTER_MAX_MODELS]
+        if selected_model:
+            models = build_free_model_array(selected_model)
+        else:
+            models = _openrouter_free_models()[: max_models or OPENROUTER_MAX_MODELS]
         if models:
+            if not all(is_free_model(model) for model in models):
+                raise RuntimeError("Refusing a non-free OpenRouter model")
             try:
                 response = requests.post(
                     f"{OPENROUTER_URL}/chat/completions",
@@ -100,6 +192,11 @@ def platform_completion(prompt, timeout=55, max_models=None):
                     },
                     json={
                         "models": models,
+                        # second guard: never route above $0 even if the
+                        # allowlist is bypassed by a future bug.
+                        "provider": {
+                            "max_price": {"prompt": 0, "completion": 0}
+                        },
                         "messages": [{"role": "user", "content": prompt}],
                     },
                     timeout=timeout,
@@ -113,11 +210,15 @@ def platform_completion(prompt, timeout=55, max_models=None):
                     if content and content.strip():
                         return content
                 # ponytail: empty content (reasoning-only model) or non-200
-                # falls through to OmniRoute. Upgrade path: filter reasoning
-                # models from the catalog instead of relying on fallthrough.
+                # falls through only when paid fallback is explicitly allowed.
                 print(f"OpenRouter returned no text (HTTP {response.status_code})")
             except Exception as exc:
                 print(f"OpenRouter fallback failed: {exc}")
+
+    if not getattr(settings, "PLATFORM_ALLOW_PAID_FALLBACK", False):
+        raise RuntimeError(
+            "Free platform capacity is unavailable; paid fallback is disabled."
+        )
 
     url = f"{settings.OMNIROUTE_BASE_URL.rstrip('/')}/chat/completions"
     models = [
@@ -805,7 +906,10 @@ class AiRequest(BaseModel):
     
     # response engine (algorithm use)
     response_engine = models.IntegerField(choices=ChatEngine.choices, blank=True, null=True)
-    
+
+    # exact provider model picked from the live catalog (preferred when set)
+    response_model = models.CharField(max_length=128, blank=True, null=True)
+
     # character style
     response_style = models.CharField(max_length=20, choices=ModelStyle.choices, null=True, blank=True)
 
@@ -875,7 +979,22 @@ class AiRequest(BaseModel):
                     f"----------------------------\n"
                     f"User Query: {self.message}\nResponse:"
                 )
-            text = platform_completion(prompt, timeout=30, max_models=2)
+            selected = (
+                self.response_model
+                if is_free_model(self.response_model)
+                else None
+            )
+            if self.response_model and not selected:
+                print(
+                    "Rejected non-free platform model: "
+                    f"{self.response_model}"
+                )
+            text = platform_completion(
+                prompt,
+                timeout=30,
+                max_models=2,
+                selected_model=selected,
+            )
             stored_sources = sources or []
             if rag_context:
                 text = validate_rag_answer(
@@ -1121,27 +1240,11 @@ class AiRequest(BaseModel):
                     raise RuntimeError(f"Failed to initialize AI client: {str(e)}")
 
                 # 3. Prepare Engine Candidates
-                # map of stored integer -> model string label
-                engine_map = {val: label for val, label in ChatEngine.choices}
-                
-                # Default fallback order (Performance/Cost Hierarchy)
-                fallback_order = [
-                    ChatEngine.GEMINI_3_FLASH,
-                    ChatEngine.GEMINI_2_5_FLASH,
-                    ChatEngine.GEMINI_2_5_FLASH_LITE,
-                    ChatEngine.GEMMA_3_27B
-                ]
-
-                candidates = []
-                
-                # A. Priority 1: The user's selection
-                if self.response_engine and self.response_engine in engine_map:
-                    candidates.append(self.response_engine)
-
-                # B. Priority 2: Everything else (The Defaults)
-                for e in fallback_order:
-                    if e not in candidates:
-                        candidates.append(e)
+                # The exact catalog pick goes first; aliases stay as fallback.
+                candidates = build_model_candidates(
+                    self.response_model,
+                    self.response_engine,
+                )
 
                 # 4. Prepare Prompt (Persona + History + Retrieved Sources)
                 history = self.session._conversation_text() if self.session else ""
@@ -1160,21 +1263,17 @@ class AiRequest(BaseModel):
 
                 # 5. Execution Loop (Try candidates until one succeeds)
                 completion = None
-                used_engine_val = None
+                used_model = None
                 last_exc = None
-                
-                for engine_val in candidates:
-                    model_name = engine_map.get(engine_val)
-                    if not model_name:
-                        continue
 
+                for model_name in candidates:
                     try:
                         completion = client.models.generate_content(
                             model=model_name,
                             contents=prompt,
                         )
-                        # if call didn't raise, record used engine and break
-                        used_engine_val = engine_val
+                        # if call didn't raise, record the used model and break
+                        used_model = model_name
                         break
                     except Exception as e:
                         # record and continue to next candidate
@@ -1226,9 +1325,14 @@ class AiRequest(BaseModel):
 
                 # 7. Persist response & mark completed
                 self.response = text
-                # record the engine actually used (int value)
-                if used_engine_val is not None:
-                    self.response_engine = used_engine_val
+                # record the exact model used; keep the legacy integer when the
+                # used string maps to a known engine.
+                if used_model is not None:
+                    self.response_model = used_model
+                    self.response_engine = next(
+                        (val for val, label in ChatEngine.choices if label == used_model),
+                        None,
+                    )
                 self.status = CeleryStatus.COMPLETED
 
                 # 8. Store in session with detailed METADATA
@@ -1248,7 +1352,7 @@ class AiRequest(BaseModel):
                             message=self.message,
                             response=self.response,
                             email=user_email,
-                            engine=engine_map.get(used_engine_val), # Store string label
+                            engine=used_model,
                             style=self.response_style,
                             created_at=self.created_at if hasattr(self, 'created_at') else timezone.now(),
                             sources=stored_sources,
@@ -1301,7 +1405,7 @@ class AiRequest(BaseModel):
                     self.response = "The AI service is temporarily unavailable. Please try again."
 
             # final save: only update limited fields
-            update_fields = ['status', 'response', 'response_engine']
+            update_fields = ['status', 'response', 'response_engine', 'response_model']
             if hasattr(self, 'updated_at'):
                 update_fields.append('updated_at')
             

@@ -11,9 +11,13 @@ from chat_bot.models import (
     AiRequest,
     ChatSession,
     CLARIFY_FALLBACK,
+    FREE_ROUTER,
     OUT_OF_SCOPE_MESSAGE,
     SMALL_TALK_REPLY,
+    build_free_model_array,
+    build_model_candidates,
     extractive_answer,
+    is_free_model,
     retrieve_rag_sources,
     validate_rag_answer,
 )
@@ -71,6 +75,7 @@ class PlatformFallbackTests(TestCase):
     @override_settings(
         OMNIROUTE_BASE_URL="",
         OMNIROUTE_API_KEY="",
+        OPENROUTER_API_KEY="",
     )
     def test_serializer_blocks_no_key_without_platform(self):
         request = SimpleNamespace(user=self.user)
@@ -579,6 +584,7 @@ class PlatformFallbackTests(TestCase):
             OPENROUTER_API_KEY="k", OMNIROUTE_BASE_URL="http://relay",
             OMNIROUTE_API_KEY="r", OMNIROUTE_MODEL="m",
             OMNIROUTE_FALLBACK_MODELS=[],
+            PLATFORM_ALLOW_PAID_FALLBACK=True,
         ):
             openrouter = Mock(status_code=500)
             omniroute = Mock(status_code=200)
@@ -837,6 +843,171 @@ class PlatformFallbackTests(TestCase):
             response.json()["messages"][0]["sources"][0]["section_label"],
             "Section 3",
         )
+
+    def test_model_candidates_put_selection_first_and_dedupe(self):
+        self.assertEqual(
+            build_model_candidates("gemini-2.5-pro", None),
+            ["gemini-2.5-pro", "gemini-flash-latest", "gemini-flash-lite-latest"],
+        )
+        self.assertEqual(
+            build_model_candidates(None, 2),
+            ["gemini-flash-latest", "gemini-flash-lite-latest"],
+        )
+        self.assertEqual(
+            build_model_candidates("gemini-flash-latest", None).count(
+                "gemini-flash-latest"
+            ),
+            1,
+        )
+
+    def test_free_allowlist_builds_only_free_arrays(self):
+        catalog = [
+            {"id": "a:free", "name": "A", "context_length": 10, "legal_index": 1},
+            {"id": "b:free", "name": "B", "context_length": 9, "legal_index": 2},
+            {"id": "c:free", "name": "C", "context_length": 8, "legal_index": 3},
+            {"id": "d:free", "name": "D", "context_length": 7, "legal_index": 4},
+        ]
+        with patch(
+            "chat_bot.models._openrouter_free_catalog", return_value=catalog
+        ):
+            self.assertEqual(
+                build_free_model_array("a:free"),
+                ["a:free", "b:free", "c:free"],
+            )
+            self.assertEqual(
+                build_free_model_array("openai/gpt-4o"), [FREE_ROUTER]
+            )
+            self.assertEqual(build_free_model_array(None), [FREE_ROUTER])
+            self.assertTrue(is_free_model("a:free"))
+            self.assertFalse(is_free_model("openai/gpt-4o"))
+
+    def test_platform_completion_selected_model_payload_is_free_only(self):
+        from chat_bot import models as chat_models
+
+        catalog = [
+            {"id": "a:free", "name": "A", "context_length": 10, "legal_index": 1},
+            {"id": "b:free", "name": "B", "context_length": 9, "legal_index": 2},
+            {"id": "c:free", "name": "C", "context_length": 8, "legal_index": 3},
+        ]
+        with patch(
+            "chat_bot.models._openrouter_free_catalog", return_value=catalog
+        ), patch("chat_bot.models.requests.post") as post, self.settings(
+            OPENROUTER_API_KEY="k"
+        ):
+            post.return_value.status_code = 200
+            post.return_value.json.return_value = {
+                "choices": [{"message": {"content": "OK"}}]
+            }
+            text = chat_models.platform_completion(
+                "hi", selected_model="a:free"
+            )
+        self.assertEqual(text, "OK")
+        payload = post.call_args.kwargs["json"]
+        self.assertEqual(payload["models"], ["a:free", "b:free", "c:free"])
+        self.assertEqual(
+            payload["provider"]["max_price"],
+            {"prompt": 0, "completion": 0},
+        )
+
+    def test_platform_completion_blocks_paid_fallback_by_default(self):
+        from chat_bot import models as chat_models
+
+        chat_models._OPENROUTER_CACHE.update(
+            {"models": ["a:free"], "fetched_at": 9999999999}
+        )
+        with patch("chat_bot.models.requests.post") as post, self.settings(
+            OPENROUTER_API_KEY="k",
+            OMNIROUTE_BASE_URL="http://relay",
+            OMNIROUTE_API_KEY="r",
+            OMNIROUTE_MODEL="m",
+            PLATFORM_ALLOW_PAID_FALLBACK=False,
+        ):
+            post.return_value.status_code = 500
+            with self.assertRaises(RuntimeError):
+                chat_models.platform_completion("hi")
+            self.assertEqual(post.call_count, 1)
+
+    def test_serializer_accepts_listed_model_for_keyed_account(self):
+        ApiKey.objects.create(
+            account_id=self.account,
+            api_key="test-gemini-key",
+            is_working=True,
+            worker_status="COMPLETED",
+            meta_data={
+                "models": [
+                    {"id": "gemini-flash-latest", "label": "Gemini Flash Latest"}
+                ]
+            },
+        )
+        request = SimpleNamespace(user=self.user)
+        serializer = AiRequestCreateSerializer(
+            data={
+                "session": self.session.id,
+                "message": "hello",
+                "response_model": "gemini-flash-latest",
+            },
+            context={"request": request},
+        )
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+
+    def test_serializer_rejects_unlisted_model_for_keyed_account(self):
+        ApiKey.objects.create(
+            account_id=self.account,
+            api_key="test-gemini-key",
+            is_working=True,
+            worker_status="COMPLETED",
+            meta_data={
+                "models": [
+                    {"id": "gemini-flash-latest", "label": "Gemini Flash Latest"}
+                ]
+            },
+        )
+        request = SimpleNamespace(user=self.user)
+        serializer = AiRequestCreateSerializer(
+            data={
+                "session": self.session.id,
+                "message": "hello",
+                "response_model": "gemini-2.5-pro",
+            },
+            context={"request": request},
+        )
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("response_model", serializer.errors)
+
+    @override_settings(
+        OMNIROUTE_BASE_URL="http://omniroute.test/v1",
+        OMNIROUTE_API_KEY="test-key",
+    )
+    def test_keyless_paid_model_selection_is_rejected(self):
+        request = SimpleNamespace(user=self.user)
+        with patch("chat_bot.serializers.is_free_model", return_value=False):
+            serializer = AiRequestCreateSerializer(
+                data={
+                    "session": self.session.id,
+                    "message": "hello",
+                    "response_model": "openai/gpt-4o",
+                },
+                context={"request": request},
+            )
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("response_model", serializer.errors)
+
+    @override_settings(
+        OMNIROUTE_BASE_URL="http://omniroute.test/v1",
+        OMNIROUTE_API_KEY="test-key",
+    )
+    def test_keyless_free_model_selection_is_allowed(self):
+        request = SimpleNamespace(user=self.user)
+        with patch("chat_bot.serializers.is_free_model", return_value=True):
+            serializer = AiRequestCreateSerializer(
+                data={
+                    "session": self.session.id,
+                    "message": "hello",
+                    "response_model": "particle-ai/particle-1:free",
+                },
+                context={"request": request},
+            )
+        self.assertTrue(serializer.is_valid(), serializer.errors)
 
     def test_chat_endpoints_require_authentication(self):
         anonymous = APIClient()

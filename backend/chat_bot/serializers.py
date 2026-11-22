@@ -1,7 +1,12 @@
 # location: backend/chat_bot/serializers.py
 from pydantic import ValidationError
 from rest_framework import serializers
-from .models import ChatSession, AiRequest, platform_ai_available
+from .models import (
+    ChatSession,
+    AiRequest,
+    is_free_model,
+    platform_ai_available,
+)
 from api_key.models import ApiKey
 # choice
 from BASE.base_choice import CeleryStatus
@@ -49,6 +54,7 @@ class AiRequestCreateSerializer(serializers.ModelSerializer):
             "status",
             "progress",
             "response_engine",
+            "response_model",
             "response_style",
             "response",            
             "created_at",
@@ -67,15 +73,46 @@ class AiRequestCreateSerializer(serializers.ModelSerializer):
             )
 
         # checking do user have a active api key or not
-        has_key = ApiKey.objects.filter(
+        key = ApiKey.objects.filter(
             account_id__user=user,
             is_working=True,
-        ).exists()
+        ).first()
+        has_key = key is not None
 
         if not has_key and not platform_ai_available():
             raise serializers.ValidationError(
                 {"error": "No working API key and platform fallback is unavailable."}
             )
+
+        # An explicit model pick must belong to the provider's live catalog.
+        response_model = attrs.get("response_model")
+        if response_model:
+            if not key:
+                if not is_free_model(response_model):
+                    raise serializers.ValidationError(
+                        {
+                            "response_model": (
+                                "Only free platform models are allowed."
+                            )
+                        }
+                    )
+            else:
+                allowed = (key.meta_data or {}).get("models")
+                if isinstance(allowed, list):
+                    allowed_ids = {
+                        item.get("id")
+                        for item in allowed
+                        if isinstance(item, dict) and item.get("id")
+                    }
+                    if response_model not in allowed_ids:
+                        raise serializers.ValidationError(
+                            {
+                                "response_model": (
+                                    "This model is not available for the "
+                                    "connected API key."
+                                )
+                            }
+                        )
 
         # Message validation
         if not message or not message.strip():
