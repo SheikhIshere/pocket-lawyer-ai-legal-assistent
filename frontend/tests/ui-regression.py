@@ -7,7 +7,6 @@ in PL_TOKEN or /tmp/opencode/fe_audit_token.json. Run with:
 """
 import json
 import os
-import re
 import sys
 from pathlib import Path
 
@@ -239,6 +238,41 @@ def main():
         # 14. Mobile chat: no global bottom nav, no reserved band, popup clears the composer.
         ctx = context(browser, True, 390, 844)
         page = ctx.new_page()
+        free_catalog = {
+            "data": [
+                {
+                    "id": "free/one:free",
+                    "name": "Free One",
+                    "context_length": 1_000_000,
+                    "pricing": {"prompt": "0", "completion": "0", "request": "0", "image": "0"},
+                    "architecture": {"output_modalities": ["text"]},
+                    "benchmarks": {"artificial_analysis": {"legal_index": 25.0}},
+                },
+                {
+                    "id": "free/two:free",
+                    "name": "Free Two",
+                    "context_length": 900_000,
+                    "pricing": {"prompt": "0", "completion": "0", "request": "0", "image": "0"},
+                    "architecture": {"output_modalities": ["text"]},
+                    "benchmarks": {"artificial_analysis": {"legal_index": 20.0}},
+                },
+                {
+                    "id": "paid/model",
+                    "name": "Paid Model",
+                    "context_length": 2_000_000,
+                    "pricing": {"prompt": "0.1", "completion": "0.1", "request": "0", "image": "0"},
+                    "architecture": {"output_modalities": ["text"]},
+                },
+            ]
+        }
+        page.route(
+            "https://openrouter.ai/api/v1/models*",
+            lambda route: route.fulfill(
+                status=200,
+                content_type="application/json",
+                body=json.dumps(free_catalog),
+            ),
+        )
         page.goto(BASE + "/#/chat", wait_until="networkidle")
         page.wait_for_timeout(800)
         chat = page.evaluate(
@@ -255,7 +289,7 @@ def main():
         )
         check(chat["navDisplay"] in (None, "none"), f"chat mobile still renders the global nav: {chat}")
         check(chat["composerH"] is not None and chat["composerH"] < 220, f"chat composer still reserves the nav band: {chat}")
-        page.get_by_role("button", name=re.compile("Gemini|Gemma")).first.click()
+        page.locator('button[aria-haspopup="menu"]').first.click()
         page.wait_for_timeout(500)
         popup_overlap = page.evaluate(
             """() => {
@@ -268,7 +302,17 @@ def main():
             }"""
         )
         check(popup_overlap is False, f"model menu overlaps the composer: {popup_overlap}")
-        page.get_by_role("button", name=re.compile("Gemini|Gemma")).first.click()
+        menu_text = page.evaluate(
+            """() => {
+                const menu = [...document.querySelectorAll('div')].find(el =>
+                    (el.textContent || '').toUpperCase().includes('PERSONA') &&
+                    Math.round(el.getBoundingClientRect().width) === 268);
+                return menu ? menu.innerText : '';
+            }"""
+        )
+        check("Free One" in menu_text and "Free Two" in menu_text, f"live free models missing: {menu_text[:300]}")
+        check("Paid Model" not in menu_text, "paid model leaked into the free menu")
+        page.locator('button[aria-haspopup="menu"]').first.click()
         page.wait_for_timeout(300)
         page.get_by_label("Open outline").click()
         page.wait_for_timeout(500)

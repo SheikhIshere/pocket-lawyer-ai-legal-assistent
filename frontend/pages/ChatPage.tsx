@@ -19,17 +19,13 @@ import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { ChatSession, Message, StepRecord } from '../types';
+import { fetchFreeModels, FreeModel } from '../lib/freeModels';
 import { StudioMessage } from '../components/chat/StudioMessage';
 import { StudioOutline } from '../components/chat/StudioOutline';
 import { StudioRail } from '../components/chat/StudioRail';
 import { ChainOfThought } from '../components/chat/ChainOfThought';
 
-const ENGINES = [
-  { value: 1, label: 'Gemini 3 Flash' },
-  { value: 2, label: 'Gemini 2.5 Flash' },
-  { value: 3, label: '2.5 Flash Lite' },
-  { value: 4, label: 'Gemma 27B' },
-];
+type ModelOption = { id: string; label: string };
 
 const PERSONAS = [
   { id: 'supportive', label: 'Supportive' },
@@ -55,7 +51,10 @@ const ChatPage = () => {
   const [showHeaderMenu, setShowHeaderMenu] = useState(false);
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const [responseStyle, setResponseStyle] = useState<'supportive' | 'casual' | 'deep_thinking'>('supportive');
-  const [responseEngine, setResponseEngine] = useState<number>(2);
+  const [modelOptions, setModelOptions] = useState<ModelOption[]>([]);
+  const [freeModels, setFreeModels] = useState<FreeModel[]>([]);
+  const [selectedModel, setSelectedModel] = useState<string | null>(null);
+  const [modelMode, setModelMode] = useState<'loading' | 'keyed' | 'platform' | 'error'>('loading');
   const [revealMessageId, setRevealMessageId] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -65,7 +64,18 @@ const ChatPage = () => {
   const modelMenuRef = useRef<HTMLDivElement>(null);
   const stopControllerRef = useRef<AbortController | null>(null);
 
-  const engineLabel = ENGINES.find((engine) => engine.value === responseEngine)?.label || 'Gemini 2.5 Flash';
+  const engineLabel =
+    modelMode === 'loading'
+      ? 'Loading models…'
+      : selectedModel
+        ? (modelOptions.find((model) => model.id === selectedModel)?.label ||
+            freeModels.find((model) => model.id === selectedModel)?.name ||
+            selectedModel)
+        : modelMode === 'platform'
+          ? 'Auto (platform)'
+          : modelMode === 'keyed'
+            ? 'Auto (Gemini)'
+            : 'Auto';
   const currentTitle = sessions.find((session) => session.id === currentSessionId)?.title || 'New chat';
   const displayName = user?.name || user?.full_name || user?.email?.split('@')[0] || 'there';
 
@@ -83,6 +93,46 @@ const ChatPage = () => {
     fetchSessions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadModels = async () => {
+      try {
+        const raw = await api.accountService.getApiKeys();
+        const keys = Array.isArray(raw) ? raw : (raw?.results || []);
+        const working = keys.find((key: any) => key.is_working);
+        if (cancelled) return;
+        if (!working) {
+          setModelMode('platform');
+          setModelOptions([]);
+          setSelectedModel(null);
+          return;
+        }
+        const models = Array.isArray(working.models) ? working.models : [];
+        setModelOptions(models);
+        setModelMode('keyed');
+        const preferred = models.find((model: ModelOption) => model.id === 'gemini-flash-latest') || models[0];
+        setSelectedModel(preferred?.id || null);
+      } catch (err) {
+        if (cancelled) return;
+        console.error('Failed to load model list', err);
+        setModelMode('error');
+        setModelOptions([]);
+        setSelectedModel(null);
+      }
+    };
+    loadModels();
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    if (modelMode !== 'platform') return;
+    let cancelled = false;
+    fetchFreeModels().then((models) => {
+      if (!cancelled) setFreeModels(models);
+    });
+    return () => { cancelled = true; };
+  }, [modelMode]);
 
   useEffect(() => {
     const state = location.state as { newSession?: boolean; sessionId?: string } | null;
@@ -185,8 +235,8 @@ const ChatPage = () => {
       const response = await api.assistantService.sendMessage(
         userContent,
         currentSessionId,
-        responseEngine,
         responseStyle,
+        selectedModel,
       );
       const responseData = response.data || response;
       const requestId = responseData?.id || responseData?.request_id;
@@ -285,7 +335,7 @@ const ChatPage = () => {
       />
 
       <main className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-16 shrink-0 items-center justify-between gap-3 border-b border-border bg-background/80 px-3 backdrop-blur sm:px-6">
+        <header className="flex h-16 shrink-0 items-center justify-between gap-3 border-b border-border bg-background/80 px-3 backdrop-blur sm:px-6 md:hidden">
           <div className="flex min-w-0 items-center gap-2.5">
             <button
               type="button"
@@ -341,7 +391,7 @@ const ChatPage = () => {
             <div ref={docTopRef} />
             {emptyState && (
               <div className="flex min-h-[55vh] flex-col items-center justify-center text-center">
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-xl shadow-indigo-950/30">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-600 to-emerald-700 text-white shadow-xl shadow-teal-500/20">
                   <Bot size={22} />
                 </div>
                 <h2 className="text-xl font-bold text-foreground">
@@ -364,7 +414,7 @@ const ChatPage = () => {
                         setInputValue(`${prompt.label} ${prompt.desc}`);
                         inputRef.current?.focus();
                       }}
-                      className="rounded-xl border border-border bg-card/60 p-3 text-left transition-colors hover:border-indigo-500/40 hover:bg-card"
+                      className="rounded-xl border border-border bg-card/60 p-3 text-left transition-colors hover:border-teal-500/40 hover:bg-card"
                     >
                       <span className="block text-[12px] font-semibold text-foreground">{prompt.label}</span>
                       <span className="mt-0.5 block text-[10px] text-muted-foreground">{prompt.desc}</span>
@@ -403,7 +453,7 @@ const ChatPage = () => {
             {isSending && (
               <div className="mb-8">
                 <div className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
-                  <span className="flex h-5 w-5 items-center justify-center rounded-md bg-indigo-600 text-white">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-md bg-teal-600 text-white">
                     <Bot size={12} />
                   </span>
                   Pocket Lawyer AI
@@ -412,9 +462,9 @@ const ChatPage = () => {
                   <ChainOfThought records={liveTrace} running startedAt={liveStartedAt} defaultOpen />
                 ) : (
                   <div className="flex items-center gap-1.5 py-2">
-                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-indigo-400/60 [animation-delay:-0.3s]" />
-                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-indigo-400/60 [animation-delay:-0.15s]" />
-                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-indigo-400/60" />
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-teal-400/60 [animation-delay:-0.3s]" />
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-teal-400/60 [animation-delay:-0.15s]" />
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-teal-400/60" />
                     <span className="ml-2 text-[11px] text-muted-foreground">Reading the sources…</span>
                   </div>
                 )}
@@ -435,7 +485,7 @@ const ChatPage = () => {
               </div>
             )}
 
-            <div ref={modelMenuRef} className="relative rounded-[24px] border border-border bg-card p-2 shadow-2xl shadow-black/20 transition-colors focus-within:border-indigo-500/40">
+            <div ref={modelMenuRef} className="relative rounded-[24px] border border-border bg-card p-2 shadow-2xl shadow-black/20 transition-colors focus-within:border-teal-500/40">
               <textarea
                 ref={inputRef}
                 value={inputValue}
@@ -456,7 +506,7 @@ const ChatPage = () => {
                   <button
                     type="button"
                     onClick={() => setModelMenuOpen((open) => !open)}
-                    className="flex items-center gap-1.5 rounded-full border border-border bg-background/60 px-2 py-1 text-[10px] text-muted-foreground transition-colors hover:border-indigo-500/50 hover:text-foreground"
+                    className="flex items-center gap-1.5 rounded-full border border-border bg-background/60 px-2 py-1 text-[10px] text-muted-foreground transition-colors hover:border-teal-500/50 hover:text-foreground"
                     aria-haspopup="menu"
                     aria-expanded={modelMenuOpen}
                   >
@@ -473,8 +523,8 @@ const ChatPage = () => {
                   disabled={!isSending && !inputValue.trim()}
                   className={`flex h-9 w-9 items-center justify-center rounded-full text-white shadow-lg transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 ${
                     isSending
-                      ? 'bg-rose-500 shadow-rose-950/30 hover:bg-rose-400'
-                      : 'bg-indigo-600 shadow-indigo-950/30 hover:bg-indigo-500'
+                      ? 'bg-gradient-to-br from-teal-600 to-emerald-700 shadow-teal-500/20 hover:from-teal-500 hover:to-emerald-600'
+                      : 'bg-teal-600 shadow-teal-500/20 hover:bg-teal-500'
                   }`}
                   title={isSending ? 'Stop waiting' : 'Send (Enter)'}
                 >
@@ -484,26 +534,71 @@ const ChatPage = () => {
                   {modelMenuOpen && (
                     <div className="absolute bottom-full left-2 z-50 mb-2 max-h-[calc(100dvh-220px)] w-[268px] max-w-[calc(100vw-24px)] overflow-y-auto rounded-xl border border-border bg-card p-2 shadow-2xl shadow-black/40">
                       <div className="px-2 pb-1 pt-1 text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-                        Engine
+                        Model
                       </div>
-                      {ENGINES.map((engine) => (
-                        <button
-                          key={engine.value}
-                          type="button"
-                          onClick={() => {
-                            setResponseEngine(engine.value);
-                            setModelMenuOpen(false);
-                          }}
-                          className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-[12px] transition-colors ${
-                            responseEngine === engine.value
-                              ? 'bg-indigo-500/15 text-foreground'
-                              : 'text-muted-foreground hover:bg-muted'
-                          }`}
-                        >
-                          <span>{engine.label}</span>
-                          {responseEngine === engine.value && <span className="text-[10px] text-emerald-400">ok</span>}
-                        </button>
-                      ))}
+                      {modelMode === 'platform' ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedModel(null);
+                              setModelMenuOpen(false);
+                            }}
+                            className={`flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-[12px] transition-colors ${
+                              selectedModel === null
+                                ? 'bg-teal-500/15 text-foreground'
+                                : 'text-muted-foreground hover:bg-muted'
+                            }`}
+                          >
+                            <span className="truncate">Auto (platform)</span>
+                            {selectedModel === null && <span className="shrink-0 text-[10px] text-emerald-400">ok</span>}
+                          </button>
+                          {freeModels.map((model) => (
+                            <button
+                              key={model.id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedModel(model.id);
+                                setModelMenuOpen(false);
+                              }}
+                              className={`flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-[12px] transition-colors ${
+                                selectedModel === model.id
+                                  ? 'bg-teal-500/15 text-foreground'
+                                  : 'text-muted-foreground hover:bg-muted'
+                              }`}
+                            >
+                              <span className="min-w-0 flex-1 truncate">{model.name}</span>
+                              {selectedModel === model.id && <span className="shrink-0 text-[10px] text-emerald-400">ok</span>}
+                            </button>
+                          ))}
+                        </>
+                      ) : modelMode === 'loading' ? (
+                        <div className="px-2.5 py-2 text-[11px] text-muted-foreground">Loading models…</div>
+                      ) : modelOptions.length > 0 ? (
+                        modelOptions.map((model) => (
+                          <button
+                            key={model.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedModel(model.id);
+                              setModelMenuOpen(false);
+                            }}
+                            className={`flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-[12px] transition-colors ${
+                              selectedModel === model.id
+                                ? 'bg-teal-500/15 text-foreground'
+                                : 'text-muted-foreground hover:bg-muted'
+                            }`}
+                          >
+                            <span className="truncate">{model.label}</span>
+                            {selectedModel === model.id && <span className="shrink-0 text-[10px] text-emerald-400">ok</span>}
+                          </button>
+                        ))
+                      ) : (
+                        <div className="rounded-lg px-2.5 py-2 text-[11px] text-muted-foreground">
+                          <div className="font-medium text-foreground">Auto {modelMode === 'keyed' ? '(Gemini)' : ''}</div>
+                          <div className="mt-0.5 text-[10px]">Falls back to the tuned Gemini aliases.</div>
+                        </div>
+                      )}
                       <div className="mt-2 border-t border-border px-2 pb-1 pt-2 text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
                         Persona
                       </div>
@@ -515,7 +610,7 @@ const ChatPage = () => {
                             onClick={() => setResponseStyle(persona.id)}
                             className={`rounded-lg px-1 py-1.5 text-[10px] transition-colors ${
                               responseStyle === persona.id
-                                ? 'bg-indigo-500/15 text-foreground'
+                                ? 'bg-teal-500/15 text-foreground'
                                 : 'text-muted-foreground hover:bg-muted'
                             }`}
                           >

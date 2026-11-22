@@ -328,12 +328,12 @@ export const assistantService = {
     return data;
   },
 
-  sendMessage: async (message: string, sessionId: string | null = null, responseEngine: number = 2, responseStyle: string = "supportive"): Promise<any> => {
-    const payload = {
+  sendMessage: async (message: string, sessionId: string | null = null, responseStyle: string = "supportive", responseModel: string | null = null): Promise<any> => {
+    const payload: Record<string, string> = {
       message: message,
-      response_engine: responseEngine,
       response_style: responseStyle,
     };
+    if (responseModel) payload.response_model = responseModel;
 
     if (sessionId) {
       return apiCall(`/assistant/sessions/${sessionId}/send/`, {
