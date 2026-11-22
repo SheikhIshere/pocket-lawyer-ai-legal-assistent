@@ -64,7 +64,7 @@ def get_legal_prompt(style, user_query):
         )
 
 
-def get_rag_prompt(style, user_query, context, plan=None):
+def get_rag_prompt(style, user_query, context, plan=None, answer_plan=None):
     """Legal prompt with strict source grounding and an answer-first contract."""
     base = get_legal_prompt(style, user_query)
     refusal = (
@@ -73,6 +73,31 @@ def get_rag_prompt(style, user_query, context, plan=None):
         "If you can tell me the Act or section, I can look it up."
     )
     follow_up = "- Do not ask a question. Answer the question directly.\n"
+
+    sections = (
+        "- Structure the answer with these headings when the sources allow: "
+        "The law, Your defence, If the claim is false, Next step.\n"
+        "- Under The law give the rule, penalty, and procedure. "
+        "Under Your defence give any exception or defence. "
+        "Under If the claim is false give the backfire only when the facts "
+        "describe an accusation. Under Next step give the lawful next move.\n"
+        "- Name every element the sources do not cover under Gaps. "
+        "Do not invent it.\n"
+    )
+    risk_line = ""
+    if isinstance(answer_plan, dict) and answer_plan.get("risk") == "harmful":
+        risk_line = (
+            "- The user describes a harmful act. Explain the legal "
+            "consequences and lawful alternatives only. Never give steps to "
+            "commit, hide, or escape a crime.\n"
+        )
+    gaps_line = ""
+    if isinstance(answer_plan, dict) and answer_plan.get("gaps"):
+        gaps_line = (
+            "- Known gaps: "
+            + ", ".join(str(role) for role in answer_plan["gaps"][:6])
+            + ".\n"
+        )
 
     return (
         f"{base}\n\n"
@@ -93,7 +118,10 @@ def get_rag_prompt(style, user_query, context, plan=None):
         f"{refusal}\n"
         + follow_up
         + "- Do not use your own memory for legal facts, even if you know them.\n"
-        "- Keep the answer under 300 characters unless the user asks for detail.\n\n"
+        + sections
+        + risk_line
+        + gaps_line
+        + "\n"
         f"--- SOURCES ---\n{context}\n--- END SOURCES ---\n"
         f"User Query: {user_query}\nResponse:"
     )

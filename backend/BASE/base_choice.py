@@ -36,18 +36,16 @@ class CeleryStatus(TextChoices):
 # for: backend/chat_bot/models.py
 class ChatEngine(IntegerChoices):
     """ types of gemini models i am using to response """
-    # NOTE: constant names are kept for backward compatibility. The labels below are
-    # the model IDs currently available to new Google AI Studio API keys.
-    """
-    1 will be gemini-3-flash-preview
-    2 will be gemini-3.5-flash
-    3 will be gemini-3.5-flash-lite
-    4 will be gemini-3.8-flash
-    """
-    GEMINI_3_FLASH = 1, "gemini-3-flash-preview"
-    GEMINI_2_5_FLASH = 2, "gemini-3.5-flash"
-    GEMINI_2_5_FLASH_LITE = 3, "gemini-3.5-flash-lite"
-    GEMMA_3_27B = 4, "gemini-3.8-flash"
+    # NOTE: constant names are kept for backward compatibility. The labels are
+    # Google's maintained "latest" aliases: they are hot-swapped on every
+    # release, so the app never pins a version Google can retire.
+    # ponytail: aliases follow Google's release train; if the alias family ever
+    # churns, add a ListModels resolver (archived 2026-11-19,
+    # solution-model-version-drift.md).
+    GEMINI_3_FLASH = 1, "gemini-flash-latest"
+    GEMINI_2_5_FLASH = 2, "gemini-flash-latest"
+    GEMINI_2_5_FLASH_LITE = 3, "gemini-flash-lite-latest"
+    GEMMA_3_27B = 4, "gemini-flash-lite-latest"
 
 # for: backend/chat_bot/models.py
 class ModelStyle(TextChoices):
