@@ -9,6 +9,7 @@ from google import genai
 from google.genai import types
 
 # id
+import time
 import uuid
 import requests
 
@@ -30,13 +31,94 @@ from django.utils import timezone
 import re
 
 
+OPENROUTER_URL = "https://openrouter.ai/api/v1"
+# OpenRouter rejects a models array longer than 3 items (HTTP 400).
+OPENROUTER_MAX_MODELS = 3
+# ponytail: 6h catalog TTL; lower it if a retired free model starts failing
+# before the cache expires. Upgrade path: per-model failure tracking.
+OPENROUTER_CATALOG_TTL = 6 * 60 * 60
+_OPENROUTER_CACHE = {"models": [], "fetched_at": 0.0}
+
+
+def _openrouter_free_models():
+    """Zero-price text models from the live OpenRouter catalog (cached)."""
+    now = time.time()
+    if (
+        _OPENROUTER_CACHE["models"]
+        and now - _OPENROUTER_CACHE["fetched_at"] < OPENROUTER_CATALOG_TTL
+    ):
+        return _OPENROUTER_CACHE["models"]
+    try:
+        response = requests.get(
+            f"{OPENROUTER_URL}/models",
+            headers={"Authorization": f"Bearer {settings.OPENROUTER_API_KEY}"},
+            timeout=20,
+        )
+        response.raise_for_status()
+        catalog = response.json().get("data") or []
+    except Exception as exc:
+        print(f"OpenRouter catalog failed: {exc}")
+        return _OPENROUTER_CACHE["models"]
+
+    free = []
+    for model in catalog:
+        price = model.get("pricing") or {}
+        if str(price.get("prompt")) not in ("0", "0.0"):
+            continue
+        if str(price.get("completion")) not in ("0", "0.0"):
+            continue
+        output = (model.get("architecture") or {}).get("output_modalities") or []
+        # Text-only models: lyria-style text+audio entries reject chat calls.
+        if "text" not in output or any(mode != "text" for mode in output):
+            continue
+        model_id = model.get("id") or ""
+        if model_id:
+            free.append((model.get("context_length") or 0, model_id))
+    free.sort(reverse=True)
+    ids = [model_id for _, model_id in free[:OPENROUTER_MAX_MODELS]]
+    _OPENROUTER_CACHE["models"] = ids
+    _OPENROUTER_CACHE["fetched_at"] = now
+    return ids
+
+
 def platform_ai_available():
     """True when the owner-configured OmniRoute fallback is usable."""
     return bool(settings.OMNIROUTE_BASE_URL and settings.OMNIROUTE_API_KEY)
 
 
 def platform_completion(prompt, timeout=55, max_models=None):
-    """Call OmniRoute, rotating free models when one is rate-limited."""
+    """OpenRouter free-model array first, OmniRoute as the second fallback."""
+    if getattr(settings, "OPENROUTER_API_KEY", ""):
+        models = _openrouter_free_models()[: max_models or OPENROUTER_MAX_MODELS]
+        if models:
+            try:
+                response = requests.post(
+                    f"{OPENROUTER_URL}/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "models": models,
+                        "messages": [{"role": "user", "content": prompt}],
+                    },
+                    timeout=timeout,
+                )
+                if response.status_code == 200:
+                    choices = response.json().get("choices") or []
+                    content = (
+                        (choices[0].get("message") or {}).get("content")
+                        if choices else ""
+                    )
+                    if content and content.strip():
+                        return content
+                # ponytail: empty content (reasoning-only model) or non-200
+                # falls through to OmniRoute. Upgrade path: filter reasoning
+                # models from the catalog instead of relying on fallthrough.
+                print(f"OpenRouter returned no text (HTTP {response.status_code})")
+            except Exception as exc:
+                print(f"OpenRouter fallback failed: {exc}")
+
     url = f"{settings.OMNIROUTE_BASE_URL.rstrip('/')}/chat/completions"
     models = [
         settings.OMNIROUTE_MODEL,
@@ -153,6 +235,19 @@ def _clarify_count(session):
     return count
 
 
+_FILE_TITLE_RE = re.compile(r"\.(pdf|docx?|txt)$", re.IGNORECASE)
+
+
+def _readable_title(title):
+    """Hide raw PDF filenames; the SOURCES block still shows the real file."""
+    title = (title or "").strip()
+    if not title:
+        return "Legal source"
+    if _FILE_TITLE_RE.search(title) or re.match(r"^\d+_", title):
+        return "Legal source"
+    return title
+
+
 def extractive_answer(chunks, question=None, search_terms=None):
     """Grounded fallback when the LLM is unavailable or fails citation checks."""
     refuse = legal_refusal_message()
@@ -182,7 +277,7 @@ def extractive_answer(chunks, question=None, search_terms=None):
     if not text:
         return refuse
 
-    title = chunk.get("document_title") or "Legal source"
+    title = _readable_title(chunk.get("document_title") or "")
     section = chunk.get("section_label") or ""
     page = chunk.get("page_start")
     prefix = title
@@ -202,7 +297,9 @@ def extractive_answer(chunks, question=None, search_terms=None):
     snippet = text if len(text) <= budget else text[:budget].rsplit(" ", 1)[0]
     if not snippet:
         return refuse
-    return f"{prefix}: {snippet}{suffix}"
+    # Citation sits inside the sentence, otherwise the sentence-level
+    # validator drops the sentence and keeps only "[S1]".
+    return f"{prefix}: {snippet.rstrip('.')}{suffix}."
 
 
 _AMENDMENT_LABEL = re.compile(
@@ -347,7 +444,7 @@ def build_rag_context(chunks):
         return ""
 
 
-def validate_rag_answer(text, chunks, question=None, search_terms=None):
+def validate_rag_answer(text, chunks, question=None, search_terms=None, issues=None):
     """Keep only cited sentences and require a cited source to cover the query."""
     refusal = refusal_message_for(question) if question else legal_refusal_message()
     if not text or not text.strip():
@@ -427,7 +524,52 @@ def validate_rag_answer(text, chunks, question=None, search_terms=None):
             # hallucination backstop for unrelated or non-legal questions.
             return refusal
 
+    if issues:
+        # Diagram step 20: a cited source must belong to one of the spotted
+        # issues — same Act title, or most of the issue's key terms in the
+        # chunk. One stray shared word (e.g. "bail" inside a death-reference
+        # judgment, or "police" inside a uniform gazette) is not enough.
+        # ponytail: lexical threshold; upgrade path = cross-encoder reranker
+        # (sentence-transformers mxbai/bge) once a gold set exists to tune it.
+        from legal_rag.issue_map import issue_tokens
+        from legal_rag.text import term_present
+
+        cited_indexes = {int(ref) for ref in re.findall(r"\[S(\d+)\]", cleaned)}
+        matched = False
+        for index in cited_indexes:
+            if not (1 <= index <= len(chunks)):
+                continue
+            chunk = chunks[index - 1]
+            title = (chunk.get("document_title") or "").lower()
+            text_lower = (chunk.get("text") or "").lower()
+            for issue in issues:
+                act = " ".join((issue.get("act_title") or "").lower().split())
+                if act and act in title:
+                    matched = True
+                    break
+                tokens = issue_tokens(issue)
+                if len(tokens) >= 2:
+                    present = sum(
+                        1 for token in tokens if term_present(token, text_lower)
+                    )
+                    required = max(2, (7 * len(tokens) + 9) // 10)
+                    if present >= required:
+                        matched = True
+                        break
+            if matched:
+                break
+        if not matched:
+            return refusal
+
     return cleaned
+
+
+def _grounded_fallback(sources, question, search_terms, issues):
+    """Extractive answer re-checked against the spotted issues (no junk chunks)."""
+    text = extractive_answer(sources, question, search_terms)
+    return validate_rag_answer(
+        text, sources, question, search_terms, issues=issues
+    )
 
 
 
@@ -446,6 +588,9 @@ class ChatSession(BaseModel):
     # chat history
     title = models.CharField(max_length=255, blank=True)
     messages = models.JSONField(default=list, blank=True)
+
+    # one case per session: facts, issues, coverage, pending question
+    case_state = models.JSONField(default=dict, blank=True)
 
     # worker status
     status = models.CharField(max_length=20, choices=CeleryStatus.choices, default=CeleryStatus.PENDING)
@@ -550,7 +695,7 @@ class ChatSession(BaseModel):
             self.status = CeleryStatus.FAILED
             self.save(update_fields=["status"]) if hasattr(self, 'updated_at') else self.save()
 
-    def add_message(self, message: str, response: str = "", email: str = None, engine: str = None, style: str = None, created_at=None, sources=None):
+    def add_message(self, message: str, response: str = "", email: str = None, engine: str = None, style: str = None, created_at=None, sources=None, trace=None):
         """Add a message to the session history and queue AI title generation once.
 
         Parameters:
@@ -561,6 +706,7 @@ class ChatSession(BaseModel):
             style: response style used (optional)
             created_at: datetime (optional)
             sources: retrieved legal sources (optional)
+            trace: per-step diagram records for the UI (optional)
         """
         if created_at is None:
             created_at = timezone.now()
@@ -598,6 +744,7 @@ class ChatSession(BaseModel):
             "model": engine,
             "style": style,
             "sources": stored_sources,
+            "trace": trace or [],
             "created_at": created_at.isoformat() if hasattr(created_at, "isoformat") else str(created_at),
         }
 
@@ -662,6 +809,21 @@ class AiRequest(BaseModel):
     # character style
     response_style = models.CharField(max_length=20, choices=ModelStyle.choices, null=True, blank=True)
 
+    # live step feed for the polling UI (written by the worker)
+    progress = models.JSONField(default=list, blank=True)
+
+
+    # ponytail: cap 40 records; 8–20 small writes per turn is below the
+    # researched ~1/s guidance. Upgrade path: SSE if sub-second is needed.
+    def _record_step(self, record):
+        try:
+            progress = list(self.progress or [])
+            progress.append(record)
+            self.progress = progress[-40:]
+            self.save(update_fields=["progress", "updated_at"])
+        except Exception as exc:
+            print(f"Progress save skipped: {exc}")
+
 
     def _queue_job(self):
         """Dispatch the request to Celery on successful transaction commit."""
@@ -691,7 +853,8 @@ class AiRequest(BaseModel):
         return f"{previous[-1]} {message}"
 
     def _handle_platform(
-        self, rag_context=None, sources=None, search_terms=None, plan=None
+        self, rag_context=None, sources=None, search_terms=None, plan=None,
+        answer_plan=None, issues=None, trace=None,
     ):
         """Answer with the owner-configured OmniRoute fallback (no user key)."""
         try:
@@ -701,6 +864,7 @@ class AiRequest(BaseModel):
                     self.message,
                     rag_context,
                     plan,
+                    answer_plan,
                 )
             else:
                 history = self.session._conversation_text() if self.session else ""
@@ -719,12 +883,14 @@ class AiRequest(BaseModel):
                     sources,
                     self._retrieval_question(),
                     search_terms,
+                    issues=issues,
                 )
                 if is_refusal(text):
-                    text = extractive_answer(
+                    text = _grounded_fallback(
                         sources,
                         self._retrieval_question(),
                         search_terms,
+                        issues,
                     )
                 if is_refusal(text):
                     stored_sources = []
@@ -748,20 +914,33 @@ class AiRequest(BaseModel):
                     style=self.response_style,
                     created_at=self.created_at,
                     sources=stored_sources,
+                    trace=trace,
                 )
         except Exception as exc:
             print(f"Platform RAG error: {type(exc).__name__}: {exc}")
             if rag_context:
                 self.status = CeleryStatus.COMPLETED
-                self.response = extractive_answer(
+                self.response = _grounded_fallback(
                     sources,
                     self._retrieval_question(),
                     search_terms,
+                    issues,
                 )
+                trace.append({
+                    "step": 20, "name": "verify",
+                    "status": "done" if not is_refusal(self.response) else "failed",
+                    "detail": "claims checked against sources",
+                    "at": time.time(),
+                })
                 stored_sources = (
                     [] if is_refusal(self.response) else (sources or [])
                 )
                 self.save(update_fields=["status", "response", "updated_at"])
+                trace.append({
+                    "step": 22, "name": "save", "status": "done",
+                    "detail": "case saved",
+                    "at": time.time(),
+                })
                 if self.session:
                     email = "unknown"
                     if getattr(self.account_id, "user", None):
@@ -774,13 +953,14 @@ class AiRequest(BaseModel):
                         style=self.response_style,
                         created_at=self.created_at,
                         sources=stored_sources,
+                        trace=trace,
                     )
             else:
                 self.status = CeleryStatus.FAILED
                 self.response = "The AI service is temporarily unavailable. Please try again."
                 self.save(update_fields=["status", "response", "updated_at"])
 
-    def _finish_with_reply(self, text):
+    def _finish_with_reply(self, text, trace=None):
         """Finish with a fixed reply and no sources."""
         self.status = CeleryStatus.COMPLETED
         self.response = text
@@ -797,11 +977,12 @@ class AiRequest(BaseModel):
                 style=self.response_style,
                 created_at=self.created_at,
                 sources=[],
+                trace=trace,
             )
 
-    def _finish_without_sources(self):
+    def _finish_without_sources(self, trace=None):
         """Finish with a lawyer referral instead of answering from model memory."""
-        self._finish_with_reply(refusal_message_for(self.message))
+        self._finish_with_reply(refusal_message_for(self.message), trace=trace)
 
     def handle(self):
             """Core logic executed by the Celery worker to call the AI provider."""
@@ -811,6 +992,17 @@ class AiRequest(BaseModel):
             if _SMALL_TALK.match(self.message or ""):
                 self._finish_with_reply(SMALL_TALK_REPLY)
                 return
+
+            # Diagram step 23: a "Correction: fact: value" message updates the
+            # case and re-researches only the affected branch in this turn.
+            correction = None
+            correction_match = re.match(
+                r"^\s*correction\s*:\s*(.+)$",
+                self.message or "",
+                flags=re.IGNORECASE,
+            )
+            if correction_match:
+                correction = correction_match.group(1).strip()
 
             history = self.session._conversation_text() if self.session else ""
             key = ApiKey.objects.filter(
@@ -827,7 +1019,22 @@ class AiRequest(BaseModel):
                         print(f"Gemini planner fallback failed: {exc}")
                 return platform_completion(prompt, **kwargs)
 
-            plan = plan_question(self.message, history, planner_complete)
+            if correction:
+                # Step 23 must not depend on the planner being reachable:
+                # use a minimal local plan and let the pipeline re-spot
+                # with the original question still in context.
+                plan = {
+                    "intent": "legal_question",
+                    "risk": "normal",
+                    "search_queries": [self.message],
+                    "lexical_query": self.message,
+                    "slots_missing": [],
+                    "clarifying_question": None,
+                    "known_facts": {},
+                    "planner_ok": True,
+                }
+            else:
+                plan = plan_question(self.message, history, planner_complete)
             if not plan.get("planner_ok", True):
                 # Without the planner there is no dynamic legal vocabulary;
                 # refuse rather than answer from a word match.
@@ -849,17 +1056,41 @@ class AiRequest(BaseModel):
                 self._finish_with_reply(OUT_OF_SCOPE_MESSAGE)
                 return
 
-            sources = []
-            try:
-                # 0. Retrieve grounded legal sources before calling any model.
-                sources = retrieve_rag_sources(
-                    self._retrieval_question(),
-                    plan["search_queries"],
-                )
-                if not sources:
-                    self._finish_without_sources()
-                    return
+            from legal_rag.case_pipeline import run_case_turn
 
+            try:
+                turn = run_case_turn(
+                    self._retrieval_question(),
+                    self.session.case_state if self.session else {},
+                    plan,
+                    retrieve=retrieve_rag_sources,
+                    complete=planner_complete,
+                    correction=correction,
+                    on_step=self._record_step,
+                )
+            except Exception as exc:
+                print(f"Case pipeline failed: {exc}")
+                self._finish_without_sources()
+                return
+            trace = turn.get("trace") or []
+            if self.session:
+                self.session.case_state = turn["case_state"]
+                self.session.save(update_fields=["case_state"])
+
+            if turn["action"] == "ask":
+                self._finish_with_reply(turn["question"], trace=trace)
+                return
+            if turn["action"] == "defer":
+                if turn.get("reason") == "emergency":
+                    self._finish_with_reply(turn["message"], trace=trace)
+                else:
+                    self._finish_without_sources(trace=trace)
+                return
+
+            sources = turn["sources"]
+            answer_plan = turn.get("answer_plan") or {}
+            issues = answer_plan.get("issues") or []
+            try:
                 rag_context = build_rag_context(sources)
                 if not rag_context:
                     self._finish_without_sources()
@@ -875,6 +1106,9 @@ class AiRequest(BaseModel):
                         sources=sources,
                         search_terms=plan["search_queries"],
                         plan=plan,
+                        answer_plan=answer_plan,
+                        issues=issues,
+                        trace=trace,
                     )
 
                 # 2. Init client (defensive)
@@ -921,6 +1155,7 @@ class AiRequest(BaseModel):
                     rag_query,
                     rag_context,
                     plan,
+                    answer_plan,
                 )
 
                 # 5. Execution Loop (Try candidates until one succeeds)
@@ -972,14 +1207,22 @@ class AiRequest(BaseModel):
                     sources,
                     self._retrieval_question(),
                     plan["search_queries"],
+                    issues=issues,
                 )
                 if is_refusal(text):
-                    text = extractive_answer(
+                    text = _grounded_fallback(
                         sources,
                         self._retrieval_question(),
                         plan["search_queries"],
+                        issues,
                     )
                 stored_sources = [] if is_refusal(text) else sources
+                trace.append({
+                    "step": 20, "name": "verify",
+                    "status": "done" if not is_refusal(text) else "failed",
+                    "detail": "claims checked against sources",
+                    "at": time.time(),
+                })
 
                 # 7. Persist response & mark completed
                 self.response = text
@@ -989,6 +1232,11 @@ class AiRequest(BaseModel):
                 self.status = CeleryStatus.COMPLETED
 
                 # 8. Store in session with detailed METADATA
+                trace.append({
+                    "step": 22, "name": "save", "status": "done",
+                    "detail": "case saved",
+                    "at": time.time(),
+                })
                 if self.session:
                     try:
                         # Calculate safe email
@@ -1004,6 +1252,7 @@ class AiRequest(BaseModel):
                             style=self.response_style,
                             created_at=self.created_at if hasattr(self, 'created_at') else timezone.now(),
                             sources=stored_sources,
+                            trace=trace,
                         )
                     except Exception as exc:
                         # session persistence failed — don't break the main flow
@@ -1012,14 +1261,21 @@ class AiRequest(BaseModel):
             except Exception as e:
                 if sources:
                     self.status = CeleryStatus.COMPLETED
-                    self.response = extractive_answer(
+                    self.response = _grounded_fallback(
                         sources,
                         self._retrieval_question(),
                         plan["search_queries"],
+                        issues,
                     )
                     stored_sources = (
                         [] if is_refusal(self.response) else sources
                     )
+                    trace.append({
+                        "step": 20, "name": "verify",
+                        "status": "done" if not is_refusal(self.response) else "failed",
+                        "detail": "claims checked against sources",
+                    "at": time.time(),
+                    })
                     if self.session:
                         try:
                             email = "unknown"
@@ -1033,6 +1289,7 @@ class AiRequest(BaseModel):
                                 style=self.response_style,
                                 created_at=self.created_at,
                                 sources=stored_sources,
+                                trace=trace,
                             )
                         except Exception as session_exc:
                             print(

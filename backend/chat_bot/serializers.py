@@ -47,12 +47,13 @@ class AiRequestCreateSerializer(serializers.ModelSerializer):
             "session",
             "message",
             "status",
+            "progress",
             "response_engine",
             "response_style",
             "response",            
             "created_at",
         ]
-        read_only_fields = ["status", "response", "created_at"]
+        read_only_fields = ["status", "progress", "response", "created_at"]
 
     def validate(self, attrs):        
         message = attrs.get("message", "")

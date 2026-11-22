@@ -1,5 +1,5 @@
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
@@ -32,6 +32,7 @@ def default_plan(question):
     }
 
 
+@override_settings(LEGAL_RAG_CASE_MAP=False)
 class PlatformFallbackTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(
@@ -188,6 +189,111 @@ class PlatformFallbackTests(TestCase):
         self.assertEqual(ai_request.response, plan["clarifying_question"])
         retrieve.assert_not_called()
         completion.assert_not_called()
+
+    @override_settings(
+        OMNIROUTE_BASE_URL="http://omniroute.test/v1",
+        OMNIROUTE_API_KEY="test-key",
+    )
+    def test_missing_branch_fact_asks_and_stores_case_state(self):
+        plan = {
+            "intent": "legal_question",
+            "risk": "normal",
+            "known_facts": {},
+            "answer_first": False,
+            "search_queries": ["q"],
+            "lexical_query": "q",
+            "slots_missing": ["age"],
+            "clarifying_question": "How old are you?",
+        }
+        ai_request = AiRequest.objects.create(
+            account_id=self.account,
+            session=self.session,
+            message="Can I get a licence?",
+        )
+
+        with patch("chat_bot.models.plan_question", return_value=plan), \
+             patch("chat_bot.models.retrieve_rag_sources") as retrieve, \
+             patch("chat_bot.models.platform_completion") as completion, \
+             patch("chat_bot.models.ChatSession._queue_job"):
+            ai_request.handle()
+
+        ai_request.refresh_from_db()
+        self.session.refresh_from_db()
+        self.assertEqual(ai_request.response, "How old are you?")
+        self.assertEqual(self.session.case_state["asked"], 1)
+        self.assertEqual(
+            self.session.case_state["pending_question"], "How old are you?"
+        )
+        retrieve.assert_not_called()
+        completion.assert_not_called()
+
+    @override_settings(
+        OMNIROUTE_BASE_URL="http://omniroute.test/v1",
+        OMNIROUTE_API_KEY="test-key",
+        LEGAL_RAG_CASE_MAP=True,
+    )
+    def test_case_map_runs_before_the_answer(self):
+        chunk = {
+            "id": 1,
+            "text": "Bail may be granted by the court.",
+            "section_label": "Section 498 — Bail",
+            "section_number": "498",
+            "section_title": "Bail",
+            "page_start": 10,
+            "page_end": 10,
+            "source_url": "",
+            "document_title": "The Code of Criminal Procedure, 1898",
+            "score": 0.9,
+        }
+
+        def completion(prompt, **kwargs):
+            if "issue spotter" in prompt:
+                return (
+                    '{"issues": [{"title": "bail", "act_title": '
+                    '"The Code of Criminal Procedure, 1898", '
+                    '"section_hint": "498", "confidence": 0.9}]}'
+                )
+            if "legal element extractor" in prompt:
+                return (
+                    '{"roles": {"consequence": {"found": true, "quote": '
+                    '"Bail may be granted by the court.", '
+                    '"section_number": "498", "confidence": 0.9}}}'
+                )
+            return "Bail may be granted by the court [S1]."
+
+        ai_request = AiRequest.objects.create(
+            account_id=self.account,
+            session=self.session,
+            message="What is bail?",
+        )
+
+        with patch("chat_bot.models.retrieve_rag_sources", return_value=[chunk]), \
+             patch("chat_bot.models.build_rag_context", return_value="[S1] Bail"), \
+             patch("chat_bot.models.platform_completion", side_effect=completion), \
+             patch("legal_rag.issue_map.retrieve_legal_chunks", return_value=[chunk]), \
+             patch("legal_rag.issue_map.get_section_window", return_value=[]), \
+             patch("chat_bot.models.ChatSession._queue_job"):
+            ai_request.handle()
+
+        ai_request.refresh_from_db()
+        self.session.refresh_from_db()
+        self.assertIn("[S1]", ai_request.response)
+        self.assertEqual(
+            self.session.case_state["coverage"]["consequence"], "found"
+        )
+        self.assertEqual(
+            self.session.case_state["issues"][0]["title"], "bail"
+        )
+
+    def test_answer_prompt_has_four_sections(self):
+        from BASE.base_prompt import get_rag_prompt
+
+        prompt = get_rag_prompt("casual", "q", "[S1] source")
+        for heading in (
+            "The law", "Your defence", "If the claim is false", "Next step"
+        ):
+            self.assertIn(heading, prompt)
+        self.assertNotIn("300 characters", prompt)
 
     def test_repeated_non_legal_messages_hit_the_boundary(self):
         self.session.messages = [
@@ -379,6 +485,122 @@ class PlatformFallbackTests(TestCase):
         self.session.refresh_from_db()
         self.assertEqual(self.session.messages[-1]["sources"], [])
 
+    def test_engine_labels_use_google_latest_aliases(self):
+        from BASE.base_choice import ChatEngine
+
+        labels = {label for _, label in ChatEngine.choices}
+        for label in labels:
+            self.assertTrue(
+                label.endswith("-latest"),
+                f"engine label is a pinned model that will be retired: {label}",
+            )
+
+    def test_extractive_answer_hides_filename_titles(self):
+        chunks = [
+            {
+                "text": "Bail may be granted by the court after hearing.",
+                "section_label": "Section 498",
+                "document_title": "2514610_DEATH_REFERENCE_24_2018.pdf",
+            }
+        ]
+        answer = extractive_answer(chunks, "bail court", ["bail court"])
+        self.assertTrue(answer.startswith("Legal source"))
+        self.assertNotIn(".pdf", answer)
+
+    def test_grounded_fallback_refuses_an_off_issue_chunk(self):
+        from chat_bot.models import _grounded_fallback
+
+        chunks = [
+            {
+                "text": "The bail trial record mentions the condemned prisoner.",
+                "section_label": "",
+                "document_title": "DEATH_REFERENCE_24_2018.pdf",
+            }
+        ]
+        issues = [
+            {"title": "bail availability during trial",
+             "act_title": "The Code of Criminal Procedure, 1898"}
+        ]
+        answer = _grounded_fallback(chunks, "bail trial", ["bail trial"], issues)
+        self.assertIn("connect with a real lawyer", answer)
+
+    def test_openrouter_catalog_filters_and_ranks_free_text_models(self):
+        from chat_bot import models as chat_models
+
+        chat_models._OPENROUTER_CACHE.update({"models": [], "fetched_at": 0.0})
+        with patch("chat_bot.models.requests.get") as get, \
+             self.settings(OPENROUTER_API_KEY="k"):
+            get.return_value.status_code = 200
+            get.return_value.json.return_value = {"data": [
+                {"id": "audio/model", "pricing": {"prompt": "0", "completion": "0"},
+                 "context_length": 999, "architecture": {"output_modalities": ["audio"]}},
+                {"id": "music/model", "pricing": {"prompt": "0", "completion": "0"},
+                 "context_length": 2000, "architecture": {"output_modalities": ["text", "audio"]}},
+                {"id": "paid/model", "pricing": {"prompt": "0.1", "completion": "0.1"},
+                 "context_length": 999999, "architecture": {"output_modalities": ["text"]}},
+                {"id": "small/free:free", "pricing": {"prompt": "0", "completion": "0"},
+                 "context_length": 1000, "architecture": {"output_modalities": ["text"]}},
+                {"id": "big/free:free", "pricing": {"prompt": "0", "completion": "0"},
+                 "context_length": 100000, "architecture": {"output_modalities": ["text"]}},
+                {"id": "tiny/free:free", "pricing": {"prompt": "0", "completion": "0"},
+                 "context_length": 500, "architecture": {"output_modalities": ["text"]}},
+            ]}
+            ids = chat_models._openrouter_free_models()
+        self.assertEqual(
+            ids, ["big/free:free", "small/free:free", "tiny/free:free"]
+        )
+
+    def test_platform_completion_uses_openrouter_models_array(self):
+        from chat_bot import models as chat_models
+
+        chat_models._OPENROUTER_CACHE.update(
+            {"models": ["a:free", "b:free"], "fetched_at": 9999999999}
+        )
+        with patch("chat_bot.models.requests.post") as post, \
+             self.settings(OPENROUTER_API_KEY="k"):
+            post.return_value.status_code = 200
+            post.return_value.json.return_value = {
+                "model": "a:free",
+                "choices": [{"message": {"content": "OK"}}],
+            }
+            text = chat_models.platform_completion("hi")
+            self.assertEqual(text, "OK")
+            self.assertEqual(
+                post.call_args.kwargs["json"]["models"], ["a:free", "b:free"]
+            )
+
+    def test_platform_completion_falls_back_to_omniroute(self):
+        from chat_bot import models as chat_models
+
+        chat_models._OPENROUTER_CACHE.update(
+            {"models": ["a:free"], "fetched_at": 9999999999}
+        )
+        with patch("chat_bot.models.requests.post") as post, self.settings(
+            OPENROUTER_API_KEY="k", OMNIROUTE_BASE_URL="http://relay",
+            OMNIROUTE_API_KEY="r", OMNIROUTE_MODEL="m",
+            OMNIROUTE_FALLBACK_MODELS=[],
+        ):
+            openrouter = Mock(status_code=500)
+            omniroute = Mock(status_code=200)
+            omniroute.json.return_value = {
+                "choices": [{"message": {"content": "relay"}}]
+            }
+            post.side_effect = [openrouter, omniroute]
+            self.assertEqual(chat_models.platform_completion("hi"), "relay")
+
+    def test_progress_is_capped_and_serialized(self):
+        ai_request = AiRequest.objects.create(
+            account_id=self.account, session=self.session, message="q",
+        )
+        for index in range(45):
+            ai_request._record_step({
+                "step": index, "name": "load", "status": "done", "detail": "",
+            })
+        ai_request.refresh_from_db()
+        self.assertEqual(len(ai_request.progress), 40)
+        data = AiRequestCreateSerializer(ai_request).data
+        self.assertEqual(len(data["progress"]), 40)
+
     def test_xml_citation_is_normalized(self):
         chunks = [{"text": "Section 3 defines evidence."}]
         accepted = validate_rag_answer(
@@ -386,6 +608,72 @@ class PlatformFallbackTests(TestCase):
             chunks,
         )
         self.assertEqual(accepted, "Evidence is defined here [S1].")
+
+    def test_validate_refuses_when_citations_mismatch_the_issue(self):
+        chunks = [
+            {
+                "text": "The uniform of inspectors shall be khaki.",
+                "section_label": "SRO 330",
+                "document_title": "Uniform Rules Gazette",
+            }
+        ]
+        issues = [
+            {"title": "police harassment", "act_title": "The Police Act, 1861"}
+        ]
+        answer = validate_rag_answer(
+            "The officer is liable under the rules [S1].",
+            chunks,
+            "uniform inspectors khaki",
+            ["uniform inspectors khaki"],
+            issues=issues,
+        )
+        self.assertIn("connect with a real lawyer", answer)
+
+    def test_validate_accepts_a_citation_matching_the_issue_act(self):
+        chunks = [
+            {
+                "text": "A police officer may not withdraw from duty "
+                        "without permission.",
+                "section_label": "Section 29",
+                "document_title": "The Police Act, 1861",
+            }
+        ]
+        issues = [
+            {"title": "police misconduct", "act_title": "The Police Act, 1861"}
+        ]
+        accepted = validate_rag_answer(
+            "The officer is liable under the Act [S1].",
+            chunks,
+            "police officer duty",
+            ["police officer duty"],
+            issues=issues,
+        )
+        self.assertIn("[S1]", accepted)
+
+    def test_validate_refuses_when_only_one_issue_token_matches(self):
+        # The death-reference failure: the chunk contains the word "bail"
+        # once, but none of the issue's other tokens — it must be refused.
+        chunks = [
+            {
+                "text": "The confessional statement was recorded. The "
+                        "application for bail of the condemned prisoner was "
+                        "considered under the code.",
+                "section_label": "Section 374",
+                "document_title": "2514610_DEATH_REFERENCE_24_2018.pdf",
+            }
+        ]
+        issues = [
+            {"title": "bail availability during trial",
+             "act_title": "The Code of Criminal Procedure, 1898"}
+        ]
+        answer = validate_rag_answer(
+            "Bail depends on the code [S1].",
+            chunks,
+            "bail trial code",
+            ["bail trial code"],
+            issues=issues,
+        )
+        self.assertIn("connect with a real lawyer", answer)
 
     def test_extractive_answer_is_short_and_cited(self):
         chunks = [
