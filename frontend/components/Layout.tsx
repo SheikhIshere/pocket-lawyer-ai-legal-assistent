@@ -213,7 +213,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       </AnimatePresence>
 
       {/* Premium Mobile Navigation Bar */}
-      {!hideChrome && (
+      {!hideChrome && !isChat && (
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[65] px-4 sm:px-6 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-2">
         <div className="max-w-md mx-auto relative">
           {/* Enhanced Glass Carrier with better backdrop blur */}
