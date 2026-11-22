@@ -272,6 +272,10 @@ OMNIROUTE_FALLBACK_MODELS = [
 ]
 OMNIROUTE_DAILY_LIMIT = int(os.getenv("OMNIROUTE_DAILY_LIMIT") or 50)
 
+# OpenRouter free-model fallback (catalog discovered live, never pinned)
+OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
+OPENROUTER_API_KEY = os.getenv("openrouter_key") or os.getenv("OPENROUTER_API_KEY", "")
+
 # Legal RAG
 LEGAL_RAG_TOP_K = max(1, int(os.getenv("LEGAL_RAG_TOP_K") or 20))
 LEGAL_RAG_CANDIDATE_K = max(
@@ -280,6 +284,11 @@ LEGAL_RAG_CANDIDATE_K = max(
 LEGAL_RAG_MIN_SCORE = float(os.getenv("LEGAL_RAG_MIN_SCORE") or 0.0)
 LEGAL_RAG_MAX_CONTEXT_CHARS = int(
     os.getenv("LEGAL_RAG_MAX_CONTEXT_CHARS") or 30000
+)
+# Code default is off so the old one-shot tests stay stable; .env sets it to 1.
+LEGAL_RAG_CASE_MAP = os.getenv("LEGAL_RAG_CASE_MAP", "0") == "1"
+VECTOR_DB_DATA_DIR = os.getenv(
+    "VECTOR_DB_DATA_DIR", str(BASE_DIR / "vector_db")
 )
 LEGAL_RAG_EMBEDDING_PROVIDER = os.getenv(
     "LEGAL_RAG_EMBEDDING_PROVIDER", "ollama"
