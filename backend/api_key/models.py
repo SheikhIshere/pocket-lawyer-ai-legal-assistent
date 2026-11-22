@@ -1,4 +1,6 @@
 # location: backend/api_key/models.py
+import re
+
 # core import
 from BASE.base_model import BaseModel
 from django.db import models
@@ -12,6 +14,40 @@ from accounts.models import Account
 from BASE.base_choice import CeleryStatus, ChatEngine
 from BASE.encryption import EncryptedTextField
 
+# ponytail: the API exposes supportedGenerationMethods but not output modality,
+# so non-chat families are excluded by id token. Upgrade to a modality field if
+# Google ever adds one.
+_NON_CHAT_MODEL = re.compile(
+    r"(image|tts|live|transcribe|embedding|robotics|lyria|omni|deep-research|"
+    r"antigravity|aqa|computer-use|decision|genie|nano-banana)",
+    re.IGNORECASE,
+)
+
+
+def _chat_models(payload):
+    """Pick text chat models out of a Gemini ListModels response."""
+    if not isinstance(payload, dict):
+        return []
+    models = payload.get("models")
+    if not isinstance(models, list):
+        return []
+
+    out = []
+    for item in models:
+        if not isinstance(item, dict):
+            continue
+        model_id = (item.get("name") or "").removeprefix("models/")
+        methods = item.get("supportedGenerationMethods") or []
+        if not model_id or "generateContent" not in methods:
+            continue
+        if _NON_CHAT_MODEL.search(model_id):
+            continue
+        out.append({
+            "id": model_id,
+            "label": item.get("displayName") or model_id,
+        })
+    return out
+
 
 def validate_key(api_key, timeout=8):
     """One read-only models.list call — the provider's built-in smoke test."""
@@ -24,7 +60,11 @@ def validate_key(api_key, timeout=8):
     except Exception as exc:
         return False, {"error": type(exc).__name__}
     if response.status_code == 200:
-        return True, {"models": "ok"}
+        try:
+            models = _chat_models(response.json())
+        except ValueError:
+            models = []
+        return True, {"models": models}
     try:
         status = response.json().get("error", {}).get("status", "ERROR")
     except ValueError:
