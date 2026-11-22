@@ -5,20 +5,41 @@ const API_BASE_URL = ENV_API_URL
   ? `${ENV_API_URL.replace(/\/$/, '')}${ENV_API_URL.replace(/\/$/, '').endsWith('/v1/api') ? '' : '/v1/api'}`
   : '/v1/api';
 
-let isRefreshing = false;
-let refreshSubscribers: ((token: string) => void)[] = [];
+let refreshPromise: Promise<string> | null = null;
 
-const subscribeTokenRefresh = (cb: (token: string) => void) => {
-  refreshSubscribers.push(cb);
+const clearSession = () => {
+  localStorage.removeItem('pl_token');
+  localStorage.removeItem('pl_access_token');
+  localStorage.removeItem('pl_refresh_token');
+  localStorage.removeItem('pl_user');
+  window.dispatchEvent(new Event('auth_session_expired'));
 };
 
-const onTokenRefreshed = (token: string) => {
-  refreshSubscribers.map(cb => cb(token));
-  refreshSubscribers = [];
+const sessionExpired = () => {
+  clearSession();
+  const error: any = new Error('Session expired');
+  error.status = 401;
+  error.response = { status: 401, data: {} };
+  return error;
 };
 
-const apiCall = async (endpoint: string, options: RequestInit = {}): Promise<any> => {
-  const isAuthEndpoint = endpoint.startsWith('/users/');
+const refreshAccessToken = (): Promise<string> => {
+  if (!refreshPromise) {
+    refreshPromise = authService.refreshToken()
+      .then((result) => {
+        localStorage.setItem('pl_access_token', result.access);
+        // Rotation is on: the old refresh is blacklisted the moment the new one
+        // is issued, so the rotated token must be persisted.
+        if (result.refresh) localStorage.setItem('pl_refresh_token', result.refresh);
+        return result.access as string;
+      })
+      .catch(() => { throw sessionExpired(); })
+      .finally(() => { refreshPromise = null; });
+  }
+  return refreshPromise;
+};
+
+const apiCall = async (endpoint: string, options: RequestInit = {}, retried = false): Promise<any> => {
   const isOtpEndpoint = endpoint.includes('/otp/') || endpoint.includes('/activate/via-otp') || endpoint.includes('/forget-password/confirm');
 
   const token = localStorage.getItem('pl_access_token') || localStorage.getItem('pl_token');
@@ -41,37 +62,21 @@ const apiCall = async (endpoint: string, options: RequestInit = {}): Promise<any
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
 
     if (response.status === 401 && !endpoint.includes('/users/login/') && !endpoint.includes('/users/token/refresh/')) {
-      if (!isRefreshing) {
-        isRefreshing = true;
-        try {
-          const refreshResult = await authService.refreshToken();
-          const newToken = refreshResult.access;
-          
-          localStorage.setItem('pl_access_token', newToken);
-          isRefreshing = false;
-          onTokenRefreshed(newToken);
-        } catch (refreshError) {
-          isRefreshing = false;
-          console.error('Refresh token failed, logging out...');
-          localStorage.removeItem('pl_access_token');
-          localStorage.removeItem('pl_refresh_token');
-          localStorage.removeItem('pl_user');
-          // Optional: trigger a custom event for AuthContext to catch
-          window.dispatchEvent(new Event('auth_session_expired'));
-          throw refreshError;
-        }
+      if (retried) throw sessionExpired();
+      // A sibling request may have refreshed while this one was in flight.
+      // Retry with the newer access token instead of rotating the refresh again.
+      const currentToken = localStorage.getItem('pl_access_token') || localStorage.getItem('pl_token');
+      if (currentToken && currentToken !== token) {
+        return apiCall(endpoint, {
+          ...config,
+          headers: { ...config.headers, Authorization: `Bearer ${currentToken}` },
+        }, true);
       }
-
-      // Buffer requests while refreshing
-      return new Promise((resolve) => {
-        subscribeTokenRefresh((token: string) => {
-          const freshHeaders = {
-            ...config.headers,
-            'Authorization': `Bearer ${token}`
-          };
-          resolve(apiCall(endpoint, { ...config, headers: freshHeaders } as any));
-        });
-      });
+      const newToken = await refreshAccessToken();
+      return apiCall(endpoint, {
+        ...config,
+        headers: { ...config.headers, Authorization: `Bearer ${newToken}` },
+      }, true);
     }
 
     if (!response.ok) {
@@ -312,7 +317,8 @@ export const assistantService = {
             timestamp: new Date(msg.created_at).getTime(),
             status: 'completed',
             created_at: msg.created_at,
-            sources: msg.sources || []
+            sources: msg.sources || [],
+            trace: msg.trace || []
           });
         }
       });
@@ -353,34 +359,44 @@ export const assistantService = {
     return apiCall(`/assistant/requests/${messageId}/`);
   },
 
-  pollForCompletion: async (requestId: string): Promise<void> => {
-    const startTime = Date.now();
+  pollForCompletion: async (requestId: string, onProgress?: (progress: unknown[]) => void, signal?: AbortSignal): Promise<void> => {
     const POLLING_INTERVAL_MS = 1000;
-    const POLLING_TIMEOUT_MS = 60000;
 
     return new Promise((resolve, reject) => {
-      const checkStatus = async () => {
-        try {
-          if (Date.now() - startTime > POLLING_TIMEOUT_MS) {
-            console.error('Request timed out');
-            reject(new Error('Request timed out'));
-            return;
-          }
+      let settled = false;
+      const fail = (error: unknown) => {
+        if (!settled) {
+          settled = true;
+          reject(error);
+        }
+      };
 
+      if (signal) {
+        signal.addEventListener('abort', () => fail(new DOMException('Aborted', 'AbortError')), { once: true });
+      }
+
+      const checkStatus = async () => {
+        if (settled) return;
+        if (signal?.aborted) {
+          fail(new DOMException('Aborted', 'AbortError'));
+          return;
+        }
+        try {
           const data = await apiCall(`/assistant/requests/${requestId}/`);
+          if (onProgress) onProgress(data.progress || []);
 
           if (data.status?.toUpperCase() === 'COMPLETED') {
+            settled = true;
             resolve();
           } else if (data.status?.toUpperCase() === 'FAILED') {
             console.error('AI Request failed on server');
-            reject(new Error('AI Request failed on server'));
+            fail(new Error('AI Request failed on server'));
           } else {
-            // Still pending or running
             setTimeout(checkStatus, POLLING_INTERVAL_MS);
           }
         } catch (error) {
           console.error('Polling error:', error);
-          reject(error);
+          fail(error);
         }
       };
 

@@ -381,6 +381,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   };
 
+  useEffect(() => {
+    window.addEventListener('auth_session_expired', logout);
+    return () => window.removeEventListener('auth_session_expired', logout);
+  }, []);
+
   // Handle token expiration globally
   const handleTokenExpiration = () => {
     logout();
