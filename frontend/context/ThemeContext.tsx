@@ -27,13 +27,18 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (typeof window !== 'undefined') {
             localStorage.setItem(THEME_STORAGE_KEY, theme);
 
-            // Update document class for Tailwind dark mode
+            // Update document class for Tailwind dark mode. Remove the
+            // opposite class so the document never carries `light dark`.
             if (theme === 'dark') {
+                document.documentElement.classList.remove('light');
                 document.documentElement.classList.add('dark');
+                document.body.classList.remove('light');
                 document.body.classList.add('dark');
             } else {
                 document.documentElement.classList.remove('dark');
+                document.documentElement.classList.add('light');
                 document.body.classList.remove('dark');
+                document.body.classList.add('light');
             }
         }
     }, [theme]);

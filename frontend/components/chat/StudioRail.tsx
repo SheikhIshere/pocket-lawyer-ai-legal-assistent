@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Moon,
   Plus,
+  Scale,
   Settings,
   Sun,
 } from 'lucide-react';
@@ -28,17 +29,17 @@ export function StudioRail({ user, onNewSession, isSending = false }: StudioRail
     <aside className="hidden w-[72px] flex-col items-center border-r border-border bg-card/60 py-4 md:flex">
       <Link
         to="/"
-        className="mb-5 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-[11px] font-black text-white shadow-lg shadow-indigo-950/30"
+        className="mb-5 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-teal-600 to-emerald-700 shadow-lg shadow-teal-500/20"
         title="Pocket Lawyer"
       >
-        PL
+        <Scale className="h-5 w-5 text-white" />
       </Link>
 
       <button
         type="button"
         onClick={onNewSession}
         disabled={isSending}
-        className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-lg shadow-indigo-950/30 transition-transform hover:bg-indigo-500 active:scale-95 disabled:opacity-40"
+        className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl bg-teal-600 text-white shadow-lg shadow-teal-500/20 transition-transform hover:bg-teal-500 active:scale-95 disabled:opacity-40"
         title="New chat"
       >
         <Plus size={19} />
@@ -59,7 +60,7 @@ export function StudioRail({ user, onNewSession, isSending = false }: StudioRail
       <div className="mt-auto flex flex-col items-center gap-3">
         <Link
           to="/settings"
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 text-xs font-bold text-white transition-transform hover:scale-105"
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-teal-600 to-emerald-700 text-xs font-bold text-white transition-transform hover:scale-105"
           title={user?.full_name || user?.name || user?.email || 'Account settings'}
         >
           {(user?.full_name || user?.name || user?.email || 'U').charAt(0).toUpperCase()}

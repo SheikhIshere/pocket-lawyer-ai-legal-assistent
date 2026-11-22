@@ -4,7 +4,7 @@
  * a citation strip, and a streaming reveal for the latest answer.
  */
 import { memo, useCallback, useEffect, useState } from 'react';
-import { Bot, Copy, User } from 'lucide-react';
+import { Bot, Check, Copy, User } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Message } from '../../types';
@@ -35,18 +35,48 @@ export const StudioMessage = memo(function StudioMessage({
   const isUser = message.role === 'user';
   const text = (isUser ? message.content : message.response || message.content) || '';
   const [revealed, setRevealed] = useState(!animate);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!animate) setRevealed(true);
   }, [animate]);
 
-  const handleCopy = useCallback(async () => {
+  const fallbackCopy = useCallback((value: string) => {
+    const area = document.createElement('textarea');
+    area.value = value;
+    area.setAttribute('readonly', '');
+    area.style.position = 'fixed';
+    area.style.opacity = '0';
     try {
-      await navigator.clipboard.writeText(text);
-    } catch (error) {
-      console.error('Failed to copy answer', error);
+      document.body.appendChild(area);
+      area.select();
+      area.setSelectionRange(0, value.length);
+      return document.execCommand('copy');
+    } catch {
+      return false;
+    } finally {
+      area.remove();
     }
-  }, [text]);
+  }, []);
+
+  const handleCopy = useCallback(async () => {
+    let ok = false;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        ok = true;
+      }
+    } catch {
+      ok = false;
+    }
+    if (!ok) ok = fallbackCopy(text);
+    if (!ok) {
+      console.error('Failed to copy answer');
+      return;
+    }
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1500);
+  }, [fallbackCopy, text]);
 
   const handleRevealDone = useCallback(() => {
     setRevealed(true);
@@ -76,7 +106,7 @@ export const StudioMessage = memo(function StudioMessage({
   return (
     <article id={anchor?.root} className="mb-10 border-b border-border/60 pb-8 last:border-0">
       <div className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
-        <span className="flex h-5 w-5 items-center justify-center rounded-md bg-indigo-600 text-white">
+        <span className="flex h-5 w-5 items-center justify-center rounded-md bg-teal-600 text-white">
           <Bot size={12} />
         </span>
         Pocket Lawyer AI
@@ -97,7 +127,7 @@ export const StudioMessage = memo(function StudioMessage({
       {animate && !revealed ? (
         <StreamingAnswer text={plainForReveal(text)} onDone={handleRevealDone} />
       ) : (
-        <div className="prose prose-base max-w-none text-[15px] leading-7 text-foreground dark:prose-invert prose-headings:font-semibold prose-p:my-2 prose-li:my-0.5 prose-strong:text-foreground prose-a:text-indigo-600 dark:prose-a:text-indigo-400">
+        <div className="prose prose-base max-w-none text-[15px] leading-7 text-foreground dark:prose-invert prose-headings:font-semibold prose-p:my-2 prose-li:my-0.5 prose-strong:text-foreground prose-a:text-teal-700 dark:prose-a:text-teal-400">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
         </div>
       )}
@@ -116,7 +146,7 @@ export const StudioMessage = memo(function StudioMessage({
               : undefined;
             const content = (
               <>
-                <span className="font-mono text-[10px] text-indigo-600 dark:text-indigo-400">[{label}]</span>
+                <span className="font-mono text-[10px] text-teal-700 dark:text-teal-400">[{label}]</span>
                 <span className="max-w-[220px] truncate font-medium">{title}</span>
                 {detail && <span className="max-w-[160px] truncate text-muted-foreground">{detail}</span>}
               </>
@@ -127,7 +157,7 @@ export const StudioMessage = memo(function StudioMessage({
                 href={href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1.5 rounded-full border border-border bg-muted/40 px-2.5 py-1 text-[11px] text-foreground transition-colors hover:border-indigo-500/50 hover:text-indigo-300"
+                className="flex items-center gap-1.5 rounded-full border border-border bg-muted/40 px-2.5 py-1 text-[11px] text-foreground transition-colors hover:border-teal-500/50 hover:text-teal-300"
               >
                 {content}
               </a>
@@ -149,9 +179,10 @@ export const StudioMessage = memo(function StudioMessage({
           type="button"
           onClick={handleCopy}
           className="rounded-md p-1.5 transition-colors hover:bg-muted hover:text-foreground"
-          title="Copy answer"
+          title={copied ? 'Copied' : 'Copy answer'}
+          aria-label={copied ? 'Copied' : 'Copy answer'}
         >
-          <Copy size={12} />
+          {copied ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
         </button>
       </div>}
     </article>

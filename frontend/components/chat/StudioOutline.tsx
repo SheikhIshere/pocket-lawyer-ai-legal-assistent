@@ -110,7 +110,7 @@ export function StudioOutline({
               onNewSession();
               onCloseMobile();
             }}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 py-2 text-[12px] font-semibold text-white transition-colors hover:bg-indigo-500"
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-teal-600 py-2 text-[12px] font-semibold text-white transition-colors hover:bg-teal-500"
           >
             + New chat
           </button>
@@ -166,7 +166,7 @@ export function StudioOutline({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search threads..."
-              className="w-full rounded-lg border border-border bg-background/60 py-2 pl-8 pr-2 text-[11px] outline-none transition-colors placeholder:text-muted-foreground focus:border-indigo-500/50"
+              className="w-full rounded-lg border border-border bg-background/60 py-2 pl-8 pr-2 text-[11px] outline-none transition-colors placeholder:text-muted-foreground focus:border-teal-500/50"
             />
           </div>
         </div>
@@ -186,7 +186,7 @@ export function StudioOutline({
                   key={session.id}
                   className={`group flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors ${
                     currentSessionId === session.id
-                      ? 'bg-indigo-500/10 text-foreground'
+                      ? 'bg-teal-500/10 text-foreground'
                       : 'text-muted-foreground hover:bg-muted/60'
                   } ${isSending ? 'opacity-60' : ''}`}
                 >
