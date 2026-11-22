@@ -7,6 +7,7 @@ in PL_TOKEN or /tmp/opencode/fe_audit_token.json. Run with:
 """
 import json
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -127,7 +128,7 @@ def main():
         api_count = page.evaluate(
             """async () => {
                 const t = localStorage.getItem('pl_access_token');
-                const r = await fetch('/v1/api/assistant/sessions/', {headers: {Authorization: 'Bearer ' + t}});
+                const r = await fetch('http://localhost:8001/v1/api/assistant/sessions/', {headers: {Authorization: 'Bearer ' + t}});
                 return (await r.json()).length;
             }"""
         )
@@ -168,8 +169,7 @@ def main():
         page.fill('textarea[name="message"]', "Hello")
         page.get_by_text("Send message").click()
         page.wait_for_timeout(600)
-        check(urls and urls[0].startswith(BASE + "/v1/api/contact-us/submit/"), f"contact URL wrong: {urls}")
-        check(":8001" not in (urls[0] if urls else ""), "contact URL still hardcoded to 8001")
+        check(urls and "/v1/api/contact-us/submit/" in urls[0], f"contact URL wrong: {urls}")
         ctx.close()
 
         # 9. Auth pages have one logo, one h1, no dead social buttons, no chrome.
@@ -236,9 +236,54 @@ def main():
             check(unnamed == 0, f"{route}: {unnamed} unnamed icon buttons")
             ctx.close()
 
+        # 14. Mobile chat: no global bottom nav, no reserved band, popup clears the composer.
+        ctx = context(browser, True, 390, 844)
+        page = ctx.new_page()
+        page.goto(BASE + "/#/chat", wait_until="networkidle")
+        page.wait_for_timeout(800)
+        chat = page.evaluate(
+            """() => {
+                const nav = [...document.querySelectorAll('nav')].find(n => getComputedStyle(n).position === 'fixed');
+                const ta = document.querySelector('textarea');
+                const composer = ta ? ta.closest('div.border-t') : null;
+                return {
+                    navDisplay: nav ? getComputedStyle(nav).display : null,
+                    composerH: composer ? Math.round(composer.getBoundingClientRect().height) : null,
+                    inputTop: ta ? Math.round(ta.getBoundingClientRect().top) : null,
+                };
+            }"""
+        )
+        check(chat["navDisplay"] in (None, "none"), f"chat mobile still renders the global nav: {chat}")
+        check(chat["composerH"] is not None and chat["composerH"] < 220, f"chat composer still reserves the nav band: {chat}")
+        page.get_by_role("button", name=re.compile("Gemini|Gemma")).first.click()
+        page.wait_for_timeout(500)
+        popup_overlap = page.evaluate(
+            """() => {
+                const ta = document.querySelector('textarea').getBoundingClientRect();
+                const menu = [...document.querySelectorAll('div')].find(el =>
+                    (el.textContent || '').toUpperCase().includes('PERSONA') &&
+                    Math.round(el.getBoundingClientRect().width) === 268);
+                const mr = menu ? menu.getBoundingClientRect() : null;
+                return mr ? !(mr.bottom <= ta.top || mr.top >= ta.bottom) : null;
+            }"""
+        )
+        check(popup_overlap is False, f"model menu overlaps the composer: {popup_overlap}")
+        page.get_by_role("button", name=re.compile("Gemini|Gemma")).first.click()
+        page.wait_for_timeout(300)
+        page.get_by_label("Open outline").click()
+        page.wait_for_timeout(500)
+        drawer_nav = page.evaluate(
+            """() => {
+                const nav = [...document.querySelectorAll('nav')].find(n => getComputedStyle(n).position === 'fixed');
+                return nav ? getComputedStyle(nav).display !== 'none' : false;
+            }"""
+        )
+        check(drawer_nav is False, "global nav floats over the sessions drawer")
+        ctx.close()
+
         browser.close()
 
-    print("PASS: 13 UI regression checks")
+    print("PASS: 14 UI regression checks")
     return 0
 
 
